@@ -4,7 +4,7 @@
 <!-- Pickleball v25 | FIX: Login detailed errors, Test GAS button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) GAS dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên GSheets | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Admin v57.22 — Referee Pickleball / DA NANG ®</title>
+<title>Admin v57.3 — Referee Pickleball / DA NANG ®</title>
 <style>
 /* ═══════════════════════════════════════════════════════
    Pickleball Admin — Mobile-First Professional UI
@@ -6540,6 +6540,8 @@ async function saveEditMatch(giaiId, nd, bang, code) {
 
     // ── Re-render ngay với cache đã sửa (không cần chờ extra API) ──
     renderBangList(giaiId, nd);
+    // Sync cây thi đấu (nd-panel bracket)
+    if (_bkGiai && _bkNd === nd) bkRender();
     if (typeof renderBracket === 'function') {
       const bracketWrap = document.getElementById('bracket-wrap');
       if (bracketWrap && bracketWrap.offsetParent !== null) {
@@ -7998,28 +8000,51 @@ function _bkBuildTree(seeds, bangs, koMatches, bangDone) {
   const koByCode = {};
   koMatches.forEach(m => { koByCode[String(m[3]||'')] = m; });
 
-  // Helper: lấy tên đội từ override nếu Sheet chưa có winner
-  const _ovTeam = (code, side) => {
+  // Lấy tên đội thực tế: ưu tiên override, fallback Sheet
+  const _resolvedTeam = (code, side) => {
     const ov = _bkOverrides[code];
-    if (!ov) return '';
-    return side === 'A' ? (ov.teamA||'') : (ov.teamB||'');
+    if (ov) {
+      const ovName = side === 'A' ? ov.teamA : ov.teamB;
+      if (ovName) return ovName;
+    }
+    const sheetM = koByCode[code];
+    return sheetM ? String(side === 'A' ? sheetM[4]||'' : sheetM[7]||'') : '';
   };
 
+  // Map: matchCode → {byeA, byeB} — sẽ được populate khi build round-0
+  const _byeMap = {};
+
   const getWinner = (code) => {
-    const m = koByCode[code];
-    if (m && isMatchDone(m)) {
-      const fs = getFinalScore(m);
-      if (fs) return fs.scoreA > fs.scoreB ? String(m[4]||'') : String(m[7]||'');
+    const sheetM = koByCode[code];
+    if (sheetM && isMatchDone(sheetM)) {
+      const fs = getFinalScore(sheetM);
+      if (fs) {
+        const tA = _resolvedTeam(code, 'A');
+        const tB = _resolvedTeam(code, 'B');
+        return fs.scoreA > fs.scoreB ? tA : tB;
+      }
     }
-    // Sheet chưa có kết quả → dùng override nếu có (user đã chỉ định thủ công)
-    // Không thể biết ai thắng từ override nên trả về ''
+    // BYE thực → auto-advance đội thực (không cần thi đấu)
+    const bye = _byeMap[code];
+    if (bye) {
+      const ov = _bkOverrides[code];
+      // Nếu BYE đã bị override bằng đội thực → KHÔNG auto-advance (cần thi đấu)
+      const byeAStillReal = bye.byeA && !(ov && ov.byeAOverridden);
+      const byeBStillReal = bye.byeB && !(ov && ov.byeBOverridden);
+      if (byeAStillReal) return _resolvedTeam(code, 'B') || '';
+      if (byeBStillReal) return _resolvedTeam(code, 'A') || '';
+    }
     return '';
   };
+
   const getLoser = (code) => {
-    const m = koByCode[code];
-    if (!m || !isMatchDone(m)) return '';
-    const fs = getFinalScore(m); if (!fs) return '';
-    return fs.scoreA > fs.scoreB ? String(m[7]||'') : String(m[4]||'');
+    const sheetM = koByCode[code];
+    if (!sheetM || !isMatchDone(sheetM)) return '';
+    const fs = getFinalScore(sheetM);
+    if (!fs) return '';
+    const tA = _resolvedTeam(code, 'A');
+    const tB = _resolvedTeam(code, 'B');
+    return fs.scoreA > fs.scoreB ? tB : tA;
   };
 
   // Global seeding theo thứ tự bảng cố định (A,B,C,D...)
@@ -8093,6 +8118,8 @@ function _bkBuildTree(seeds, bangs, koMatches, bangDone) {
           slotTop: slotT, slotBot: slotB,
           fromFin
         });
+        // Ghi nhận BYE info để getWinner dùng cho vòng sau
+        if (byeT || byeB) _byeMap[code] = { byeA: byeT, byeB: byeB };
       } else {
         // Later rounds
         const prevPfx = prefix(fromFin + 1, nM * 2);
@@ -8186,20 +8213,20 @@ function _bkResolveAdvancers(tree, koMatches) {
     const treeM = treeMatchMap[code];
     const sheetM = koByCode[code];
 
-    // BYE: winner là đội thực (không phải BYE)
+    // BYE thực (chưa bị override): winner là đội thực còn lại
     if (treeM) {
       if (treeM.isByeA && !treeM.isByeB) return treeM.teamB || '';
       if (treeM.isByeB && !treeM.isByeA) return treeM.teamA || '';
     }
 
-    // Có điểm số trong Sheet → lấy winner theo điểm
+    // Có điểm số trong Sheet → lấy winner theo điểm, dùng tên đã override
     if (sheetM && isMatchDone(sheetM)) {
       const fs = getFinalScore(sheetM);
       if (fs) {
-        // Dùng tên đã override nếu có, không thì tên từ Sheet
-        const tA = (treeM && treeM.teamA) || String(sheetM[4]||'');
-        const tB = (treeM && treeM.teamB) || String(sheetM[7]||'');
-        return fs.scoreA > fs.scoreB ? tA : tB;
+        // Ưu tiên tên từ tree (đã apply override), fallback Sheet
+        const tA = (treeM?.teamA) || String(sheetM[4]||'');
+        const tB = (treeM?.teamB) || String(sheetM[7]||'');
+        if (tA || tB) return fs.scoreA > fs.scoreB ? tA : tB;
       }
     }
     return '';
@@ -9002,15 +9029,81 @@ function bkSaveEdit(code, seedA, seedB) {
     teamB: b,
     seedCodeA: seedCodeA || '',
     seedCodeB: seedCodeB || '',
-    // Nếu đội BYE được thay bằng đội thực → đánh dấu để _bkApplyOverrides xóa flag isBye
     byeAOverridden: isByeA && !!a,
     byeBOverridden: isByeB && !!b,
   };
   _bkSaveOverrides();
   document.getElementById('bk-edit-mo')?.remove();
   bkRender();
+
   const dispA = a || '(auto)', dispB = b || '(auto)';
   toast(`💾 Trận ${code}: ${dispA} vs ${dispB}${(isByeA&&a)||(isByeB&&b)?' · BYE đã được thay thế':''}`, 'ok');
+
+  // ── Tự động sync override → bảng đấu (_M + GAS) ──
+  _bkSyncOverrideToSchedule(code);
+}
+
+// Sync 1 trận từ override về bảng đấu (update _M local + GAS background)
+async function _bkSyncOverrideToSchedule(code) {
+  if (!_bkGiai || !_bkNd) return;
+  // Dùng _bkCurrentTree (đã re-render xong) để lấy tên đội mới nhất
+  // Đợi 1 tick để bkRender hoàn tất
+  await new Promise(r => setTimeout(r, 50));
+
+  const tree = _bkCurrentTree;
+  if (!tree) return;
+
+  let matchInTree = null;
+  for (const round of tree.rounds) {
+    const found = round.matches.find(m => m.code === code);
+    if (found) { matchInTree = { m: found, roundName: round.name }; break; }
+  }
+  if (!matchInTree) return;
+
+  const { m, roundName } = matchInTree;
+  const tA = m.isByeA ? '' : (m.teamA || '');
+  const tB = m.isByeB ? '' : (m.teamB || '');
+
+  const giaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
+  const allM = _M.filter(r => String(r[0]||'')===giaiName && String(r[1]||'')===_bkNd);
+  const existing = allM.find(r => String(r[3]||'') === code);
+
+  if (existing) {
+    // Update nếu tên đội khác
+    const curA = String(existing[4]||''), curB = String(existing[7]||'');
+    if (tA === curA && tB === curB) return; // không đổi gì
+
+    const newRow = [...existing];
+    newRow[4] = tA; newRow[7] = tB;
+    // Cập nhật local cache ngay lập tức
+    const idx = _M.indexOf(existing);
+    if (idx >= 0) _M[idx] = normalizeMatchRow(newRow);
+    // Render bảng đấu nếu đang mở
+    if (_curGiaiId === _bkGiai && _curNd === _bkNd) {
+      const tvNd = document.getElementById('tv-nd');
+      if (tvNd && tvNd.style.display !== 'none') renderBangList(_bkGiai, _bkNd);
+    }
+    // Push lên GAS background (không block UI)
+    gPost({ action:'updateMatch', adminCode:CODE,
+            giai:giaiName, giaiName,
+            bang: String(existing[2]||''), code, row: newRow })
+      .then(d => {
+        if (!d?.ok) toast(`⚠️ Chưa sync ${code} lên sheet: ${d?.reason||'lỗi mạng'}`, 'in');
+      }).catch(() => toast(`⚠️ Lỗi mạng khi sync ${code}`, 'in'));
+  } else {
+    // Tạo mới nếu trận chưa có trong bảng đấu
+    if (!tA && !tB) return; // chưa có đội nào → bỏ qua
+    const newRow = [giaiName, _bkNd, roundName, code, tA, '', '', tB, '', roundName, ''];
+    _M.push(normalizeMatchRow(newRow));
+    if (_curGiaiId === _bkGiai && _curNd === _bkNd) {
+      const tvNd = document.getElementById('tv-nd');
+      if (tvNd && tvNd.style.display !== 'none') renderBangList(_bkGiai, _bkNd);
+    }
+    gPost({ action:'addMatchAdmin', adminCode:CODE, row: newRow })
+      .then(d => {
+        if (!d?.ok) toast(`⚠️ Chưa tạo ${code} lên sheet`, 'in');
+      }).catch(() => {});
+  }
 }
 
 function bkClearOverride(code) {
@@ -10918,6 +11011,8 @@ async function saveScore() {
   const idx = _M.findIndex(r=>r[0]===g&&r[1]===nd&&r[2]===bg&&r[3]===code);
   if (idx>=0) { _M[idx][5]=sA; _M[idx][6]=sB; }
   filterMatches();
+  // Sync cây thi đấu nếu đang xem cùng nội dung
+  if (_bkGiai && _bkNd === nd) bkRender();
   toast('✅ Đã cập nhật tỉ số','ok');
   // Gửi GAS ngầm (updateMatch với row đầy đủ)
   try {
