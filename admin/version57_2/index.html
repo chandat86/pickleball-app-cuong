@@ -4,7 +4,7 @@
 <!-- Pickleball v25 | FIX: Login detailed errors, Test GAS button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) GAS dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên GSheets | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Admin v57.5 — Referee Pickleball / DA NANG ®</title>
+<title>Admin v57.8 — Referee Pickleball / DA NANG ®</title>
 <style>
 /* ═══════════════════════════════════════════════════════
    Pickleball Admin — Mobile-First Professional UI
@@ -8344,9 +8344,9 @@ function bkRender() {
     const nA=m.isByeA?'BYE':(tA||'—'), nB=m.isByeB?'BYE':(tB||'—');
     const plA=pillLabel(m.seedA||''), plB=pillLabel(m.seedB||'');
     const pcA=pillCls(m.seedA||''), pcB=pillCls(m.seedB||'');
-    const scA=fs?`<div class="bk-sbox${winA?' s-win':''}">${fs.scoreA}</div>`:'<div class="bk-sbox s-empty">—</div>';
-    const scB=fs?`<div class="bk-sbox${winB?' s-win':''}">${fs.scoreB}</div>`:'<div class="bk-sbox s-empty">—</div>';
-    return `<div class="${cardCls}" data-code="${m.code}" ${_bkDragMode?`draggable="true" ondragstart="bkDragStart(event,'${m.code}')" ondragover="bkDragOver(event)" ondragleave="bkDragLeave(event)" ondrop="bkDrop(event,'${m.code}')"`:""} onclick="bkEditMatch('${m.code}','${safeA}','${safeB}','${safeSA}','${safeSB}')">
+
+
+
       <div class="bk-card-hd">
         <span>${m.code}</span>
         <div class="bk-card-actions">
@@ -8759,6 +8759,55 @@ async function bkAutoFill() {
   try {
     // 1. Tính seeding & render cây ngay lập tức
     _bkOverrides = {};
+
+    // ── Auto Lucky Loser: với số bảng lẻ (3,5,6,7...) → tự động gán đội hạng 3 tốt nhất vào BYE ──
+    const allDoneBangs = bangs.filter(b => bangDone?.[b]);
+    const numByes = _ceil2(bangs.length * 2) - bangs.length * 2;
+    if (numByes > 0 && allDoneBangs.length > 0) {
+      // Thu thập đội hạng 3 từ các bảng đã xong, sort theo thành tích
+      const rank3List = [];
+      allDoneBangs.forEach(bang => {
+        const st = seeds[bang] || [];
+        const r3 = st.find(x => x.rank === 3);
+        if (r3 && r3.team) {
+          const diff = r3.pf - r3.pa;
+          rank3List.push({ bang, team: r3.team, won: r3.won, pf: r3.pf, pa: r3.pa, diff });
+        }
+      });
+      rank3List.sort((a,b) => (b.won-a.won)||(b.diff-a.diff)||(b.pf-a.pf));
+
+      // Build cây tạm để tìm BYE slots
+      _bkSaveOverrides();
+      bkRender();
+      const tempTree = _bkCurrentTree;
+      const byeSlots = [];
+      if (tempTree) {
+        tempTree.rounds.forEach(round => {
+          round.matches.forEach(m => {
+            if (m.isByeA) byeSlots.push({ code: m.code, slot: 'A' });
+            if (m.isByeB) byeSlots.push({ code: m.code, slot: 'B' });
+          });
+        });
+      }
+
+      // Gán lần lượt lucky loser tốt nhất vào từng BYE slot
+      byeSlots.forEach((byeSlot, idx) => {
+        const ll = rank3List[idx];
+        if (!ll) return;
+        const ov = _bkOverrides[byeSlot.code] || {};
+        if (byeSlot.slot === 'A') {
+          _bkOverrides[byeSlot.code] = { ...ov, teamA: ll.team, seedCodeA: '', byeAOverridden: true };
+        } else {
+          _bkOverrides[byeSlot.code] = { ...ov, teamB: ll.team, seedCodeB: '', byeBOverridden: true };
+        }
+      });
+
+      if (byeSlots.length > 0 && rank3List.length > 0) {
+        const assigned = Math.min(byeSlots.length, rank3List.length);
+        toast(`🍀 Tự động gán ${assigned} Lucky Loser vào slot BYE`, 'in');
+      }
+    }
+
     _bkSaveOverrides();
     bkRender();
 
@@ -9341,7 +9390,7 @@ function bkApplyQuickSwap(code, slot) {
   _bkSyncOverrideToSchedule(code);
 }
 
-
+function bkSaveEdit(code, seedA, seedB) {
   const seedCodeA = (document.getElementById('bk-edit-seed-a')?.value||'').trim().toUpperCase();
   const seedCodeB = (document.getElementById('bk-edit-seed-b')?.value||'').trim().toUpperCase();
   const rawA      = (document.getElementById('bk-edit-a')?.value||'').trim();
