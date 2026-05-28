@@ -1958,7 +1958,12 @@ function syncDropdownsFromData(preserveSelection) {
   });
   if (curND   && nds.includes(curND))     ndSel.value   = curND;
   if (curBang && bangs.includes(curBang)) bangSel.value = curBang;
-  if (!curND && nds.length === 1) ndSel.value = nds[0];
+  if (!curND && nds.length === 1) {
+    ndSel.value = nds[0];
+    // cascade bảng khi tự chọn nội dung
+    const allowedBangs = [...new Set(allowedMatches.filter(m=>m.noidung===nds[0]).map(m=>m.bang).filter(Boolean))];
+    if (allowedBangs.length === 1) bangSel.value = allowedBangs[0];
+  }
   if (_userPerm.courts.length === 1) {
     const courtInp = document.getElementById('inp-court');
     if (courtInp && !courtInp.value) courtInp.value = _userPerm.courts[0];
@@ -2561,10 +2566,17 @@ function renderMatchGrid() {
       if (total === 0) {
         const courtLabel = _userPerm.courts.length ? _userPerm.courts.join(', ') : '';
         const giaiLabel  = _userPerm.giai ? ` · ${_userPerm.giai}` : '';
+        const totalInGiai = matchList.filter(m => {
+          if (!_userPerm.giai) return true;
+          return (m.giai||'').trim().toLowerCase() === _userPerm.giai.trim().toLowerCase();
+        }).length;
+        const hint = totalInGiai > 0
+          ? `Lịch có <strong>${totalInGiai} trận</strong> nhưng chưa phân công sân cho bạn. Liên hệ BTC.`
+          : 'Kiểm tra lại lịch đấu đã được tải chưa. Bấm <strong>🔄 Làm mới</strong>.';
         grid.innerHTML = `<div class="empty-msg" style="grid-column:1/-1;text-align:center;padding:16px">
           <div style="font-size:28px;margin-bottom:6px">📭</div>
-          <strong style="color:var(--red)">Không có trận nào${giaiLabel ? ' tại ' + giaiLabel : ''} · ${courtLabel}.</strong><br>
-          <span style="color:var(--g500);font-size:12px;margin-top:4px;display:block">Kiểm tra lại lịch đấu đã được tải chưa.</span>
+          <strong style="color:var(--red)">Không có trận nào${giaiLabel ? ' tại ' + giaiLabel : ''}${courtLabel ? ' · sân ' + courtLabel : ''}.</strong><br>
+          <span style="color:var(--g500);font-size:12px;margin-top:4px;display:block">${hint}</span>
         </div>`;
       } else {
         allowedMatches.forEach(m => {
@@ -4866,41 +4878,61 @@ function _updateTimerBtnLabels() {
 function _matchAllowed(m) {
   if (_userPerm.isAdmin) return true;
 
-  // ── Bắt buộc khớp GIẢI (case-insensitive, trim) ─────────────────
+  // ── 1. Bắt buộc khớp GIẢI (case-insensitive, trim) ──────────────
   if (_userPerm.giai) {
     const matchGiai = (m.giai || '').trim().toLowerCase();
     const permGiai  = _userPerm.giai.trim().toLowerCase();
     if (matchGiai && matchGiai !== permGiai) return false;
   }
 
-  // ── QUY TẮC MỚI: Lọc theo TÊN TRỌNG TÀI ─────────────────────────
-  // Admin gán TT vào bảng/trận → m.referee (m[10]) = tên TT
-  // TT chỉ thấy trận có tên mình trong trường referee
-  const myName     = (_userPerm.name || '').trim().toLowerCase();
-  // m.referee = col 10 (GhiChú) - assigned by admin per-match or per-bang
-  const matchRef   = (m.referee || '').trim().toLowerCase();
+  // ── 2. Lọc theo nội dung (nếu được phân cụ thể) ─────────────────
+  if (_userPerm.noidung) {
+    const matchND = (m.noidung || '').trim();
+    if (matchND && matchND !== _userPerm.noidung) return false;
+  }
+
+  // ── 3. Lọc theo TÊN TRỌNG TÀI (cột referee/GhiChú trận) ─────────
+  const myName   = (_userPerm.name || '').trim().toLowerCase();
+  const matchRef = (m.referee || '').trim().toLowerCase();
 
   if (myName && matchRef) {
-    // Hỗ trợ nhiều TT: "CƯƠNG,THANH NGUYET" → TT nào có tên trong list đều thấy
+    // Nhiều TT cách nhau bởi dấu phẩy: "Cương, Thanh Nguyệt"
     const refNames = matchRef.split(',').map(r => r.trim()).filter(Boolean);
     const refOk = refNames.some(r =>
       r === myName ||
       r.includes(myName) ||
       myName.includes(r)
     );
-    if (!refOk) return false;
-  } else if (myName && !matchRef) {
-    // Trận chưa phân TT → TT không thấy (trừ admin)
+    if (refOk) return true; // khớp tên → cho phép dù không có sân
+  }
+
+  // ── 4. Lọc theo SÂN được phân (courts[]) ─────────────────────────
+  // Trọng tài thấy trận nếu sân trận khớp với sân được phân
+  if (_userPerm.courts.length > 0) {
+    const mCourt = (m.court || m.san || '').trim().toLowerCase();
+    if (mCourt) {
+      const courtOk = _userPerm.courts.some(c =>
+        mCourt === c.trim().toLowerCase() ||
+        mCourt.includes(c.trim().toLowerCase())
+      );
+      if (courtOk) return true; // khớp sân → cho phép
+    }
+    // Sân trận chưa được gán → TT không thấy (trừ nếu không có court filter)
+    if (mCourt === '' && myName && !matchRef) return false;
+  }
+
+  // ── 5. Trường hợp TT chưa được phân sân lẫn tên ─────────────────
+  // Nếu có giải khớp nhưng không có court, không có referee field
+  // → chỉ cho xem nếu cột referee TRỐNG (trận chưa phân ai cụ thể)
+  if (myName && !matchRef && _userPerm.courts.length === 0) {
+    // TT đăng nhập đúng giải nhưng chưa được phân sân/tên → ẩn trận
     return false;
   }
 
-  // ── Lọc theo nội dung (nếu được phân) ───────────────────────────
-  if (_userPerm.noidung) {
-    const matchND = (m.noidung || '').trim();
-    if (matchND && matchND !== _userPerm.noidung) return false;
-  }
+  // Trận không có referee và không có court filter → TT trong giải thấy
+  if (!myName) return true;
 
-  return true;
+  return !matchRef; // trận chưa phân TT cụ thể → TT thấy được
 }
 
 async function licValidate() {
