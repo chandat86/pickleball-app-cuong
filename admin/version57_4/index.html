@@ -8062,6 +8062,30 @@ function _bkCrossSeededSlots(globalSeeds, bangs, seeds) {
   return { slotMap, cap };
 }
 
+// Sinh prefix ngắn từ tên nội dung để tạo mã trận KO không trùng giữa các nội dung
+// "Đôi Nữ Advance" → "DNA_", "Đơn Nam" → "DRN_", "Đôi Nam" → "DON_"
+function _bkNdPrefix(nd) {
+  if (!nd) return '';
+  // Bỏ dấu tiếng Việt
+  const norm = nd.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+               .replace(/đ/gi, 'd').replace(/[^a-zA-Z0-9\s]/g, '')
+               .trim().toUpperCase();
+  const words = norm.split(/\s+/).filter(Boolean);
+  let pfx;
+  if (words.length === 0) {
+    pfx = 'ND';
+  } else if (words.length === 1) {
+    pfx = words[0].slice(0, 5);
+  } else if (words.length === 2) {
+    // Dùng đủ ký tự để phân biệt: "Đơn Nam" → DONNAM, "Đôi Nam" → DOINAM
+    pfx = (words[0].slice(0, 3) + words[1].slice(0, 3));
+  } else {
+    // Lấy chữ đầu mỗi từ, tối đa 5 ký tự — đủ để phân biệt
+    pfx = words.slice(0, 5).map(w => w[0]).join('');
+  }
+  return pfx.slice(0, 6) + '_';
+}
+
 function _bkBuildTree(seeds, bangs, koMatches, bangDone) {
   const nb = bangs.length;
   const tree = { vongBang: bangs, rounds: [] };
@@ -8150,12 +8174,14 @@ function _bkBuildTree(seeds, bangs, koMatches, bangDone) {
     won: s.won, pf: s.pf, pa: s.pa, seedRank: s.seedRank
   }));
 
-  // Mã prefix theo vòng
+  // Mã prefix theo vòng — có prefix nội dung để tránh trùng giữa các nội dung
+  // VD: "Đôi Nữ Advance" → "DNA", mã: DNA_TK1, DNA_BK1, DNA_CK
+  const ndPfx = _bkNdPrefix(_bkNd);
   const prefix = (fromFin, nM) => {
-    if (fromFin === 0) return 'CK';
-    if (fromFin === 1) return nM === 1 ? 'BK' : 'BK';
-    if (fromFin === 2) return 'TK';
-    return 'V' + Math.pow(2, fromFin + 1);
+    if (fromFin === 0) return ndPfx + 'CK';
+    if (fromFin === 1) return ndPfx + 'BK';
+    if (fromFin === 2) return ndPfx + 'TK';
+    return ndPfx + 'V' + Math.pow(2, fromFin + 1);
   };
 
   // Build rounds
@@ -8209,12 +8235,12 @@ function _bkBuildTree(seeds, bangs, koMatches, bangDone) {
   // Hạng 3 (sau Bán kết)
   if (rounds >= 2) {
     const bkCount = cap / 4;
-    const bk1 = bkCount === 1 ? 'BK' : 'BK1';
-    const bk2 = bkCount === 1 ? 'BK' : 'BK2';
+    const bk1 = bkCount === 1 ? ndPfx+'BK' : ndPfx+'BK1';
+    const bk2 = bkCount === 1 ? ndPfx+'BK' : ndPfx+'BK2';
     roundMatches.push({
       name: 'Hạng 3', cls: 'bk-h3', fromFin: -1,
       matches: [{
-        code: 'H3',
+        code: ndPfx + 'H3',
         seedA: `Thua ${bk1}`, seedB: `Thua ${bk2}`,
         teamA: getLoser(bk1), teamB: getLoser(bk2),
       }]
@@ -9813,14 +9839,6 @@ async function bkApplyAndSave() {
   const koByCode = {};
   koMatches.forEach(m=>{koByCode[String(m[3]||'')]=m;});
 
-  // Cross-noidung conflict: mã trận (BK1,CK...) có thể trùng với nội dung khác trên GAS
-  // Nếu tồn tại trong _M với nội dung khác → GAS sẽ báo "đã tồn tại" khi add
-  // → chuyển sang toUpdate để dùng updateMatch (GAS lọc theo nd+code khi update)
-  const crossNdCodes = new Set(
-    _M.filter(m => String(m[0]||'')===giaiName && String(m[1]||'')!==_bkNd)
-      .map(m => String(m[3]||''))
-  );
-
   // Duyệt tất cả round (kể cả H3)
   let created=0, updated=0, skipped=0;
   const allRounds = tree.rounds.filter(r=>r.cls!=='bk-h3').concat(tree.rounds.filter(r=>r.cls==='bk-h3'));
@@ -9833,14 +9851,9 @@ async function bkApplyAndSave() {
       const tB = m.isByeB ? '' : (m.teamB||'');
 
       if (!existing) {
-        // Tạo mới — nhưng nếu mã trùng với nội dung khác → dùng updateMatch
+        // Tạo mới
         const row = [giaiName, _bkNd, round.name, m.code, tA, '', '', tB, '', round.name, ''];
-        if (crossNdCodes.has(m.code)) {
-          // GAS có thể báo "đã tồn tại" → đưa vào toUpdate với existing=null (tạo row giả)
-          toUpdate.push({row, code:m.code, round:round.name, existing: row, isNew:true});
-        } else {
-          toCreate.push({row, code:m.code, round:round.name});
-        }
+        toCreate.push({row, code:m.code, round:round.name});
       } else {
         // Cập nhật nếu team thay đổi
         const curA = String(existing[4]||''), curB = String(existing[7]||'');
