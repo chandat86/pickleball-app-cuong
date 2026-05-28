@@ -4,7 +4,7 @@
 <!-- Pickleball v8.1 | FIX: Park priority in renderMatchCard — tỉ số tím đúng khi switch trận | 2026-05-23 -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>v21 Da Nang Referee v17 – Pickleball</title>
+<title>v21_2 Da Nang Referee v17 – Pickleball</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -1538,7 +1538,7 @@ function stopTimer() {
   clearInterval(timerInterval);
   document.getElementById('timer-modal').classList.remove('show');
 }
-const _EMBEDDED_GS_URL = 'https://script.google.com/macros/s/AKfycbw1HiQCcbGXgGzXj77oDrETKRTyn4WjUGjyNaPBpS5oapnwyBSvJWFf_Y_Ob-sUqj8QoQ/exec';
+const _EMBEDDED_GS_URL = 'https://script.google.com/macros/s/AKfycby6LelbyuStLvdGdpfzB83qPTzLUNkd_f_Voyp_7MjgXS8yCN1LrMds2OgsOcCQoo6Usg/exec';
 let GS_URL = _EMBEDDED_GS_URL || localStorage.getItem('pb_gs_url6') || '';
 if (_EMBEDDED_GS_URL) localStorage.setItem('pb_gs_url6', _EMBEDDED_GS_URL); // đồng bộ
 
@@ -3820,6 +3820,16 @@ function pmSwapPlayers(side) {
   updatePrematchPanel();
   render();
 }
+// ── Biến & hàm quản lý timer bốc thăm — PHẢI khai báo trước openTossModal ──
+let _tossSpinIv    = null; // interval spin ngẫu nhiên
+let _tossPickTimers = [];  // setTimeout đang chờ
+
+function _tossKillTimers() {
+  if (_tossSpinIv) { clearInterval(_tossSpinIv); _tossSpinIv = null; }
+  _tossPickTimers.forEach(t => clearTimeout(t));
+  _tossPickTimers = [];
+}
+
 const _toss = {
   step: 1,
   winner: null,   // 'a' | 'b'
@@ -3868,15 +3878,6 @@ function tossPickTeam(side) {
   document.getElementById('toss-btn-b').classList.toggle('selected', side==='b');
   const t = setTimeout(() => _tossSetWinner(side), 350);
   _tossPickTimers.push(t);
-}
-
-let _tossSpinIv = null;       // interval bốc thăm ngẫu nhiên — dừng khi đóng modal
-let _tossPickTimers = [];     // các setTimeout đang chờ — hủy khi reset
-
-function _tossKillTimers() {
-  if (_tossSpinIv) { clearInterval(_tossSpinIv); _tossSpinIv = null; }
-  _tossPickTimers.forEach(t => clearTimeout(t));
-  _tossPickTimers = [];
 }
 
 function tossRandom() {
