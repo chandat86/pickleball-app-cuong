@@ -4,7 +4,7 @@
 <!-- Pickleball v8.1 | FIX: Park priority in renderMatchCard — tỉ số tím đúng khi switch trận | 2026-05-23 -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>v28 Da Nang Referee v17 – Pickleball</title>
+<title>v28_2 Da Nang Referee v17 – Pickleball</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -4058,20 +4058,22 @@ function pmSwapPlayers(side) {
 }
 const _toss = {
   step: 1,
-  winner: null,   // 'a' | 'b'
-  choice: null,   // 'serve' | 'receive' | 'side'
+  winner: null,
+  choice: null,
   serverName: '',
   receiverName: '',
-  serverSide: null, // 'a' | 'b' — side đang giao bóng
-  _spinIv: null,   // interval ID của animation bốc thăm
-  _spinTid: null,  // timeout ID sau spin
-  _pickTid: null,  // timeout ID sau pick team
+  serverSide: null,
+  _spinIv: null,
+  _spinTid: null,
+  _pickTid: null,
+  _chooseTid: null,
 };
 
 function _tossStopSpin() {
-  if (_toss._spinIv)  { clearInterval(_toss._spinIv);  _toss._spinIv  = null; }
-  if (_toss._spinTid) { clearTimeout(_toss._spinTid);  _toss._spinTid = null; }
-  if (_toss._pickTid) { clearTimeout(_toss._pickTid);  _toss._pickTid = null; }
+  if (_toss._spinIv)   { clearInterval(_toss._spinIv);   _toss._spinIv   = null; }
+  if (_toss._spinTid)  { clearTimeout(_toss._spinTid);   _toss._spinTid  = null; }
+  if (_toss._pickTid)  { clearTimeout(_toss._pickTid);   _toss._pickTid  = null; }
+  if (_toss._chooseTid){ clearTimeout(_toss._chooseTid); _toss._chooseTid= null; }
   const spin = document.getElementById('toss-spinning');
   if (spin) spin.style.display = 'none';
 }
@@ -4084,16 +4086,24 @@ function openTossModal() {
   document.getElementById('toss-name-a').textContent = sn(m.origTeamA || m.teamA);
   document.getElementById('toss-name-b').textContent = sn(m.origTeamB || m.teamB);
   document.getElementById('toss-match-title').textContent = `${m.code} · ${m.noidung}${m.bang?' · '+m.bang:''}`;
-  document.getElementById('toss-btn-a').classList.remove('selected');
-  document.getElementById('toss-btn-b').classList.remove('selected');
+  // Luôn reset buttons về trạng thái ban đầu
+  ['a','b'].forEach(s => {
+    const b = document.getElementById('toss-btn-'+s);
+    if (b) { b.classList.remove('selected'); b.disabled = false; }
+  });
+  // Reset nút ngẫu nhiên
+  const randBtn = document.querySelector('[onclick="tossRandom()"]');
+  if (randBtn) randBtn.disabled = false;
   document.querySelectorAll('.toss-choice-btn').forEach(b => b.classList.remove('selected'));
   const srvSel = document.getElementById('toss-server-sel');
   const rcvSel = document.getElementById('toss-receiver-sel');
   if (srvSel) srvSel.innerHTML = '<option value="">-- Chọn người giao --</option>';
   if (rcvSel) rcvSel.innerHTML = '<option value="">-- Chọn người đỡ --</option>';
   document.getElementById('toss-spinning').style.display = 'none';
+  const tossModalEl = document.getElementById('modal-toss');
+  tossModalEl.style.display = ''; // xóa inline style nếu bị ghi đè từ lần trước
   _tossShowStep(1);
-  document.getElementById('modal-toss').classList.add('show');
+  tossModalEl.classList.add('show');
 }
 
 function _tossShowStep(n) {
@@ -4205,7 +4215,8 @@ function tossChoose(choice, el) {
   document.getElementById('toss-server-team-label').textContent   = `Đội: ${serverTeamName}`;
   document.getElementById('toss-receiver-team-label').textContent = `Đội: ${receiverTeamName}`;
 
-  setTimeout(() => _tossShowStep(3), 250);
+  if (_toss._chooseTid) clearTimeout(_toss._chooseTid);
+  _toss._chooseTid = setTimeout(() => { _toss._chooseTid = null; _tossShowStep(3); }, 250);
 }
 
 function tossConfirmPlayers() {
@@ -4272,7 +4283,7 @@ function tossApply() {
   pushLog(`🏓 Giao bóng: ${serverNote}${_toss.receiverName?' · 🛡 Đỡ: '+_toss.receiverName:''}`, null);
   logToGS(`🎲 Bốc thăm: ${winTeam} → ${choiceText} · GBóng: ${serverNote}`, '');
   const tossModal = document.getElementById('modal-toss');
-  if (tossModal) { tossModal.classList.remove('show'); tossModal.style.display = 'none'; }
+  if (tossModal) { tossModal.classList.remove('show'); tossModal.style.display = ''; }
 
   render();
   requestAnimationFrame(() => {
