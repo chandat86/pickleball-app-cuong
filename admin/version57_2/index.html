@@ -4,7 +4,7 @@
 <!-- Pickleball v25 | FIX: Login detailed errors, Test GAS button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) GAS dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên GSheets | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Admin v57.3 — Referee Pickleball / DA NANG ®</title>
+<title>Admin v57.5 — Referee Pickleball / DA NANG ®</title>
 <style>
 /* ═══════════════════════════════════════════════════════
    Pickleball Admin — Mobile-First Professional UI
@@ -507,6 +507,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .bk-card.c-sf{border-left-color:#34d399}
 .bk-card.c-qf{border-left-color:#fb923c}
 .bk-card.c-3rd{border-left-color:#a78bfa}
+/* Drag-drop states */
+.bk-card.bk-dragging{opacity:.35;transform:scale(.97);pointer-events:none}
+.bk-card.bk-drag-over{border-color:var(--ac);box-shadow:0 0 0 2px rgba(14,165,233,.35),0 4px 20px rgba(14,165,233,.2);transform:scale(1.02)}
+.bk-card[draggable=true]{cursor:grab}
+.bk-card[draggable=true]:active{cursor:grabbing}
+/* Lucky loser button in toolbar */
+.bk-ll-btn{background:rgba(168,85,247,.12);color:var(--pu);border:1px solid rgba(168,85,247,.3)}
+.bk-ll-btn:hover{background:rgba(168,85,247,.2)}
+/* Drag mode indicator */
+.bk-drag-mode-on .bk-card[draggable=true]{border-style:dashed;border-color:rgba(14,165,233,.4)}
+.bk-drag-hint{font-size:10px;color:var(--ac);background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);border-radius:6px;padding:4px 10px;display:none}
+.bk-drag-mode-on .bk-drag-hint{display:inline-block}
 /* Code bar */
 .bk-card-hd{
   display:flex;align-items:center;justify-content:space-between;
@@ -1286,6 +1298,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
             <button class="btn bsm" id="btn-bk-autofill" onclick="bkAutoFill()"
               style="background:rgba(14,165,233,.12);color:var(--ac);border:1px solid rgba(14,165,233,.3)">⚡ Điền ngay</button>
             <button class="btn bsm" style="background:rgba(14,165,233,.12);color:var(--ac);border:1px solid rgba(14,165,233,.3)" onclick="bkSave()">💾 Lưu cây</button>
+            <button class="btn bsm bk-ll-btn" onclick="bkOpenLuckyLoser()" title="Chọn lucky loser vào slot BYE">🍀 Lucky Loser</button>
+            <button class="btn bsm" id="btn-bk-drag" onclick="bkToggleDrag()"
+              style="background:rgba(14,165,233,.12);color:var(--ac);border:1px solid rgba(14,165,233,.3)" title="Bật/tắt kéo-thả để đổi vị trí trận đấu">⇄ Kéo-thả</button>
+            <span class="bk-drag-hint">🖱 Kéo thả card để đổi vị trí</span>
             <button class="btn bsm" style="background:rgba(239,68,68,.12);color:var(--rd);border:1px solid rgba(239,68,68,.3)" onclick="bkDeleteTree()" title="Xóa toàn bộ cây thi đấu (trận KO) khỏi lịch thi đấu">🗑 Xóa cây</button>
           </div>
         </div>
@@ -2253,6 +2269,8 @@ let _dkScores={};                                  // { "bang|code": {scoreA,sco
 let _curGiaiId='', _curNd='', _curPage='dashboard'; // navigation state
 let _bkGiai='', _bkNd='', _bkGiaiName='';          // bracket state
 let _bkOverrides={};                               // bracket manual overrides
+let _bkDragMode = false;                           // drag-drop mode
+let _bkDragSrc  = null;                            // code of card being dragged
 let _liveScores={};                                // key→{scoreA,scoreB,teamA,teamB,game} live scores
 let _liveTimer=null;                               // auto-refresh live every 8s
 let _liveReplayDashPending=false;                   // debounce loadDash khi có live mới
@@ -8328,7 +8346,7 @@ function bkRender() {
     const pcA=pillCls(m.seedA||''), pcB=pillCls(m.seedB||'');
     const scA=fs?`<div class="bk-sbox${winA?' s-win':''}">${fs.scoreA}</div>`:'<div class="bk-sbox s-empty">—</div>';
     const scB=fs?`<div class="bk-sbox${winB?' s-win':''}">${fs.scoreB}</div>`:'<div class="bk-sbox s-empty">—</div>';
-    return `<div class="${cardCls}" onclick="bkEditMatch('${m.code}','${safeA}','${safeB}','${safeSA}','${safeSB}')">
+    return `<div class="${cardCls}" data-code="${m.code}" ${_bkDragMode?`draggable="true" ondragstart="bkDragStart(event,'${m.code}')" ondragover="bkDragOver(event)" ondragleave="bkDragLeave(event)" ondrop="bkDrop(event,'${m.code}')"`:""} onclick="bkEditMatch('${m.code}','${safeA}','${safeB}','${safeSA}','${safeSB}')">
       <div class="bk-card-hd">
         <span>${m.code}</span>
         <div class="bk-card-actions">
@@ -8338,12 +8356,16 @@ function bkRender() {
         </div>
       </div>
       <div class="bk-row ${rA}">
-        <div class="bk-pill ${pcA}" title="${esc(m.seedA||'')}">${plA}</div>
+        <div class="bk-pill ${pcA}" title="${esc(m.seedA||'')} · Click để đổi seed"
+          onclick="event.stopPropagation();bkQuickSwapSeed('${m.code}','A')"
+          style="cursor:pointer" title="${esc(m.seedA||'')}">${plA}</div>
         <div class="bk-tname" title="${esc(nA)}">${esc(nA)}</div>
         ${scA}
       </div>
       <div class="bk-row ${rB}">
-        <div class="bk-pill ${pcB}" title="${esc(m.seedB||'')}">${plB}</div>
+        <div class="bk-pill ${pcB}"
+          onclick="event.stopPropagation();bkQuickSwapSeed('${m.code}','B')"
+          style="cursor:pointer" title="${esc(m.seedB||'')}">${plB}</div>
         <div class="bk-tname" title="${esc(nB)}">${esc(nB)}</div>
         ${scB}
       </div>
@@ -9004,7 +9026,322 @@ function bkLookupSeedInput(slot) {
   }
 }
 
-function bkSaveEdit(code, seedA, seedB) {
+// ════════════════════════════════════════════════════════════════
+//  LUCKY LOSER — Chọn đội hạng 3 vào slot BYE
+// ════════════════════════════════════════════════════════════════
+
+function bkOpenLuckyLoser() {
+  if (!_bkGiai || !_bkNd) { toast('Chọn giải và nội dung trước','er'); return; }
+  const { seeds, bangs, bangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
+
+  // Thu thập tất cả đội hạng 3 từ các bảng đã xong
+  const rank3List = [];
+  bangs.forEach(bang => {
+    const st = seeds[bang] || [];
+    const r3 = st.find(x => x.rank === 3);
+    if (r3 && bangDone[bang]) {
+      const diff = r3.pf - r3.pa;
+      rank3List.push({ bang, team: r3.team, won: r3.won, pf: r3.pf, pa: r3.pa, diff });
+    }
+  });
+
+  // Tìm các slot BYE trong cây hiện tại
+  const tree = _bkCurrentTree;
+  const byeSlots = [];
+  if (tree) {
+    tree.rounds.forEach(round => {
+      round.matches.forEach(m => {
+        const ov = _bkOverrides[m.code] || {};
+        if (m.isByeA && !ov.byeAOverridden) byeSlots.push({ code: m.code, slot: 'A', label: `${m.code} - slot trên` });
+        if (m.isByeB && !ov.byeBOverridden) byeSlots.push({ code: m.code, slot: 'B', label: `${m.code} - slot dưới` });
+      });
+    });
+  }
+
+  if (!rank3List.length) {
+    toast('⚠️ Chưa có đội hạng 3 nào (cần bảng đấu hoàn thành)', 'in'); return;
+  }
+
+  // Sort rank3 theo thành tích: thắng↓ → hiệu số↓ → điểm ghi↓
+  rank3List.sort((a,b) => (b.won-a.won)||(b.diff-a.diff)||(b.pf-a.pf));
+
+  const el = document.createElement('div');
+  el.id = 'bk-ll-mo';
+  el.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.65)';
+  el.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--bdr2);border-radius:16px;
+      padding:24px;width:min(480px,96vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--tx)">🍀 Lucky Loser</div>
+          <div style="font-size:11px;color:var(--tx3);margin-top:2px">Chọn đội hạng 3 vào slot BYE trong cây thi đấu</div>
+        </div>
+        <button class="mc" onclick="document.getElementById('bk-ll-mo').remove()">✕</button>
+      </div>
+
+      <div style="margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Đội hạng 3 theo bảng (sắp xếp theo thành tích)</div>
+        ${rank3List.map((r, i) => `
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;
+            border-radius:10px;border:2px solid var(--bdr);background:var(--bg3);
+            margin-bottom:6px;cursor:pointer;transition:all .15s"
+            onmouseover="this.style.borderColor='var(--pu)'" onmouseout="this.style.borderColor='var(--bdr)'">
+            <input type="radio" name="ll-team" value="${esc(r.team)}" style="accent-color:var(--pu)">
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:700;color:var(--tx)">${esc(r.team)}</div>
+              <div style="font-size:10px;color:var(--tx3);margin-top:2px">
+                Bảng ${r.bang} · ${r.won}W · ${r.pf}-${r.pa} (${r.diff>=0?'+':''}${r.diff})
+                ${i===0?'<span style="color:var(--pu);font-weight:700;margin-left:4px">★ Tốt nhất</span>':''}
+              </div>
+            </div>
+          </label>`).join('')}
+      </div>
+
+      ${byeSlots.length ? `
+      <div style="margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Đặt vào slot BYE</div>
+        ${byeSlots.map(s => `
+          <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;
+            border-radius:8px;border:2px solid var(--bdr);background:var(--bg3);
+            margin-bottom:6px;cursor:pointer;transition:all .15s"
+            onmouseover="this.style.borderColor='var(--ac)'" onmouseout="this.style.borderColor='var(--bdr)'">
+            <input type="radio" name="ll-slot" value="${s.code}|${s.slot}" style="accent-color:var(--ac)">
+            <span style="font-size:12px;color:var(--tx);font-weight:600">${s.label}</span>
+          </label>`).join('')}
+      </div>` : `<div style="padding:10px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;font-size:12px;color:var(--or);margin-bottom:16px">
+        ✅ Không có slot BYE nào trong cây thi đấu hiện tại
+      </div>`}
+
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn bh bsm" onclick="document.getElementById('bk-ll-mo').remove()">Huỷ</button>
+        <button class="btn bsm bk-ll-btn" onclick="bkApplyLuckyLoser()">🍀 Đặt Lucky Loser</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  // Pre-select best team and first slot
+  const firstTeam = el.querySelector('input[name="ll-team"]');
+  const firstSlot = el.querySelector('input[name="ll-slot"]');
+  if (firstTeam) firstTeam.checked = true;
+  if (firstSlot) firstSlot.checked = true;
+}
+
+function bkApplyLuckyLoser() {
+  const teamEl = document.querySelector('input[name="ll-team"]:checked');
+  const slotEl = document.querySelector('input[name="ll-slot"]:checked');
+  if (!teamEl) { toast('Chọn đội lucky loser','er'); return; }
+  if (!slotEl) { toast('Chọn slot BYE để đặt vào','er'); return; }
+
+  const team = teamEl.value;
+  const [code, side] = slotEl.value.split('|');
+  const ov = _bkOverrides[code] || {};
+
+  if (side === 'A') {
+    _bkOverrides[code] = { ...ov, teamA: team, seedCodeA: '', byeAOverridden: true };
+  } else {
+    _bkOverrides[code] = { ...ov, teamB: team, seedCodeB: '', byeBOverridden: true };
+  }
+  _bkSaveOverrides();
+  document.getElementById('bk-ll-mo')?.remove();
+  bkRender();
+  toast(`🍀 Lucky Loser: ${team} → ${code}`, 'ok');
+  _bkSyncOverrideToSchedule(code);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  DRAG-DROP — Kéo thả để swap toàn bộ trận
+// ════════════════════════════════════════════════════════════════
+
+function bkToggleDrag() {
+  _bkDragMode = !_bkDragMode;
+  const btn = document.getElementById('btn-bk-drag');
+  const wrap = document.getElementById('bk-wrap') || document.getElementById('nd-bk-wrap');
+  if (_bkDragMode) {
+    if (btn) { btn.style.background='rgba(14,165,233,.3)'; btn.style.color='#fff'; btn.textContent='⇄ Tắt kéo-thả'; }
+    if (wrap) wrap.classList.add('bk-drag-mode-on');
+    toast('🖱 Bật chế độ kéo-thả — kéo card để đổi vị trí', 'in');
+  } else {
+    if (btn) { btn.style.background='rgba(14,165,233,.12)'; btn.style.color='var(--ac)'; btn.textContent='⇄ Kéo-thả'; }
+    if (wrap) wrap.classList.remove('bk-drag-mode-on');
+  }
+  bkRender(); // re-render để add/remove draggable attrs
+}
+
+function bkDragStart(e, code) {
+  if (!_bkDragMode) return;
+  _bkDragSrc = code;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', code);
+  // Visual: dim source card after a tick
+  setTimeout(() => {
+    const el = document.querySelector(`[data-code="${code}"]`);
+    if (el) el.classList.add('bk-dragging');
+  }, 0);
+}
+
+function bkDragOver(e) {
+  if (!_bkDragMode || !_bkDragSrc) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const card = e.currentTarget;
+  if (card && !card.classList.contains('bk-dragging')) {
+    card.classList.add('bk-drag-over');
+  }
+}
+
+function bkDragLeave(e) {
+  const card = e.currentTarget;
+  if (card) card.classList.remove('bk-drag-over');
+}
+
+function bkDrop(e, targetCode) {
+  e.preventDefault();
+  const card = e.currentTarget;
+  if (card) card.classList.remove('bk-drag-over');
+
+  const srcCode = _bkDragSrc;
+  _bkDragSrc = null;
+  // Remove dragging class
+  document.querySelectorAll('.bk-dragging').forEach(el => el.classList.remove('bk-dragging'));
+
+  if (!srcCode || srcCode === targetCode) return;
+
+  // Swap toàn bộ: teamA, teamB, seedCodeA, seedCodeB, byeAOverridden, byeBOverridden
+  // Lấy override hiện tại của cả 2
+  const ovSrc = { ...(_bkOverrides[srcCode] || {}) };
+  const ovTgt = { ...(_bkOverrides[targetCode] || {}) };
+
+  // Lấy state từ tree (tên đội đã resolve)
+  const tree = _bkCurrentTree;
+  let srcM = null, tgtM = null;
+  if (tree) {
+    tree.rounds.forEach(round => round.matches.forEach(m => {
+      if (m.code === srcCode) srcM = m;
+      if (m.code === targetCode) tgtM = m;
+    }));
+  }
+
+  // Build override mới cho target = state của source
+  const newOvTgt = {
+    teamA:           ovSrc.teamA   !== undefined ? ovSrc.teamA   : (srcM?.teamA  || ''),
+    teamB:           ovSrc.teamB   !== undefined ? ovSrc.teamB   : (srcM?.teamB  || ''),
+    seedCodeA:       ovSrc.seedCodeA || '',
+    seedCodeB:       ovSrc.seedCodeB || '',
+    byeAOverridden:  ovSrc.byeAOverridden  || false,
+    byeBOverridden:  ovSrc.byeBOverridden  || false,
+  };
+  // Build override mới cho source = state của target
+  const newOvSrc = {
+    teamA:           ovTgt.teamA   !== undefined ? ovTgt.teamA   : (tgtM?.teamA  || ''),
+    teamB:           ovTgt.teamB   !== undefined ? ovTgt.teamB   : (tgtM?.teamB  || ''),
+    seedCodeA:       ovTgt.seedCodeA || '',
+    seedCodeB:       ovTgt.seedCodeB || '',
+    byeAOverridden:  ovTgt.byeAOverridden  || false,
+    byeBOverridden:  ovTgt.byeBOverridden  || false,
+  };
+
+  _bkOverrides[srcCode]    = newOvSrc;
+  _bkOverrides[targetCode] = newOvTgt;
+  _bkSaveOverrides();
+  bkRender();
+  toast(`⇄ Đã đổi: ${srcCode} ↔ ${targetCode}`, 'ok');
+  // Sync cả 2 trận lên sheet
+  _bkSyncOverrideToSchedule(srcCode);
+  _bkSyncOverrideToSchedule(targetCode);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SEED LABEL SWAP — Đổi 1A↔2A trực tiếp từ cây
+// (Đã xử lý trong bkEditMatch / bkSaveEdit — đây là helper bổ sung)
+// ════════════════════════════════════════════════════════════════
+
+// Mở popup đổi seed nhanh (1A→2B...) — dùng từ pill label click
+function bkQuickSwapSeed(code, slot) {
+  // slot = 'A' hoặc 'B'
+  const tree = _bkCurrentTree;
+  if (!tree) return;
+  let match = null;
+  tree.rounds.forEach(r => r.matches.forEach(m => { if (m.code === code) match = m; }));
+  if (!match) return;
+
+  const curSeed = slot === 'A' ? (match.seedA||'') : (match.seedB||'');
+  const curTeam = slot === 'A' ? (match.teamA||'') : (match.teamB||'');
+  const { bangs } = _bkCalcSeeds(_bkGiai, _bkNd);
+
+  // Build danh sách tất cả seed có thể
+  const opts = [];
+  bangs.forEach(b => {
+    ['Nhất','Nhì','Ba','Tư'].forEach((rank, ri) => {
+      const mc = `${ri+1}${b.replace(/^Bảng\s+/i,'').trim()}`;
+      const label = `${rank} Bảng ${b.replace(/^Bảng\s+/i,'').trim()}`;
+      opts.push({ mc, label });
+    });
+  });
+  // Add tùy chọn nhập tên trực tiếp
+  opts.push({ mc: '', label: '— Nhập tên đội trực tiếp —' });
+
+  const el = document.createElement('div');
+  el.id = 'bk-qs-mo';
+  el.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)';
+  el.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--bdr2);border-radius:14px;
+      padding:20px;width:min(360px,96vw);box-shadow:0 16px 50px rgba(0,0,0,.4)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:14px;font-weight:700;color:var(--tx)">✏️ Đổi seed <span style="color:var(--ac)">${code} slot ${slot}</span></div>
+        <button class="mc" onclick="document.getElementById('bk-qs-mo').remove()">✕</button>
+      </div>
+      <div style="font-size:11px;color:var(--tx3);margin-bottom:12px">Hiện tại: <b>${esc(curSeed)||'—'}</b> · ${esc(curTeam)||'(chờ KQ)'}</div>
+      <select id="bk-qs-sel" class="inp" style="width:100%;margin-bottom:10px;font-size:13px">
+        ${opts.map(o => `<option value="${o.mc}" ${o.mc===_extractSeedCode(curSeed)?'selected':''}>${o.label}</option>`).join('')}
+      </select>
+      <input id="bk-qs-direct" class="inp" placeholder="hoặc nhập tên đội trực tiếp..."
+        value="${esc(curTeam)}" style="width:100%;box-sizing:border-box;margin-bottom:14px">
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn bh bsm" onclick="document.getElementById('bk-qs-mo').remove()">Huỷ</button>
+        <button class="btn bp bsm" onclick="bkApplyQuickSwap('${code}','${slot}')">💾 Lưu</button>
+      </div>
+    </div>`;
+  document.body.appendChild(el);
+  // Khi chọn seed → auto-fill tên đội
+  document.getElementById('bk-qs-sel').addEventListener('change', function() {
+    const sc = this.value;
+    if (!sc) return;
+    const r = _bkLookupSeedCode(sc);
+    if (r && r.team) document.getElementById('bk-qs-direct').value = r.team;
+  });
+}
+
+function _extractSeedCode(seedStr) {
+  if (!seedStr) return '';
+  const pl = seedStr.match(/(Nhất|Nhì|Ba|Tư)\s+Bảng\s+([A-Z])/i);
+  if (!pl) return '';
+  const rank = ['Nhất','Nhì','Ba','Tư'].indexOf(pl[1]) + 1;
+  return rank + pl[2].toUpperCase();
+}
+
+function bkApplyQuickSwap(code, slot) {
+  const selVal  = (document.getElementById('bk-qs-sel')?.value||'').trim().toUpperCase();
+  const direct  = (document.getElementById('bk-qs-direct')?.value||'').trim();
+  const ov = _bkOverrides[code] || {};
+
+  let team = direct;
+  if (selVal) {
+    const r = _bkLookupSeedCode(selVal);
+    if (r && r.team) team = r.team;
+  }
+
+  if (slot === 'A') {
+    _bkOverrides[code] = { ...ov, teamA: team, seedCodeA: selVal };
+  } else {
+    _bkOverrides[code] = { ...ov, teamB: team, seedCodeB: selVal };
+  }
+  _bkSaveOverrides();
+  document.getElementById('bk-qs-mo')?.remove();
+  bkRender();
+  toast(`✅ ${code} slot ${slot}: ${selVal||'—'} → ${team||'(auto)'}`, 'ok');
+  _bkSyncOverrideToSchedule(code);
+}
+
+
   const seedCodeA = (document.getElementById('bk-edit-seed-a')?.value||'').trim().toUpperCase();
   const seedCodeB = (document.getElementById('bk-edit-seed-b')?.value||'').trim().toUpperCase();
   const rawA      = (document.getElementById('bk-edit-a')?.value||'').trim();
