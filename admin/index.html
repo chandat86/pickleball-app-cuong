@@ -1,11 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
 <!-- Pickleball v25 | FIX: Login detailed errors, Test GAS button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) GAS dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên GSheets | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Admin v56 — Referee Pickleball / DA NANG ®</title>
+<title>Admin v56.2 — Referee Pickleball / DA NANG ®</title>
 <style>
 /* ═══════════════════════════════════════════════════════
    Pickleball Admin — Mobile-First Professional UI
@@ -6509,28 +6508,38 @@ async function saveEditMatch(giaiId, nd, bang, code) {
     const oldTA = String(m[4]||''), oldTB = String(m[7]||'');
     if (mIdx>=0) _M[mIdx] = newRow;
 
-    // ── Nếu đổi tên đội: cập nhật TẤT CẢ trận trong bảng có tên cũ ──
-    // (tránh BXH thấy 2 entity khác nhau cho cùng 1 đội)
+    // ── Nếu đổi tên đội: chỉ propagate cho VÒNG BẢNG, knockout độc lập ──
     const renamedA = ta !== oldTA;
     const renamedB = tb !== oldTB;
     const extraUpdates = [];
     if (renamedA || renamedB) {
-      _M.forEach((mr, mi) => {
-        if (mi === mIdx) return; // skip row vừa update
-        const sameGiai = String(mr[0]||'')===gName||String(mr[0]||'')===giaiId;
-        const sameBang = String(mr[2]||'')===bang;
-        if (!sameGiai || !sameBang) return;
-        let changed = false;
-        const nr = [...mr];
-        if (renamedA && String(mr[4]||'')===oldTA) { nr[4]=ta; changed=true; }
-        if (renamedA && String(mr[7]||'')===oldTA) { nr[7]=ta; changed=true; }
-        if (renamedB && String(mr[4]||'')===oldTB) { nr[4]=tb; changed=true; }
-        if (renamedB && String(mr[7]||'')===oldTB) { nr[7]=tb; changed=true; }
-        if (changed) {
-          _M[mi] = nr;
-          extraUpdates.push({ bang: String(mr[2]||''), code: String(mr[3]||''), row: nr });
-        }
-      });
+      // Xác định trận vừa sửa có phải vòng bảng không (col [9] = VòngĐấu)
+      const thisRound = String(newRow[9]||'');
+      const thisIsGroupStage = !thisRound || thisRound === 'Vòng bảng' || thisRound.includes('bảng');
+
+      if (thisIsGroupStage) {
+        // Vòng bảng: propagate sang các trận vòng bảng khác cùng bảng
+        _M.forEach((mr, mi) => {
+          if (mi === mIdx) return;
+          const sameGiai = String(mr[0]||'')===gName||String(mr[0]||'')===giaiId;
+          const sameBang = String(mr[2]||'')===bang;
+          if (!sameGiai || !sameBang) return;
+          // Bỏ qua trận knockout — chỉ update vòng bảng
+          const mrRound = String(mr[9]||'');
+          if (mrRound && mrRound !== 'Vòng bảng' && !mrRound.includes('bảng')) return;
+          let changed = false;
+          const nr = [...mr];
+          if (renamedA && String(mr[4]||'')===oldTA) { nr[4]=ta; changed=true; }
+          if (renamedA && String(mr[7]||'')===oldTA) { nr[7]=ta; changed=true; }
+          if (renamedB && String(mr[4]||'')===oldTB) { nr[4]=tb; changed=true; }
+          if (renamedB && String(mr[7]||'')===oldTB) { nr[7]=tb; changed=true; }
+          if (changed) {
+            _M[mi] = nr;
+            extraUpdates.push({ bang: String(mr[2]||''), code: String(mr[3]||''), row: nr });
+          }
+        });
+      }
+      // Knockout (Tứ kết, Bán kết, Chung kết...): không propagate, chỉ lưu trận đang sửa
     }
 
     // ── Re-render ngay với cache đã sửa (không cần chờ extra API) ──
@@ -6543,7 +6552,7 @@ async function saveEditMatch(giaiId, nd, bang, code) {
     }
 
     const extraCount = extraUpdates.length;
-    toast(`✅ Đã cập nhật trận ${code}${extraCount?` + ${extraCount} trận liên quan`:''} → Sheet Matches`,'ok');
+    toast(`✅ Đã cập nhật trận ${code}${extraCount?` + ${extraCount} trận vòng bảng liên quan`:''} → Sheet Matches`,'ok');
 
     // ── Cập nhật GAS các trận khác có tên cũ (background, không block UI) ──
     if (extraUpdates.length > 0) {
