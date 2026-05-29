@@ -570,7 +570,7 @@ function renderTopBar(){
 
 function renderNdFilter(){
   const bar=$('nd-filter-bar');
-  if(_allNds.length<=1||_curTab==='bracket'){bar.style.display='none';return;}
+  if(_allNds.length<=1){bar.style.display='none';return;}
   bar.style.display='flex';
   bar.innerHTML=_allNds.map(nd=>`<button class="nd-chip${nd===_curNd?' on':''}" onclick="selectNd('${esc(nd)}')">${esc(nd)}</button>`).join('');
 }
@@ -1232,20 +1232,19 @@ function _bkBuildAndRenderTree(nd,wrap){
 
 function renderBracketTab(){
   const wrap=$('bracket-content');
-  // Chip selector nội dung (thay thế filter bar bị ẩn)
-  let chipsHtml='';
-  if(_allNds.length>1){
-    chipsHtml=`<div style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 0 4px">
-      ${_allNds.map(nd=>`<button class="nd-chip${nd===_curNd?' on':''}" onclick="selectBkNd('${esc(nd)}')">${esc(nd)}</button>`).join('')}
-    </div>`;
-  }
   const nd=_curNd;
   if(!nd){
-    wrap.innerHTML=chipsHtml+'<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-msg">Chọn nội dung thi đấu</div></div>';
+    wrap.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-msg">Chọn nội dung thi đấu</div><div class="empty-sub">Dùng bộ lọc bên trên để chọn nội dung</div></div>';
     return;
   }
-  wrap.innerHTML=chipsHtml+'<div id="bk-inner"></div>';
+  wrap.innerHTML='<div id="bk-inner"></div>';
   _bkBuildAndRenderTree(nd,$('bk-inner'));
+}
+
+function selectBkNd(nd){
+  _curNd=nd;
+  renderNdFilter();
+  renderBracketTab();
 }
 
 function selectBkNd(nd){
