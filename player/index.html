@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
-<title>Pickleball v2.4— Xem Giải Đấu</title>
+<title>Player v2.1— Xem Giải Đấu</title>
 <style>
 /* system font - no import needed */
 :root{
@@ -233,6 +233,114 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);min-height:100vh
   .mr-team{font-size:14px}
   #main{padding:16px 20px}
 }
+
+/* ══ CÂY THI ĐẤU (BRACKET) ══ */
+.bk-bracket{display:flex;flex-direction:row;align-items:stretch;
+  padding:0 4px 8px;gap:0;min-width:max-content;width:max-content}
+.bk-round{display:flex;flex-direction:column;gap:0;flex-shrink:0;min-width:190px}
+.bk-round-label{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  text-align:center;padding:0 12px 14px;height:38px;display:flex;
+  align-items:flex-end;justify-content:center;color:var(--tx3);white-space:nowrap}
+.bk-round-label.lbl-sf{color:#34d399}
+.bk-round-label.lbl-qf{color:#fb923c}
+.bk-round-label.lbl-r16{color:#60a5fa}
+.bk-round-label.lbl-final{color:#f59e0b}
+.bk-round-label.lbl-3rd{color:#c084fc}
+.bk-round-label.lbl-group{color:#818cf8}
+.bk-round-slots{display:flex;flex-direction:column;flex:1;justify-content:space-around;gap:0}
+.bk-slot{display:flex;flex-direction:column;flex:1;justify-content:center;padding:4px 0}
+.bk-card{margin:0 8px;background:var(--bg2);border:1px solid var(--bdr);
+  border-left:3px solid var(--bdr2);border-radius:10px;overflow:hidden;transition:border-color .15s}
+.bk-card.c-done{border-left-color:#22c55e}
+.bk-card.c-live{border-left-color:#f97316;animation:bk-pulse 1.8s ease-in-out infinite}
+.bk-card.c-final{border-left-color:#f59e0b}
+.bk-card.c-sf{border-left-color:#34d399}
+.bk-card.c-qf{border-left-color:#fb923c}
+.bk-card.c-3rd{border-left-color:#a78bfa}
+.bk-card-hd{display:flex;align-items:center;justify-content:space-between;
+  padding:4px 10px;background:var(--bg3);border-bottom:1px solid var(--bdr);
+  font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--tx4)}
+.bk-live-dot{width:5px;height:5px;border-radius:50%;background:#f97316;
+  animation:bk-dot 1s ease-in-out infinite alternate;flex-shrink:0}
+.bk-row{display:flex;align-items:center;padding:7px 10px;gap:7px;min-height:34px}
+.bk-row+.bk-row{border-top:1px solid var(--bdr)}
+.bk-row.r-win{background:rgba(34,197,94,.06)}
+.bk-row.r-bye{opacity:.45;background:var(--bg3)}
+.bk-pill{font-size:9px;font-weight:800;width:24px;height:24px;padding:0;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;letter-spacing:.01em;border:2px solid transparent;text-transform:uppercase}
+.bk-pill.p-bye{background:var(--bg3);color:var(--tx4);border-color:var(--bdr)}
+.bk-pill.p-w{background:rgba(14,165,233,.12);color:var(--ac);border-color:rgba(14,165,233,.2)}
+.bk-pill.p-A{background:rgba(14,165,233,.15);color:#38bdf8;border-color:rgba(14,165,233,.25)}
+.bk-pill.p-B{background:rgba(251,146,60,.15);color:#fb923c;border-color:rgba(251,146,60,.25)}
+.bk-pill.p-C{background:rgba(167,139,250,.15);color:#a78bfa;border-color:rgba(167,139,250,.25)}
+.bk-pill.p-D{background:rgba(34,197,94,.13);color:#4ade80;border-color:rgba(34,197,94,.25)}
+.bk-pill.p-E{background:rgba(239,68,68,.12);color:#f87171;border-color:rgba(239,68,68,.25)}
+.bk-pill.p-F{background:rgba(236,72,153,.13);color:#f472b6;border-color:rgba(236,72,153,.25)}
+.bk-pill.p-G{background:rgba(234,179,8,.13);color:#facc15;border-color:rgba(234,179,8,.25)}
+.bk-pill.p-H{background:rgba(6,182,212,.13);color:#22d3ee;border-color:rgba(6,182,212,.25)}
+.bk-pill.p-num{background:var(--bg3);color:var(--tx3);border-color:var(--bdr)}
+.bk-tname{flex:1;font-size:12px;font-weight:500;color:var(--tx2);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.3}
+.bk-row.r-win .bk-tname{color:var(--tx);font-weight:700}
+.bk-row.r-bye .bk-tname{color:var(--tx4);font-style:italic;font-size:11px}
+.bk-row.r-tbd .bk-tname{color:var(--tx4);font-style:italic;font-size:11px}
+.bk-sbox{font-size:13px;font-weight:800;min-width:28px;height:24px;border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg3);border:1px solid var(--bdr);color:var(--tx3);flex-shrink:0}
+.bk-sbox.s-win{background:#22c55e;color:#fff;border-color:#22c55e}
+.bk-sbox.s-empty{color:var(--tx4);font-size:11px}
+.bk-conn-col{display:flex;flex-direction:column;flex-shrink:0;
+  width:36px;align-self:stretch;margin-top:38px}
+.bk-conn-pair{display:flex;flex-direction:column;flex:1}
+.bk-conn-arm{flex:1;position:relative;overflow:visible}
+.bk-conn-arm.arm-top::before{content:'';position:absolute;top:50%;left:0;right:0;height:1.5px;background:var(--conn-clr,var(--bdr2))}
+.bk-conn-arm.arm-top::after{content:'';position:absolute;top:50%;right:0;width:1.5px;height:calc(50% + 0.75px);background:var(--conn-clr,var(--bdr2))}
+.bk-conn-arm.arm-bot::before{content:'';position:absolute;top:50%;left:0;right:0;height:1.5px;background:var(--conn-clr,var(--bdr2))}
+.bk-conn-arm.arm-bot::after{content:'';position:absolute;bottom:50%;right:0;width:1.5px;height:calc(50% + 0.75px);background:var(--conn-clr,var(--bdr2))}
+.bk-conn-col.cc-qf{--conn-clr:rgba(251,146,60,.7)}
+.bk-conn-col.cc-sf{--conn-clr:rgba(52,211,153,.7)}
+.bk-conn-col.cc-final{--conn-clr:rgba(245,158,11,.8)}
+.bk-champ-wrap{display:flex;align-self:stretch;align-items:center;padding:38px 10px 0;flex-shrink:0}
+.bk-champ-box{border:2px solid #f59e0b;border-radius:14px;padding:14px 16px;
+  text-align:center;background:rgba(245,158,11,.07);min-width:100px;max-width:140px}
+.bk-champ-icon{font-size:24px;margin-bottom:4px;line-height:1}
+.bk-champ-lbl{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#f59e0b;margin-top:2px}
+.bk-champ-name{font-size:11px;font-weight:700;color:var(--tx);margin-top:5px;line-height:1.35;word-break:break-word}
+/* Group cards in bracket overview */
+.bk-gcards-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;margin-bottom:16px}
+.bk-gcard{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;overflow:hidden}
+.bk-gcard-hd{display:flex;align-items:center;justify-content:space-between;
+  padding:7px 11px;background:var(--bg3);border-bottom:1px solid var(--bdr)}
+.bk-gcard-name{font-size:11px;font-weight:800;color:var(--tx2)}
+.bk-gcard-st{font-size:10px;font-weight:700;color:var(--tx4)}
+.bk-gcard-st.st-done{color:#22c55e}
+.bk-gcard-st.st-partial{color:#f97316}
+.bk-grank{display:flex;align-items:center;gap:7px;padding:5px 11px;font-size:11px}
+.bk-grank+.bk-grank{border-top:1px solid var(--bdr)}
+.bk-grank.gr1{background:rgba(245,158,11,.04)}
+.bk-grank.gr2{background:rgba(14,165,233,.03)}
+.bk-grank-n{font-size:12px;min-width:16px;text-align:center;flex-shrink:0}
+.bk-grank-t{flex:1;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bk-grank-s{font-size:10px;color:var(--tx3);white-space:nowrap}
+.bk-grank-s b{color:var(--ac);font-weight:800}
+/* Bracket section label */
+.bk-sec{font-size:13px;font-weight:700;padding:10px 0 10px;display:flex;align-items:center;gap:6px}
+.bk-sec-line{flex:1;height:1px;background:var(--bdr)}
+/* Bracket wrapper with scroll */
+.bk-scroll{overflow-x:auto;overflow-y:visible;padding-bottom:8px;
+  scrollbar-width:thin;scrollbar-color:var(--bdr3) transparent}
+.bk-scroll::-webkit-scrollbar{height:6px}
+.bk-scroll::-webkit-scrollbar-track{background:var(--bg2);border-radius:4px}
+.bk-scroll::-webkit-scrollbar-thumb{background:var(--bdr3);border-radius:4px}
+/* Bracket nd selector tabs */
+.bk-nd-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.bk-nd-tab{padding:5px 14px;font-size:12px;font-weight:700;border-radius:20px;
+  border:1.5px solid var(--bdr2);background:transparent;color:var(--tx3);cursor:pointer;
+  font-family:var(--fn);transition:all .15s}
+.bk-nd-tab.on{background:var(--ac3);border-color:var(--ac);color:#fff}
+@keyframes bk-pulse{0%,100%{border-left-color:#f97316}50%{border-left-color:#fed7aa}}
+@keyframes bk-dot{from{opacity:1}to{opacity:.25}}
 </style>
 </head>
 <body>
@@ -278,6 +386,7 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);min-height:100vh
     <button class="ntab on" data-tab="live" onclick="switchTab('live')">🔴 Đang đấu</button>
     <button class="ntab" data-tab="schedule" onclick="switchTab('schedule')">📋 Lịch đấu</button>
     <button class="ntab" data-tab="standings" onclick="switchTab('standings')">🏅 BXH</button>
+    <button class="ntab" data-tab="bracket" onclick="switchTab('bracket')">🏆 Cây thi đấu</button>
   </div>
 
   <div id="nd-filter-bar"></div>
@@ -293,6 +402,7 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);min-height:100vh
     <div class="page on" id="tab-live"><div id="live-content"><div class="spin-wrap"><div class="spin"></div></div></div></div>
     <div class="page" id="tab-schedule"><div id="schedule-content"><div class="spin-wrap"><div class="spin"></div></div></div></div>
     <div class="page" id="tab-standings"><div id="standings-content"><div class="spin-wrap"><div class="spin"></div></div></div></div>
+    <div class="page" id="tab-bracket"><div id="bracket-content"><div class="spin-wrap"><div class="spin"></div></div></div></div>
   </div>
 </div>
 
@@ -488,6 +598,7 @@ function renderCurrentTab(){
     if(_curTab==='live')renderLive();
     else if(_curTab==='schedule')renderSchedule();
     else if(_curTab==='standings')renderStandings();
+    else if(_curTab==='bracket')renderBracketTab();
   }catch(e){
     const w=$(_curTab+'-content');
     if(w)w.innerHTML=`<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);padding:14px;border-radius:8px;font-size:12px;color:#fca5a5;font-family:monospace;margin:8px">❌ Lỗi render [${_curTab}]: ${esc(e.message)}<br><small>${esc((e.stack||'').split('\n').slice(0,2).join(' | '))}</small></div>`;
@@ -777,6 +888,378 @@ function toggleBxh(head){
   const arr=head.querySelector('.bxh-arrow');
   const open=body.classList.toggle('open');
   if(arr)arr.classList.toggle('open',open);
+}
+
+// ══ BRACKET (CÂY THI ĐẤU) ══
+let _bkCurNd = '';
+
+function _ceil2(n){let p=1;while(p<n)p*=2;return p;}
+
+function _bkCalcSeeds(nd){
+  const gUp=(_giaiName||USER_GIAI||'').toUpperCase();
+  const allM=_M.filter(m=>String(m[0]||'').trim().toUpperCase()===gUp&&String(m[1]||'')===nd);
+  const bangM=allM.filter(m=>{const v=String(m[9]||'');return !v||v==='Vòng bảng'||v.includes('bảng');});
+  const bangs=[...new Set(bangM.map(m=>String(m[2]||'')).filter(Boolean))].sort();
+  const seeds={};const bangDone={};
+  bangs.forEach(bang=>{
+    const bm=bangM.filter(m=>String(m[2]||'')===bang);
+    const table={};let doneCount=0;
+    bm.forEach(m=>{
+      const tA=String(m[4]||''),tB=String(m[7]||'');
+      if(!tA||!tB)return;
+      if(!table[tA])table[tA]={team:tA,won:0,lost:0,pf:0,pa:0,played:0};
+      if(!table[tB])table[tB]={team:tB,won:0,lost:0,pf:0,pa:0,played:0};
+      // Lấy điểm từ KetQua sheet (_R)
+      const rKey=nd+'|'+bang+'|'+String(m[3]||'');
+      const res=_R.find(r=>String(r[2]||'')+'|'+String(r[3]||'')+'|'+String(r[4]||'')===nd+'|'+bang+'|'+String(m[3]||'')||
+        (String(r[2]||'')===nd&&String(r[3]||'')===bang&&(String(r[4]||'')===String(m[3]||'')||
+        (String(r[5]||'')===tA&&String(r[6]||'')===tB)||(String(r[5]||'')===tB&&String(r[6]||'')===tA))));
+      // Check điểm trong _M (col 5,6)
+      const sAm=m[5],sBm=m[6];
+      const hasScoreM=(sAm!==''&&sAm!==null&&sAm!==undefined)&&(sBm!==''&&sBm!==null&&sBm!==undefined);
+      if(!hasScoreM&&!res)return;
+      doneCount++;
+      let sA,sB;
+      if(hasScoreM){sA=Number(sAm)||0;sB=Number(sBm)||0;}
+      else{sA=Number(res[7]||0);sB=Number(res[8]||0);}
+      table[tA].pf+=sA;table[tA].pa+=sB;table[tA].played++;
+      table[tB].pf+=sB;table[tB].pa+=sA;table[tB].played++;
+      if(sA>sB){table[tA].won++;table[tB].lost++;}
+      else if(sB>sA){table[tB].won++;table[tA].lost++;}
+    });
+    const sorted=Object.values(table).sort((a,b)=>(b.won-a.won)||((b.pf-b.pa)-(a.pf-a.pa))||(b.pf-a.pf));
+    sorted.forEach((s,i)=>{s.rank=i+1;});
+    seeds[bang]=sorted;
+    bangDone[bang]=doneCount===bm.filter(m=>String(m[4]||'')&&String(m[7]||'')).length&&bm.length>0;
+  });
+  return {seeds,bangs,bangDone};
+}
+
+function _bkGlobalSeeding(seeds,bangs){
+  const winners=[],runners=[];
+  bangs.forEach(bang=>{
+    const st=seeds[bang]||[];
+    const w=st.find(x=>x.rank===1);
+    const r=st.find(x=>x.rank===2);
+    winners.push(w?{...w,bang,seedRank:1}:{bang,seedRank:1,won:0,pf:0,pa:0,team:'',isPlaceholder:true});
+    runners.push(r?{...r,bang,seedRank:2}:{bang,seedRank:2,won:0,pf:0,pa:0,team:'',isPlaceholder:true});
+  });
+  return [...winners,...runners];
+}
+
+function _bkCrossSeededSlots(globalSeeds,bangs,seeds){
+  const nb=bangs?bangs.length:Math.round(globalSeeds.length/2);
+  const cap=_ceil2(nb*2);const half=cap/4;
+  const byBang={};
+  globalSeeds.forEach(s=>{if(!byBang[s.bang])byBang[s.bang]={};if(s.seedRank===1)byBang[s.bang].w=s;else byBang[s.bang].r=s;});
+  const bangList=bangs?[...bangs]:[...new Set(globalSeeds.map(s=>s.bang))].slice(0,nb);
+  const W=i=>byBang[bangList[i]]?.w??null;
+  const R=i=>byBang[bangList[i]]?.r??null;
+  const numByes=cap-nb*2;const numWinnerByes=Math.min(numByes,nb);
+  const raw1=[],raw2=[];
+  for(let i=0;i<nb;i++){if(i%2===0){raw1.push(W(i));raw2.push(R(i));}else{raw1.push(R(i));raw2.push(W(i));}}
+  const buildBranch=(rawArr)=>{
+    const byeSlots=[],regular=[];
+    rawArr.forEach(seed=>{
+      const bi=bangList.indexOf(seed?.bang??'');
+      if(bi>=0&&bi<numWinnerByes&&seed?.seedRank===1)byeSlots.push(seed);
+      else regular.push(seed);
+    });
+    const regW=regular.filter(x=>x?.seedRank===1);
+    const regR=regular.filter(x=>x?.seedRank===2);
+    const paired=[];const usedR=new Set();
+    regW.forEach(w=>{const match=regR.find(r=>!usedR.has(r.bang)&&r.bang!==w.bang);if(match){usedR.add(match.bang);paired.push({top:w,bot:match});}else paired.push({top:w,bot:null});});
+    const leftR=regR.filter(r=>!usedR.has(r.bang));
+    for(let k=0;k<leftR.length;k+=2)paired.push({top:leftR[k],bot:leftR[k+1]??null});
+    const slots=[...byeSlots.map(s=>({top:s,bot:null})),...paired];
+    while(slots.length<half)slots.push({top:null,bot:null});
+    return slots.slice(0,half);
+  };
+  const slots1=buildBranch(raw1),slots2=buildBranch(raw2);
+  const slotMap=new Array(cap+1).fill(null);
+  slots1.forEach((s,mi)=>{slotMap[mi*2+1]=s.top;slotMap[mi*2+2]=s.bot;});
+  slots2.forEach((s,mi)=>{const base=half+mi;slotMap[base*2+1]=s.top;slotMap[base*2+2]=s.bot;});
+  return{slotMap,cap};
+}
+
+function _bkGetMatchScore(nd,bang,code){
+  // Check _M first (col 5,6)
+  const m=_M.find(m2=>String(m2[1]||'')===nd&&String(m2[2]||'')===bang&&String(m2[3]||'')===code);
+  if(m){const sA=m[5],sB=m[6];if((sA!==''&&sA!=null)&&(sB!==''&&sB!=null))return{scoreA:Number(sA),scoreB:Number(sB),teamA:String(m[4]||''),teamB:String(m[7]||'')};}
+  // Check _R (KetQua)
+  const r=_R.find(r2=>String(r2[2]||'')===nd&&String(r2[3]||'')===bang&&String(r2[4]||'')===code);
+  if(r)return{scoreA:Number(r[7]||0),scoreB:Number(r[8]||0),teamA:String(r[5]||''),teamB:String(r[6]||'')};
+  return null;
+}
+
+function _bkMatchDone(nd,bang,code){
+  const key=nd+'|'+bang+'|'+code;
+  if(_L.find(l=>String(l[0]||'')===key))return false; // live = not done
+  const m=_M.find(m2=>String(m2[1]||'')===nd&&String(m2[2]||'')===bang&&String(m2[3]||'')===code);
+  if(m&&m[5]!==''&&m[5]!=null&&m[6]!==''&&m[6]!=null)return true;
+  return !!_R.find(r=>String(r[2]||'')===nd&&String(r[3]||'')===bang&&String(r[4]||'')===code);
+}
+
+function _bkIsLive(nd,bang,code){
+  const key=nd+'|'+bang+'|'+code;
+  return !!_L.find(l=>String(l[0]||'')===key||String(l[0]||'')===code);
+}
+
+function _bkNdPrefix(nd){
+  if(!nd)return'';
+  const norm=nd.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/gi,'d').replace(/[^a-zA-Z0-9\s]/g,'').trim().toUpperCase();
+  const words=norm.split(/\s+/).filter(Boolean);
+  let pfx;
+  if(!words.length)pfx='ND';
+  else if(words.length===1)pfx=words[0].slice(0,5);
+  else if(words.length===2)pfx=words[0].slice(0,3)+words[1].slice(0,3);
+  else pfx=words.slice(0,5).map(w=>w[0]).join('');
+  return pfx.slice(0,6)+'_';
+}
+
+function _bkBuildAndRenderTree(nd,wrap){
+  const gUp=(_giaiName||USER_GIAI||'').toUpperCase();
+  const allM=_M.filter(m=>String(m[0]||'').trim().toUpperCase()===gUp&&String(m[1]||'')===nd);
+  const koMatches=allM.filter(m=>{const v=String(m[9]||'');return v&&v!=='Vòng bảng'&&!v.includes('bảng');});
+  const {seeds,bangs,bangDone}=_bkCalcSeeds(nd);
+
+  if(!bangs.length&&!koMatches.length){
+    wrap.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-msg">Chưa có dữ liệu cây thi đấu</div><div class="empty-sub">Vòng KO chưa được tạo cho nội dung này</div></div>';
+    return;
+  }
+
+  const globalSeeds=_bkGlobalSeeding(seeds,bangs);
+  const nb=bangs.length;
+  if(!nb){wrap.innerHTML='<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-msg">Chưa có vòng bảng</div></div>';return;}
+
+  const {slotMap,cap}=_bkCrossSeededSlots(globalSeeds,bangs,seeds);
+  const rounds2=Math.log2(cap);
+  const ndPfx=_bkNdPrefix(nd);
+
+  const roundName=(ff)=>{if(ff===0)return'Chung kết';if(ff===1)return'Bán kết';if(ff===2)return'Tứ kết';return'Vòng '+Math.pow(2,ff+1);};
+  const roundCls=(ff)=>{if(ff===0)return'bk-ck';if(ff===1)return'bk-bk';if(ff===2)return'bk-tk';return'bk-vg';};
+  const prefix=(ff,nM)=>{if(ff===0)return ndPfx+'CK';if(ff===1)return ndPfx+'BK';if(ff===2)return ndPfx+'TK';return ndPfx+'V'+Math.pow(2,ff+1);};
+  const rnArr=['Nhất','Nhì','Ba','Tư'];
+  const bangShort=(b)=>b?b.replace(/^Bảng\s+/i,'').trim():b;
+
+  const koByCode={};
+  koMatches.forEach(m=>{koByCode[String(m[3]||'')]=m;});
+
+  const getWinnerFromKo=(code)=>{
+    const sheetM=koByCode[code];
+    if(sheetM){
+      const bang2=String(sheetM[2]||'');
+      if(_bkMatchDone(nd,bang2,code)){
+        const fs=_bkGetMatchScore(nd,bang2,code);
+        if(fs)return fs.scoreA>fs.scoreB?String(sheetM[4]||''):String(sheetM[7]||'');
+      }
+    }
+    return'';
+  };
+  const getLoserFromKo=(code)=>{
+    const sheetM=koByCode[code];
+    if(!sheetM)return'';
+    const bang2=String(sheetM[2]||'');
+    if(!_bkMatchDone(nd,bang2,code))return'';
+    const fs=_bkGetMatchScore(nd,bang2,code);
+    if(!fs)return'';
+    return fs.scoreA>fs.scoreB?String(sheetM[7]||''):String(sheetM[4]||'');
+  };
+
+  const _byeMap={};
+  const roundMatches=[];
+  for(let r=0;r<rounds2;r++){
+    const fromFin=rounds2-1-r;
+    const nM=cap/Math.pow(2,r+1);
+    const pfx=prefix(fromFin,nM);
+    const matches=[];
+    for(let i=0;i<nM;i++){
+      const code=nM===1?pfx:pfx+(i+1);
+      if(r===0){
+        const slotT=i*2+1,slotB=i*2+2;
+        const sT=slotMap[slotT]||null,sB2=slotMap[slotB]||null;
+        const byeT=!sT,byeB=!sB2;
+        const labelT=byeT?'BYE':`${rnArr[sT.seedRank-1]||('#'+sT.seedRank)} Bảng ${bangShort(sT.bang)}`;
+        const labelB=byeB?'BYE':`${rnArr[sB2.seedRank-1]||('#'+sB2.seedRank)} Bảng ${bangShort(sB2.bang)}`;
+        const teamA=byeT?'':(sT&&!sT.isPlaceholder&&bangDone?.[sT.bang]?(sT.team||''):'');
+        const teamB=byeB?'':(sB2&&!sB2.isPlaceholder&&bangDone?.[sB2.bang]?(sB2.team||''):'');
+        matches.push({code,seedA:labelT,seedB:labelB,teamA,teamB,isByeA:byeT,isByeB:byeB,fromFin});
+        if(byeT||byeB)_byeMap[code]={byeA:byeT,byeB:byeB};
+      }else{
+        const prevPfx=prefix(fromFin+1,nM*2);
+        const codeA=nM*2===1?prevPfx:prevPfx+(i*2+1);
+        const codeB=nM*2===1?prevPfx:prevPfx+(i*2+2);
+        // Auto-advance from BYE
+        let tA=getWinnerFromKo(codeA),tB=getWinnerFromKo(codeB);
+        // BYE auto-advance
+        const byeA=_byeMap[codeA];
+        if(!tA&&byeA){const prev=roundMatches[r-1]?.matches.find(m2=>m2.code===codeA);if(prev){if(prev.isByeA&&prev.teamB)tA=prev.teamB;else if(prev.isByeB&&prev.teamA)tA=prev.teamA;}}
+        const byeB2=_byeMap[codeB];
+        if(!tB&&byeB2){const prev=roundMatches[r-1]?.matches.find(m2=>m2.code===codeB);if(prev){if(prev.isByeA&&prev.teamB)tB=prev.teamB;else if(prev.isByeB&&prev.teamA)tB=prev.teamA;}}
+        matches.push({code,fromFin,seedA:`Thắng ${codeA}`,seedB:`Thắng ${codeB}`,teamA:tA,teamB:tB});
+      }
+    }
+    roundMatches.push({name:roundName(fromFin),cls:roundCls(fromFin),matches,fromFin});
+  }
+  // Hạng 3
+  if(rounds2>=2){
+    const bkCount=cap/4;
+    const bk1=bkCount===1?ndPfx+'BK':ndPfx+'BK1';
+    const bk2=bkCount===1?ndPfx+'BK':ndPfx+'BK2';
+    roundMatches.push({name:'Hạng 3',cls:'bk-h3',fromFin:-1,matches:[{code:ndPfx+'H3',seedA:`Thua ${bk1}`,seedB:`Thua ${bk2}`,teamA:getLoserFromKo(bk1),teamB:getLoserFromKo(bk2)}]});
+  }
+
+  // ── Render helpers ──
+  const pillCls=(seedStr)=>{
+    if(!seedStr)return'p-num';if(seedStr.startsWith('Thắng')||seedStr==='W')return'p-w';
+    if(seedStr.startsWith('BYE'))return'p-bye';
+    const bangM2=seedStr.match(/Bảng\s+([A-Z])/i);if(bangM2)return'p-'+bangM2[1].toUpperCase();
+    return'p-num';
+  };
+  const pillLabel=(seedStr)=>{
+    if(!seedStr)return'?';if(seedStr.startsWith('Thắng'))return'W';if(seedStr==='BYE')return'BYE';
+    const rank=seedStr.includes('Nhất')?1:seedStr.includes('Nhì')?2:seedStr.includes('Ba')?3:seedStr.includes('Tư')?4:0;
+    const bangM2=seedStr.match(/Bảng\s+([A-Z])/i);const bang2=bangM2?bangM2[1].toUpperCase():'';
+    if(rank&&bang2)return rank+bang2;return'?';
+  };
+
+  const mkCard=(m,done,live,fs,mc)=>{
+    const tA=m.teamA||'',tB=m.teamB||'';
+    const winA=fs&&fs.scoreA>fs.scoreB,winB=fs&&fs.scoreB>fs.scoreA;
+    const cardCls='bk-card'+(done?' c-done':'')+(live?' c-live':'')+(mc?' '+mc:'');
+    const rA=m.isByeA?'r-bye':(!tA?'r-tbd':winA?'r-win':'');
+    const rB=m.isByeB?'r-bye':(!tB?'r-tbd':winB?'r-win':'');
+    const nA=m.isByeA?'BYE':(tA||'—'),nB=m.isByeB?'BYE':(tB||'—');
+    const plA=pillLabel(m.seedA||''),plB=pillLabel(m.seedB||'');
+    const pcA=pillCls(m.seedA||''),pcB=pillCls(m.seedB||'');
+    const scA=fs?`<div class="bk-sbox${winA?' s-win':''}">${fs.scoreA}</div>`:'<div class="bk-sbox s-empty">—</div>';
+    const scB=fs?`<div class="bk-sbox${winB?' s-win':''}">${fs.scoreB}</div>`:'<div class="bk-sbox s-empty">—</div>';
+    return `<div class="${cardCls}">
+      <div class="bk-card-hd"><span>${m.code}</span>
+        <div style="display:flex;align-items:center;gap:4px">
+          ${live?'<span class="bk-live-dot"></span><span style="font-size:9px;color:#f97316;font-weight:700">LIVE</span>':''}
+          ${done?'<span style="font-size:10px;color:#22c55e;font-weight:700">✓</span>':''}
+        </div></div>
+      <div class="bk-row ${rA}">
+        <div class="bk-pill ${pcA}" title="${esc(m.seedA||'')}">${plA}</div>
+        <div class="bk-tname" title="${esc(nA)}">${esc(nA)}</div>${scA}
+      </div>
+      <div class="bk-row ${rB}">
+        <div class="bk-pill ${pcB}" title="${esc(m.seedB||'')}">${plB}</div>
+        <div class="bk-tname" title="${esc(nB)}">${esc(nB)}</div>${scB}
+      </div>
+    </div>`;
+  };
+
+  const mkConn=(nPairs,ccCls)=>{
+    let h=`<div class="bk-conn-col ${ccCls}">`;
+    for(let i=0;i<nPairs;i++)h+=`<div class="bk-conn-pair"><div class="bk-conn-arm arm-top"></div><div class="bk-conn-arm arm-bot"></div></div>`;
+    return h+'</div>';
+  };
+  const connCls=(r)=>{if(r.fromFin===0)return'cc-final';if(r.fromFin===1)return'cc-sf';if(r.fromFin===2)return'cc-qf';return'';};
+  const roundLblCls=(r)=>{if(r.fromFin===0)return'lbl-final';if(r.fromFin===1)return'lbl-sf';if(r.fromFin===2)return'lbl-qf';if(r.fromFin>=3)return'lbl-r16';return'';};
+  const matchRoundCls=(r,isLast)=>{if(isLast)return'c-final';if(r.fromFin===1)return'c-sf';if(r.fromFin===2)return'c-qf';return'';};
+
+  const koRoundsOnly=roundMatches.filter(r=>r.cls!=='bk-h3');
+  const h3Round=roundMatches.find(r=>r.cls==='bk-h3');
+
+  // ── Group cards (vòng bảng summary) ──
+  let html='';
+  if(bangs.length){
+    html+=`<div class="bk-sec"><span>📋 Vòng bảng</span><div class="bk-sec-line"></div></div>`;
+    html+=`<div class="bk-gcards-wrap">`;
+    bangs.forEach(bang=>{
+      const st=seeds[bang]||[];
+      const bm=_M.filter(m=>String(m[1]||'')===nd&&String(m[2]||'')===bang&&(!String(m[9]||'')||String(m[9]||'').includes('bảng')));
+      const doneC=bm.filter(m=>{const v=m[5];return v!==''&&v!=null;}).length;
+      const isComplete=bangDone?.[bang];
+      const stCls=isComplete?'st-done':doneC>0?'st-partial':'st-pending';
+      let h=`<div class="bk-gcard"><div class="bk-gcard-hd"><span class="bk-gcard-name">${esc(bang)}</span><span class="bk-gcard-st ${stCls}">${isComplete?'✓':''} ${doneC}/${bm.length}</span></div>`;
+      if(!st.length)h+=`<div class="bk-grank"><span style="font-size:10px;color:var(--tx4)">Chưa có kết quả</span></div>`;
+      else st.slice(0,3).forEach((s,i)=>{const medals=['🥇','🥈','🥉'];const rCls=i===0?'gr1':i===1?'gr2':'';h+=`<div class="bk-grank ${rCls}"><span class="bk-grank-n">${medals[i]}</span><span class="bk-grank-t" title="${esc(s.team)}">${esc(s.team)}</span><span class="bk-grank-s">${s.won}W&nbsp;<b>${s.played||0}T</b></span></div>`;});
+      html+=h+'</div>';
+    });
+    html+='</div>';
+  }
+
+  // ── KO bracket ──
+  if(koRoundsOnly.length){
+    html+=`<div class="bk-sec" style="margin-top:8px"><span>🏆 Vòng loại trực tiếp</span><div class="bk-sec-line"></div></div>`;
+    html+='<div class="bk-scroll"><div class="bk-bracket">';
+    koRoundsOnly.forEach((round,ri)=>{
+      const nM=round.matches.length,isLast=ri===koRoundsOnly.length-1;
+      const cc=connCls(round),lc=roundLblCls(round),mc=matchRoundCls(round,isLast);
+      if(ri>0)html+=mkConn(nM,cc);
+      html+=`<div class="bk-round"><div class="bk-round-label ${lc}">${round.name}</div><div class="bk-round-slots">`;
+      round.matches.forEach(m=>{
+        const koM=koMatches.find(km=>String(km[3]||'')===m.code);
+        const bang2=koM?String(koM[2]||''):'';
+        const done=koM&&_bkMatchDone(nd,bang2,m.code);
+        const live=_bkIsLive(nd,bang2,m.code);
+        const fs=done?_bkGetMatchScore(nd,bang2,m.code):null;
+        html+=`<div class="bk-slot">${mkCard(m,done,live,fs,mc)}</div>`;
+      });
+      html+='</div></div>';
+    });
+    // Champion
+    const ckRound=roundMatches.find(r=>r.fromFin===0);
+    let champName='';
+    if(ckRound?.matches.length){
+      const ckM=ckRound.matches[0];
+      const koMck=koMatches.find(km=>String(km[3]||'')===ckM.code);
+      if(koMck&&_bkMatchDone(nd,String(koMck[2]||''),ckM.code)){
+        const fsCk=_bkGetMatchScore(nd,String(koMck[2]||''),ckM.code);
+        if(fsCk)champName=fsCk.scoreA>fsCk.scoreB?(ckM.teamA||String(koMck[4]||'')):(ckM.teamB||String(koMck[7]||''));
+      }
+    }
+    html+=`<div class="bk-champ-wrap"><div class="bk-champ-box"><div class="bk-champ-icon">🏆</div><div class="bk-champ-lbl">Vô địch</div>${champName?`<div class="bk-champ-name">${esc(champName)}</div>`:''}</div></div>`;
+    html+='</div></div>';
+
+    if(h3Round?.matches?.length){
+      const m3=h3Round.matches[0];
+      const koM3=koMatches.find(km=>String(km[3]||'')===m3.code);
+      const bang3=koM3?String(koM3[2]||''):'';
+      const done3=koM3&&_bkMatchDone(nd,bang3,m3.code);
+      const fs3=done3?_bkGetMatchScore(nd,bang3,m3.code):null;
+      html+=`<div style="margin-top:10px"><div class="bk-scroll"><div class="bk-bracket"><div class="bk-round"><div class="bk-round-label lbl-3rd">Hạng 3</div><div class="bk-round-slots"><div class="bk-slot">${mkCard(m3,done3,false,fs3,'c-3rd')}</div></div></div></div></div></div>`;
+    }
+  }else if(bangs.length){
+    html+=`<div style="background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);border-radius:10px;padding:14px;margin-top:10px;font-size:12px;color:var(--tx3);text-align:center">🏆 Vòng loại trực tiếp chưa được tạo</div>`;
+  }
+
+  wrap.innerHTML=html;
+}
+
+function renderBracketTab(){
+  const wrap=$('bracket-content');
+  // Lấy danh sách nội dung
+  const gUp=(_giaiName||USER_GIAI||'').toUpperCase();
+  const nds=[...new Set(_M.filter(m=>!gUp||String(m[0]||'').trim().toUpperCase()===gUp).map(m=>String(m[1]||'')).filter(Boolean))];
+  // Filter theo USER_ND nếu có
+  let visibleNds=nds;
+  if(USER_ND&&USER_ND.trim()){
+    const allowed=USER_ND.split(',').map(s=>s.trim()).filter(Boolean);
+    visibleNds=nds.filter(nd=>allowed.some(a=>nd.toLowerCase()===a.toLowerCase()||nd.includes(a)||a.includes(nd)));
+    if(!visibleNds.length)visibleNds=nds;
+  }
+  if(!visibleNds.length){
+    wrap.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-msg">Chưa có dữ liệu</div><div class="empty-sub">Tải lại để cập nhật</div></div>';
+    return;
+  }
+  if(!_bkCurNd||!visibleNds.includes(_bkCurNd))_bkCurNd=visibleNds[0];
+
+  let html='';
+  // Tabs selector nếu có nhiều nội dung
+  if(visibleNds.length>1){
+    html+=`<div class="bk-nd-tabs">${visibleNds.map(nd=>`<button class="bk-nd-tab${nd===_bkCurNd?' on':''}" onclick="selectBkNd('${esc(nd)}')">${esc(nd)}</button>`).join('')}</div>`;
+  }
+  wrap.innerHTML=html+'<div id="bk-inner"></div>';
+  _bkBuildAndRenderTree(_bkCurNd,$('bk-inner'));
+}
+
+function selectBkNd(nd){
+  _bkCurNd=nd;
+  renderBracketTab();
 }
 
 // ══ BOOT ══
