@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<!-- Pickleball v25 | FIX: Login detailed errors, Test GAS button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) GAS dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên GSheets | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (GSheets renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) GAS v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang -->
+<!-- Pickleball v25 | FIX: Login detailed errors, Test GAS button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) GAS dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên GSheets | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (GSheets renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) GAS v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang | v63 2026-06-01: FIX Manager tạo giải — (1) loadTournaments sync ownerCode trước khi filter; (2) saveTournament thêm giaiId vào MY_GIAI_LIST ngay sau tạo thành công; (3) renderTournCards hiển thị empty state cho phép tạo giải thay vì block | v64 2026-06-01: FIX login admin: chỉ gửi code param; codesMatch normalize số 0; ẩn hint GSheet -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Admin v01_4— Referee Pickleball / DA NANG ®</title>
+<title>Admin v1.0— Referee Pickleball / DA NANG ®</title>
 <style>
 /* ═══════════════════════════════════════════════════════
    Pickleball Admin — Mobile-First Professional UI
@@ -939,10 +939,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
         </div>
       </div>
       
-      <!-- GAS URL ẩn — đã hardcode DEFAULT_GAS_URL -->
+      <!-- GAS URL hardcode — không hiển thị, tự động dùng DEFAULT_GAS_URL -->
       <input type="hidden" id="gs-url" value="https://script.google.com/macros/s/AKfycbw1HiQCcbGXgGzXj77oDrETKRTyn4WjUGjyNaPBpS5oapnwyBSvJWFf_Y_Ob-sUqj8QoQ/exec">
+      <span id="gas-ver-badge" style="display:none"></span>
       <label class="lbl">🔑 Mã đăng nhập</label>
-      <input class="fi" type="text" id="adm-code" placeholder="ADMIN001 hoặc MGR001" maxlength="20" autocomplete="off"
+      <input class="fi" type="text" id="adm-code" placeholder="ADMIN001 hoặc số điện thoại" maxlength="30" autocomplete="off"
         oninput="localStorage.setItem('pb_adm_code',this.value.trim())"
         onkeydown="if(event.key==='Enter')doLogin()">
       <div style="display:flex;gap:10px;margin-top:4px">
@@ -2342,7 +2343,7 @@ function _syncManagerGiaiList() {
     const ownerCode = r.owner
       ? String(r.owner||'').trim().toUpperCase()
       : (Array.isArray(r[8]) ? '' : String(r[8]||'').trim().toUpperCase());
-    if (ownerCode === myCode && !MY_GIAI_LIST.includes(giaiId)) {
+    if (_codeMatch(ownerCode, myCode) && !MY_GIAI_LIST.includes(giaiId)) {
       MY_GIAI_LIST.push(giaiId);
     }
   });
@@ -2364,7 +2365,7 @@ function _filterTournsForRole(rows) {
     const ownerCode = r.owner
       ? String(r.owner||'').trim().toUpperCase()
       : (Array.isArray(r[8]) ? '' : String(r[8]||'').trim().toUpperCase());
-    if (ownerCode === myCode) return true;
+    if (_codeMatch(ownerCode, myCode)) return true;
     return false;
   });
 }
@@ -2727,13 +2728,9 @@ async function doLogin() {
   localStorage.setItem('pb_adm_code', code);
 
   const baseUrl = url.replace(/\/+$/, '');
-  // Detect: nếu input thuần số >= 8 ký tự → là SĐT → gửi phone param
-  const codeClean = code.replace(/\D/g, '');
-  const isPhone = /^\d{8,12}$/.test(codeClean) && !/[A-Z]/.test(code);
-  const loginParam = isPhone
-    ? `phone=${encodeURIComponent(codeClean)}`
-    : `code=${encodeURIComponent(code)}`;
-  const fetchUrl = `${baseUrl}?action=validate&${loginParam}&device=AdminPanel&_t=${Date.now()}`;
+  // Admin panel luôn đăng nhập bằng mã (code param).
+  // GAS v29: codesMatch tự normalize số 0 đầu, tìm col 0 (Mã) chính xác.
+  const fetchUrl = `${baseUrl}?action=validate&code=${encodeURIComponent(code)}&device=AdminPanel&_t=${Date.now()}`;
 
   // Fetch với timeout 12s + retry 1 lần nếu timeout
   async function fetchWithTimeout(url, ms) {
@@ -2784,16 +2781,18 @@ async function doLogin() {
     if (!d.valid) {
       err.textContent = '❌ ' + (d.reason || 'Mã không hợp lệ');
       dbg.style.display = 'block';
-      dbg.innerHTML = `GAS phản hồi: <code>${JSON.stringify(d).slice(0,200)}</code>`;
+      const gasVerWarn = !d._gasVer
+        ? `<br><b style="color:#f87171">⚠️ GAS chưa deploy v29</b> — Vào Google Apps Script → Deploy → New deployment để cập nhật.`
+        : '';
+      dbg.innerHTML = `GAS phản hồi: <code>${JSON.stringify(d).slice(0,300)}</code>${gasVerWarn}<br>
+        <span style="font-size:10px;color:var(--tx3)">URL: <a href="${fetchUrl}" target="_blank" style="color:var(--ac);word-break:break-all">${fetchUrl.replace(/&_t=\d+/,'')}</a></span>`;
       return;
     }
 
     if (!d.isAdmin && !d.isManager) {
       err.textContent = '❌ Tài khoản không có quyền Admin/Manager';
       dbg.style.display = 'block';
-      dbg.innerHTML = `<b>${d.name}</b> hợp lệ nhưng chưa có quyền.<br>
-        Trạng thái hiện tại: <b style="color:#f87171">"${d.statusRaw||'(trống)'}"</b><br>
-        → Vào Google Sheet tab <b>Users</b>, cột <b>Trạng thái</b> (cột H), đổi thành <b>admin</b> hoặc <b>manager</b>`;
+      dbg.innerHTML = `<b>${d.name}</b> đã xác thực thành công nhưng chưa có quyền Admin hoặc Manager.<br>Liên hệ quản trị viên để được cấp quyền.`;
       return;
     }
 
@@ -2849,33 +2848,57 @@ async function testGasUrl() {
   const url = document.getElementById('gs-url').value.trim();
   const err = document.getElementById('lerr');
   const dbg = document.getElementById('ldbg');
+  const badge = document.getElementById('gas-ver-badge');
   err.textContent = ''; dbg.style.display = 'none';
+  if (badge) badge.textContent = '';
 
   if (!url) { err.textContent = '⚠️ Nhập URL GAS trước'; return; }
 
-  err.textContent = '🔌 Đang test kết nối...';
+  err.textContent = '🔌 Đang kiểm tra GAS...';
+  err.style.color = '';
   try {
     const baseUrl = url.replace(/\/+$/, '');
-    const r = await fetch(`${baseUrl}?action=ping&_t=${Date.now()}`, { redirect: 'follow' });
+    // Dùng validate với mã giả để kiểm tra version GAS
+    const r = await fetch(`${baseUrl}?action=validate&code=__TEST_VERSION__&device=AdminPanel&_t=${Date.now()}`, { redirect: 'follow' });
     const text = await r.text();
     let d;
     try { d = JSON.parse(text); } catch(e) { d = null; }
 
-    if (r.ok && (d?.status === 'ok' || d?.ok || text.includes('ok'))) {
-      err.style.color = 'var(--gn)';
-      err.textContent = '✅ Kết nối GAS thành công!';
-    } else {
-      err.textContent = `⚠️ GAS phản hồi HTTP ${r.status}`;
+    if (!r.ok) {
+      err.textContent = `❌ HTTP ${r.status} — GAS lỗi`;
       dbg.style.display = 'block';
-      dbg.innerHTML = `Phản hồi: <code style="word-break:break-all;font-size:10px">${text.slice(0,300)}</code>`;
+      dbg.innerHTML = `HTTP ${r.status}<br>→ Kiểm tra Deploy GAS: phải là "Anyone"`;
+      return;
+    }
+
+    const gasVer = d?._gasVer || null;
+    if (gasVer === 'v29') {
+      err.style.color = 'var(--gn)';
+      err.textContent = '✅ GAS v29 kết nối OK!';
+      if (badge) { badge.textContent = '✅ v29'; badge.style.color = 'var(--gn)'; }
+      localStorage.setItem('pb_gs_url', baseUrl);
+    } else if (d?.ok !== undefined) {
+      // GAS phản hồi nhưng không có _gasVer → code cũ
+      err.style.color = 'var(--or)';
+      err.textContent = '⚠️ GAS kết nối được nhưng chưa deploy v29';
+      if (badge) { badge.textContent = '⚠️ code cũ'; badge.style.color = 'var(--or)'; }
+      dbg.style.display = 'block';
+      dbg.innerHTML = `GAS đang chạy code cũ (chưa có v29).<br>
+        <b>Cách fix:</b><br>
+        1. Vào <a href="https://script.google.com" target="_blank" style="color:var(--ac)">script.google.com</a><br>
+        2. Mở project → paste nội dung file <b>Pickleball_gas_v29.js</b> vào editor → <b>Ctrl+S</b> lưu<br>
+        3. Deploy → <b>Manage deployments</b> → chọn deployment → Edit → <b>Version: New version</b> → Deploy`;
+    } else {
+      err.textContent = '❌ GAS không phản hồi đúng';
+      dbg.style.display = 'block';
+      dbg.innerHTML = `Phản hồi: <code style="font-size:10px">${text.slice(0,200)}</code>`;
     }
   } catch(e) {
-    err.textContent = '❌ Không kết nối được';
+    err.textContent = '❌ Không kết nối được GAS';
     dbg.style.display = 'block';
-    dbg.innerHTML = `Lỗi: <b>${e.message}</b><br>
-      → Kiểm tra URL và quyền Deploy GAS (phải là "Anyone, even anonymous")`;
+    dbg.innerHTML = `Lỗi: <b>${e.message}</b><br>→ Deploy GAS mode phải là "Anyone, even anonymous"`;
   }
-  setTimeout(() => { err.style.color = ''; }, 4000);
+  setTimeout(() => { err.style.color = ''; }, 8000);
 }
 
 function showApp() {
@@ -4525,9 +4548,22 @@ async function loadTournaments() {
   // ── Fetch GAS để cập nhật mới nhất ──
   try {
     const d = await gGet({ action: 'tournaments', adminCode: CODE });
-    let rows = d.rows?.slice(1) || [];
-    // Manager: filter client-side — bất kể GAS cũ/mới đều đúng
-    rows = _filterTournsForRole(rows);
+    let allRows = d.rows?.slice(1) || [];
+    // Manager: sync trước từ raw rows (để nhận ra giải vừa tạo bởi owner)
+    if (ROLE === 'manager' && allRows.length) {
+      const myCode = CODE.toUpperCase();
+      allRows.forEach(r => {
+        const giaiId = String(r[0]||'').trim().toUpperCase();
+        const ownerCode = r.owner
+          ? String(r.owner||'').trim().toUpperCase()
+          : (Array.isArray(r[8]) ? '' : String(r[8]||'').trim().toUpperCase());
+        if (_codeMatch(ownerCode, myCode) && giaiId && !MY_GIAI_LIST.includes(giaiId)) {
+          MY_GIAI_LIST.push(giaiId);
+        }
+      });
+    }
+    // Filter sau khi đã sync
+    let rows = _filterTournsForRole(allRows);
     // Manager: luôn dùng GAS response; Admin: chỉ cập nhật khi có data
     if (ROLE === 'manager' || rows.length > 0 || _T.length === 0) {
       _T = rows;
@@ -4548,9 +4584,9 @@ function renderTournCards(rows) {
   if (!rows.length) {
     if (ROLE === 'manager') {
       wrap.innerHTML = `<div class="empty" style="grid-column:1/-1">
-        <div class="ei">🔒</div>
-        <p style="font-weight:700;color:var(--or)">Chưa được cấp quyền giải đấu nào</p>
-        <p style="font-size:12px;color:var(--tx3);margin-top:6px">Vui lòng liên hệ Admin để được phân quyền.</p>
+        <div class="ei">🏆</div>
+        <p style="font-weight:700;color:var(--tx)">Chưa có giải đấu nào</p>
+        <p style="font-size:12px;color:var(--tx3);margin-top:6px">Nhấn \"+ Tạo giải đấu\" để tạo giải đầu tiên của bạn.</p>
       </div>`;
     } else {
       wrap.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="ei">🏆</div><p>Chưa có giải đấu nào. Nhấn "+ Tạo giải đấu" để bắt đầu.</p></div>`;
@@ -11558,7 +11594,14 @@ async function saveTournament() {
   try{
     const d = await gPost({action:isEdit?'updateTournament':'addTournament',adminCode:CODE,tournament:tourn});
     if(!d.ok)toast('Lỗi: '+d.reason,'er');
-    else loadTournaments();
+    else {
+      // Manager: thêm giải mới vào MY_GIAI_LIST ngay lập tức để filter đúng
+      if (!isEdit && ROLE === 'manager') {
+        const newId = id.toUpperCase();
+        if (newId && !MY_GIAI_LIST.includes(newId)) MY_GIAI_LIST.push(newId);
+      }
+      loadTournaments();
+    }
   }catch(e){toast('Lỗi kết nối','er');}
 }
 async function delTourn(id, name) {
