@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<!-- Pickleball v25 | FIX: Login detailed errors, Test GAS button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) GAS dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên GSheets | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (GSheets renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) GAS v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang | v63 2026-06-01: FIX Manager tạo giải — (1) loadTournaments sync ownerCode trước khi filter; (2) saveTournament thêm giaiId vào MY_GIAI_LIST ngay sau tạo thành công; (3) renderTournCards hiển thị empty state cho phép tạo giải thay vì block | v64 2026-06-01: FIX login admin: chỉ gửi code param; codesMatch normalize số 0; ẩn hint GSheet -->
+<!-- Pickleball v66 2026-06-03: FIX v32 referee bugs — assignCourtToRef/assignRef/atrAssignDirect không xóa noidung cũ; _matchAllowed normalize dấu; renderMatchGrid hiển thị khi có trận phân tên | v65 2026-06-01: FIX bracket overflow + nút tràn màn hình PC | v25 | FIX: Login detailed errors, Test GAS button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) GAS dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên GSheets | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (GSheets renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) GAS v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Admin v1.0— Referee Pickleball / DA NANG ®</title>
+<title>Admin v2.4 — Referee Pickleball / DA NANG ®</title>
 <style>
 /* ═══════════════════════════════════════════════════════
    Pickleball Admin — Mobile-First Professional UI
@@ -211,11 +211,11 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);
 .mni:active .mni-ic{transform:scale(.9)}
 
 /* ═══ CONTENT ═══ */
-.cn{margin-left:var(--sb);flex:1;padding:22px;min-height:100vh}
-.page{display:none;animation:fadeIn .2s ease}.page.on{display:block;overflow:hidden}
+.cn{margin-left:var(--sb);flex:1;padding:22px;min-height:100vh;max-width:calc(100vw - var(--sb));overflow-x:hidden;box-sizing:border-box}
+.page{display:none;animation:fadeIn .2s ease}.page.on{display:block}
 
 /* Page header */
-.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;max-width:100%;min-width:0}
 .ptitle{font-size:20px;font-weight:900;letter-spacing:-.3px}
 .psub{font-size:12px;color:var(--tx3);margin-top:3px;line-height:1.5}
 
@@ -462,31 +462,71 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
   flex:1;
   overflow-x:auto;
   overflow-y:auto;
-  padding-bottom:12px;
+  padding-bottom:20px;
   min-height:300px;
   max-height:calc(100vh - 220px);
   scrollbar-width:thin;
   scrollbar-color:var(--bdr3) transparent;
   -webkit-overflow-scrolling:touch;
 }
-/* Bracket zoom container */
-#bk-zoom-wrap{
-  overflow:auto;
+/* Ẩn thanh cuộn ngang mặc định của nd-bk-wrap — dùng thanh fixed thay thế */
+#nd-bk-wrap::-webkit-scrollbar:horizontal { display:none; }
+/* ── Bracket scroll container ── */
+#bk-zoom-outer{
   width:100%;
-  max-width:100%;
+  border:1px solid var(--bdr);
+  border-top:1px solid var(--bdr);
+  border-bottom:none;
+  border-radius:8px 8px 0 0;
+  background:var(--bg2);
   position:relative;
 }
+#bk-zoom-wrap{
+  overflow-x:hidden;          /* ngang ẩn — thanh bên dưới lo */
+  overflow-y:auto;            /* dọc cuộn */
+  width:100%;
+  max-height:calc(100vh - 270px);
+  scrollbar-width:thin;
+  scrollbar-color:var(--bdr3) transparent;
+}
+#bk-zoom-wrap::-webkit-scrollbar{width:6px}
+#bk-zoom-wrap::-webkit-scrollbar-track{background:transparent}
+#bk-zoom-wrap::-webkit-scrollbar-thumb{background:var(--bdr3);border-radius:4px}
 #bk-zoom-inner{
   transform-origin:top left;
   transition:transform .2s ease;
   display:inline-block;
   min-width:max-content;
+  padding:16px 16px 8px 16px;
 }
+/* Thanh cuộn ngang — nằm ngoài bk-zoom-outer, sticky dưới viewport */
+#bk-hscroll-bar{
+  overflow-x:auto;
+  overflow-y:hidden;
+  width:100%;
+  height:16px;
+  background:var(--bg3);
+  border:1px solid var(--bdr);
+  border-top:2px solid var(--ac);
+  border-radius:0 0 8px 8px;
+  scrollbar-width:thin;
+  scrollbar-color:var(--bdr3) var(--bg3);
+  position:sticky;
+  bottom:0;
+  z-index:50;
+}
+#bk-hscroll-bar::-webkit-scrollbar{height:14px}
+#bk-hscroll-bar::-webkit-scrollbar-track{background:var(--bg3)}
+#bk-hscroll-bar::-webkit-scrollbar-thumb{background:var(--ac);border-radius:4px}
+#bk-hscroll-bar::-webkit-scrollbar-thumb:hover{background:var(--ac2)}
+#bk-hscroll-inner{height:1px;display:block;}
 /* Zoom controls */
 #bk-zoom-bar{
   display:flex;align-items:center;gap:6px;
-  padding:6px 8px 6px 0;
+  padding:6px 8px 8px 0;
   position:sticky;left:0;z-index:10;
+  background:var(--bg);
+  flex-wrap:wrap;
 }
 #bk-zoom-bar button{
   width:28px;height:28px;border-radius:6px;
@@ -502,6 +542,36 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 #nd-bk-wrap::-webkit-scrollbar-thumb{background:var(--bdr3);border-radius:4px}
 #nd-bk-wrap::-webkit-scrollbar-thumb:hover{background:var(--tx4)}
 #nd-bk-wrap::-webkit-scrollbar-corner{background:var(--bg2)}
+
+/* ── Thanh cuộn ngang bracket — fixed dưới cùng viewport ── */
+#nd-bk-scrollbar-wrap{
+  position:fixed !important;
+  bottom:0 !important;
+  left:var(--sb);
+  right:0;
+  height:18px !important;
+  background:var(--bg3) !important;
+  border:none !important;
+  border-top:2px solid var(--ac) !important;
+  border-radius:0 !important;
+  overflow-x:auto !important;
+  overflow-y:hidden !important;
+  z-index:500;
+  display:none; /* ẩn mặc định, JS bật khi tab bracket mở */
+  scrollbar-width:thin;
+  scrollbar-color:var(--ac) var(--bg3);
+  margin:0 !important;
+}
+#nd-bk-scrollbar-wrap::-webkit-scrollbar{height:16px}
+#nd-bk-scrollbar-wrap::-webkit-scrollbar-track{background:var(--bg3)}
+#nd-bk-scrollbar-wrap::-webkit-scrollbar-thumb{background:var(--ac);border-radius:4px}
+#nd-bk-scrollbar-wrap::-webkit-scrollbar-thumb:hover{background:var(--ac2)}
+@media(max-width:1024px){
+  #nd-bk-scrollbar-wrap{left:var(--sbs);}
+}
+@media(max-width:640px){
+  #nd-bk-scrollbar-wrap{left:0;bottom:var(--nav-h);}
+}
 
 /* ════ BRACKET LAYOUT ════
    Structure (horizontal scroll):
@@ -815,7 +885,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
   .sbbm{padding:10px;display:flex;flex-direction:column;align-items:center}
   .btn-out{padding:8px;font-size:0;width:36px;height:36px;border-radius:50%;justify-content:center}
   .btn-out::before{content:'↩';font-size:14px}
-  .cn{margin-left:var(--sbs);padding:16px}
+  .cn{margin-left:var(--sbs);padding:16px;max-width:calc(100vw - var(--sbs));overflow-x:hidden;box-sizing:border-box}
   .stats{grid-template-columns:repeat(3,1fr)}
   .dgrid{grid-template-columns:1fr}
   .fgrid.t3{grid-template-columns:1fr 1fr}
@@ -837,7 +907,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
   /* Page header */
   .ptitle{font-size:17px}
   .ph{margin-bottom:12px;flex-direction:column;gap:8px}
-  .ph > div:last-child{display:flex;gap:6px;flex-wrap:wrap;width:100%}
+  .ph > div:last-child{display:flex;gap:6px;flex-wrap:wrap;width:100%;max-width:100%}
   .ph .btn{flex:1;justify-content:center;font-size:12px;padding:8px 10px}
 
   /* Stats: 2×2 + 1 on mobile */
@@ -939,11 +1009,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
         </div>
       </div>
       
-      <!-- GAS URL hardcode — không hiển thị, tự động dùng DEFAULT_GAS_URL -->
+      <!-- GAS URL ẩn — đã hardcode DEFAULT_GAS_URL -->
       <input type="hidden" id="gs-url" value="https://script.google.com/macros/s/AKfycbw1HiQCcbGXgGzXj77oDrETKRTyn4WjUGjyNaPBpS5oapnwyBSvJWFf_Y_Ob-sUqj8QoQ/exec">
-      <span id="gas-ver-badge" style="display:none"></span>
       <label class="lbl">🔑 Mã đăng nhập</label>
-      <input class="fi" type="text" id="adm-code" placeholder="ADMIN001 hoặc số điện thoại" maxlength="30" autocomplete="off"
+      <input class="fi" type="text" id="adm-code" placeholder="ADMIN001 hoặc MGR001" maxlength="20" autocomplete="off"
         oninput="localStorage.setItem('pb_adm_code',this.value.trim())"
         onkeydown="if(event.key==='Enter')doLogin()">
       <div style="display:flex;gap:10px;margin-top:4px">
@@ -1290,45 +1359,58 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 
         <!-- Tab: Cây thi đấu -->
         <div id="nd-panel-bracket" style="display:none">
-          <!-- Bracket toolbar -->
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;
+          <!-- Bracket toolbar — tinh gọn v2 -->
+          <div id="nd-bk-toolbar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;
                       background:var(--bg2);border:1px solid var(--bdr2);border-radius:12px;padding:12px 16px">
             <div>
-              <div style="font-size:13px;font-weight:800;color:var(--tx)">🏆 Cây thi đấu</div>
-              <div style="font-size:11px;color:var(--tx3);margin-top:2px">Tự động từ BXH vòng bảng · Có thể chỉnh tay</div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:13px;font-weight:800;color:var(--tx)">🏆 Cây thi đấu</span>
+                <button onclick="bkShowRules()" title="Xem quy tắc seeding" style="background:none;border:none;cursor:pointer;color:var(--tx3);font-size:13px;padding:0 2px;line-height:1">?</button>
+              </div>
+              <div id="nd-bk-status-bar" style="font-size:11px;color:var(--tx3);margin-top:2px">Tự động từ BXH vòng bảng</div>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <!-- Làm mới -->
               <button class="rfbtn" onclick="ndBkRefresh()" id="nd-bk-refresh-btn">↻ Làm mới</button>
-              <button class="btn bsm" style="background:rgba(14,165,233,.12);color:var(--ac);border:1px solid rgba(14,165,233,.3)"
-                onclick="bkShowRules()">📋 Quy tắc</button>
-              <button class="btn bsm" id="nd-btn-bk-mode" onclick="bkToggleMode()"
-                style="background:rgba(14,165,233,.12);color:var(--ac);border:1px solid rgba(14,165,233,.3);min-width:130px">
-                🖊 Thủ công
+              <!-- Toggle BYE / Lucky -->
+              <button id="nd-btn-bye-toggle" onclick="ndBkToggleByeRule()"
+                style="background:rgba(34,197,94,.12);color:var(--gn);border:1px solid rgba(34,197,94,.35);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s">
+                ✅ BYE
               </button>
-              <button class="btn bsm" id="nd-btn-autofill" onclick="ndBkAutoFill()"
-                style="background:rgba(14,165,233,.12);color:var(--ac);border:1px solid rgba(14,165,233,.3)">⚡ Điền ngay</button>
-              <button class="btn bsm" style="background:rgba(14,165,233,.12);color:var(--ac);border:1px solid rgba(14,165,233,.3)"
-                onclick="ndBkSave()">💾 Lưu cây</button>
-              <select id="sel-bye-rule" onchange="bkSetByeRule(this.value)"
-                style="background:var(--bg3);border:1px solid var(--bdr);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;color:var(--tx);cursor:pointer"
-                title="Rule cho slot BYE trong cây thi đấu">
-                <option value="bye">✅ BYE — Tự động</option>
-                <option value="lucky">🍀 Lucky — Chọn đội</option>
-              </select>
-              <button class="btn bsm" style="background:rgba(14,165,233,.12);color:var(--ac);border:1px solid rgba(14,165,233,.3)"
-                onclick="ndBkApply()">⚡ Áp dụng & Tạo lịch</button>
+              <!-- Áp dụng & Tạo lịch — nút chính -->
+              <button id="nd-btn-apply" onclick="ndBkApplyFull()"
+                style="background:rgba(14,165,233,.18);color:var(--ac);border:1px solid rgba(14,165,233,.4);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s">
+                ⚡ Áp dụng & Tạo lịch
+              </button>
+              <!-- Chỉnh sửa thủ công -->
+              <button id="nd-btn-edit" onclick="ndBkToggleEdit()"
+                style="background:rgba(14,165,233,.12);color:var(--ac);border:1px solid rgba(14,165,233,.3);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s">
+                ✏️ Chỉnh sửa
+              </button>
+              <!-- Xóa cây -->
               <button class="btn bsm" style="background:rgba(239,68,68,.12);color:var(--rd);border:1px solid rgba(239,68,68,.3)"
                 onclick="ndBkDelete()">🗑 Xóa cây</button>
+            </div>
+          </div>
+          <!-- Edit mode banner -->
+          <div id="nd-bk-edit-banner" style="display:none;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:8px 14px;margin-bottom:10px;display:none;align-items:center;justify-content:space-between;gap:10px">
+            <span style="font-size:12px;color:var(--or);font-weight:700">✏️ Đang chỉnh sửa — Chế độ tự động đã tạm dừng</span>
+            <div style="display:flex;gap:6px">
+              <button onclick="ndBkSaveEdit()"
+                style="background:rgba(34,197,94,.18);color:var(--gn);border:1px solid rgba(34,197,94,.4);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">
+                💾 Lưu & Tiếp tục tự động
+              </button>
+              <button onclick="ndBkCancelEdit()"
+                style="background:rgba(239,68,68,.1);color:var(--rd);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer">
+                ✕ Hủy
+              </button>
             </div>
           </div>
           <!-- Bracket render area -->
           <div id="nd-bk-wrap">
             <div class="empty"><div class="ei">🏆</div><p>Nhấn "Làm mới" hoặc "Tự động điền" để tạo cây</p></div>
           </div>
-          <!-- Sticky horizontal scrollbar -->
-          <div id="nd-bk-scrollbar-wrap" style="overflow-x:auto;overflow-y:hidden;height:12px;margin-top:2px;margin-bottom:8px;border-radius:6px;background:var(--bg3);border:1px solid var(--bdr)">
-            <div id="nd-bk-scrollbar-inner" style="height:1px;background:transparent"></div>
-          </div>
+          <!-- Thanh cuộn ngang đã chuyển ra body fixed -->
         </div>
       </div>
     </div>
@@ -1343,13 +1425,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
       </div>
 
       <!-- ══ TAB 1: Cây từ giải thực ══ -->
-      <div id="bk-panel-giai">
+      <div id="bk-panel-giai" style="position:relative">
         <div class="ph" style="margin-bottom:12px">
           <div>
             <div class="ptitle">🏆 Cây thi đấu</div>
             <div class="psub">Tự động từ BXH vòng bảng · Có thể chỉnh tay</div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;max-width:100%;overflow-x:auto;padding-bottom:2px">
             <button class="rfbtn" onclick="bkRefresh()">↻ Làm mới</button>
             <button class="btn bsm" style="background:rgba(14,165,233,.12);color:var(--ac);border:1px solid rgba(14,165,233,.3)" onclick="bkShowRules()">📋 Quy tắc</button>
             <button class="btn bsm" id="btn-bk-mode" onclick="bkToggleMode()"
@@ -1387,13 +1469,17 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
           <button onclick="bkZoomReset()" title="100%"  style="width:auto!important;padding:0 8px;font-size:11px!important">1:1</button>
         </div>
         <!-- Zoom wrapper -->
-        <div id="bk-zoom-wrap">
-          <div id="bk-zoom-inner">
-            <div id="bk-wrap" style="padding-bottom:20px">
-              <div class="empty"><div class="ei">🏆</div><p>Chọn giải và nội dung thi đấu</p></div>
+        <div id="bk-zoom-outer">
+          <div id="bk-zoom-wrap">
+            <div id="bk-zoom-inner">
+              <div id="bk-wrap" style="padding-bottom:8px">
+                <div class="empty"><div class="ei">🏆</div><p>Chọn giải và nội dung thi đấu</p></div>
+              </div>
             </div>
           </div>
         </div>
+        <!-- Thanh cuộn ngang sticky — nằm ngoài bk-zoom-outer, luôn cố định ở dưới -->
+        <div id="bk-hscroll-bar"><div id="bk-hscroll-inner"></div></div>
 
         <!-- Seeding preview + Apply panel -->
         <div id="bk-seed-panel" style="display:none!important;margin-top:14px">
@@ -2343,7 +2429,7 @@ function _syncManagerGiaiList() {
     const ownerCode = r.owner
       ? String(r.owner||'').trim().toUpperCase()
       : (Array.isArray(r[8]) ? '' : String(r[8]||'').trim().toUpperCase());
-    if (_codeMatch(ownerCode, myCode) && !MY_GIAI_LIST.includes(giaiId)) {
+    if (ownerCode === myCode && !MY_GIAI_LIST.includes(giaiId)) {
       MY_GIAI_LIST.push(giaiId);
     }
   });
@@ -2365,7 +2451,7 @@ function _filterTournsForRole(rows) {
     const ownerCode = r.owner
       ? String(r.owner||'').trim().toUpperCase()
       : (Array.isArray(r[8]) ? '' : String(r[8]||'').trim().toUpperCase());
-    if (_codeMatch(ownerCode, myCode)) return true;
+    if (ownerCode === myCode) return true;
     return false;
   });
 }
@@ -2454,22 +2540,18 @@ function _buildLiveFromRows(rows) {
     const nd   = parts[0];
     const bang = parts[1];
     const code = parts.slice(2).join('|');
-    const bc   = `${nd}|${bang}|${code}`; // noidung|bang|code — khớp với key mới của _dkBangCode
     // Tìm giải từ _liveScores hoặc _M
     const ls = newLS[liveKey];
     const matchInM = _M.find(m => String(m[1]||'')===nd && String(m[2]||'')===bang && String(m[3]||'')===code);
     const giai = (matchInM ? String(matchInM[0]||'') : '');
+    const bc = `${giai}|${nd}|${bang}|${code}`; // giai|noidung|bang|code — đầy đủ
 
     // Xóa khỏi _dK
-    if (giai) _dK.delete(`${giai}|${bang}|${code}`);
+    if (giai) _dK.delete(`${giai}|${nd}|${bang}|${code}`); // giai|noidung|bang|code
 
     // Xóa khỏi _dkBangCode Map
-    if (_dkBangCode instanceof Map && _dkBangCode.has(bc)) {
-      if (giai) {
-        const giaiSet = _dkBangCode.get(bc);
-        giaiSet && giaiSet.delete(giai);
-        if (giaiSet && giaiSet.size === 0) _dkBangCode.delete(bc);
-      }
+    if (giai && _dkBangCode instanceof Map && _dkBangCode.has(bc)) {
+      _dkBangCode.delete(bc);
     }
 
     // Xóa matchScoreA/B trong _M để card không bị force done
@@ -2482,29 +2564,43 @@ function _buildLiveFromRows(rows) {
 
 
 // ── Khi trận kết thúc: fetch kết quả mới → cập nhật _M scores + re-render ──
+// v2: dùng recentResults (chỉ 20 row cuối) thay vì full KetQua → nhanh ~3x
 async function _syncFinishedMatches(finishedKeys) {
   try {
-    // Fetch results sheet để lấy scores mới nhất
-    const d = await gGet({ action: 'results', code: 'all' }, 10000);
-    if (!d?.rows?.length) return;
-    buildDkFromResults(d.rows.slice(1));
+    // Xác định giải cần fetch (ưu tiên giải đang xem để không fetch thừa)
+    const giaiParam = ROLE === 'manager'
+      ? (_resolveGiaiName(MY_GIAI) || MY_GIAI)
+      : (_curTourn ? String(_curTourn[1]||'') : '');
+
+    // Bước 1: thử recentResults trước (nhanh ~200ms) — chỉ lấy 20 row mới nhất
+    let gotData = false;
+    try {
+      const rd = await gGet({ action:'recentResults', giai: giaiParam, limit: 30 }, 4000);
+      if (rd?.rows?.length > 1) {
+        buildDkFromResults(rd.rows.slice(1));
+        gotData = true;
+      }
+    } catch(e2) {}
+
+    // Bước 2: nếu recentResults không có → fallback full results
+    if (!gotData) {
+      const d = await gGet({ action:'results', giai: giaiParam }, 8000);
+      if (!d?.rows?.length) return;
+      buildDkFromResults(d.rows.slice(1));
+    }
 
     // Cập nhật _M với scores từ KetQua cho các trận vừa finish
     finishedKeys.forEach(liveKey => {
-      // liveKey format: "nd|bang|code"
       const parts = liveKey.split('|');
       if (parts.length < 3) return;
       const nd = parts[0], bang = parts[1], code = parts.slice(2).join('|');
-      // Tìm trong _dkScores theo bang|code hoặc giai|bang|code
       const m = _M.find(mr =>
         String(mr[1]||'')===nd && String(mr[2]||'')===bang && String(mr[3]||'')===code
       );
       if (!m) return;
       const giai = String(m[0]||'').trim();
-      const scoreEntry = _dkScores[`${giai}|${bang}|${code}`]
-                      || _dkScores[`${bang}|${code}`];
+      const scoreEntry = _dkScores[`${giai}|${nd}|${bang}|${code}`]; // giai|noidung|bang|code
       if (scoreEntry) {
-        // Cập nhật _M cache với scores từ KetQua
         const mIdx = _M.indexOf(m);
         if (mIdx >= 0) {
           _M[mIdx][5] = scoreEntry.scoreA !== null ? scoreEntry.scoreA : _M[mIdx][5];
@@ -2514,20 +2610,61 @@ async function _syncFinishedMatches(finishedKeys) {
       }
     });
 
-    // Re-render nếu đang xem bảng đấu
-    if (_curPage === 'tournaments' && _curNd && _curGiaiId) {
-      const tvNd = document.getElementById('tv-nd');
-      if (tvNd && tvNd.style.display !== 'none') {
-        renderBangList(_curGiaiId, _curNd);
-        toast('✅ Cập nhật kết quả realtime', 'ok');
+    // Re-render ngay lập tức
+    const _reRender = async () => {
+      if (_curPage === 'tournaments' && _curNd && _curGiaiId) {
+        const tvNd = document.getElementById('tv-nd');
+        if (tvNd && tvNd.style.display !== 'none') {
+          renderBangList(_curGiaiId, _curNd);
+          toast('✅ Kết quả đã cập nhật', 'ok');
+        }
       }
-    }
-    // Re-render dashboard nếu đang xem
-    if (_curPage === 'dashboard') {
-      const giaiId = document.getElementById('dash-giai').value;
-      const gn = giaiId ? ((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||giaiId) : '';
-      _renderDashFromLocal(gn, document.getElementById('dash-nd')?.value||'', document.getElementById('dash-bang')?.value||'');
-    }
+      if (_curPage === 'dashboard') {
+        const giaiId = document.getElementById('dash-giai').value;
+        const gn = giaiId ? ((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||giaiId) : '';
+        _renderDashFromLocal(gn, document.getElementById('dash-nd')?.value||'', document.getElementById('dash-bang')?.value||'');
+      }
+
+      // ── KEY FIX: Luôn rebuild tree + sync winner vào vòng tiếp ──
+      // Kể cả khi không ở tab cây thi đấu — để _bkCurrentTree có winner mới
+      // rồi _bkDoSyncToSchedule tạo/update CK/H3 trong _M và GAS
+      if (_bkGiai && _bkNd) {
+        // Rebuild tree silently (không cần render vào UI nếu tab đang ẩn)
+        const { seeds, bangs, bangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
+        const _gn2 = _resolveGiaiName(_bkGiai) || _bkGiai;
+        const allM2 = _M.filter(m => String(m[0]||'')===_gn2 && String(m[1]||'')===_bkNd);
+        const koM2  = allM2.filter(m => { const v=String(m[9]||''); return v&&v!=='Vòng bảng'&&!v.includes('bảng'); });
+        let tree2 = _bkBuildTree(seeds, bangs, koM2, bangDone);
+        tree2 = _bkApplyOverrides(tree2);
+        tree2 = _bkResolveAdvancers(tree2, koM2);
+        _bkCurrentTree = tree2; // cập nhật tree với winner mới
+
+        // Sync winner vào _M + GAS ngay lập tức (không debounce)
+        await _bkDoSyncToSchedule();
+
+        // Nếu user đang ở tab cây → render UI
+        const ndWrap = document.getElementById('nd-bk-wrap');
+        if (ndWrap && ndWrap.offsetParent !== null) {
+          const realWrap = document.getElementById('bk-wrap');
+          if (realWrap) realWrap.id = '_bk_swap_hidden';
+          ndWrap.id = 'bk-wrap';
+          try { bkRender(); } finally {
+            ndWrap.id = 'nd-bk-wrap';
+            if (realWrap) realWrap.id = 'bk-wrap';
+          }
+        } else if (_curPage === 'bracket') {
+          bkRender();
+        }
+
+        // Sau khi sync: re-render bảng đấu để hiện tên đội mới ở CK/H3
+        if (_curGiaiId === _bkGiai && _curNd === _bkNd) {
+          const tvNd2 = document.getElementById('tv-nd');
+          if (tvNd2 && tvNd2.style.display !== 'none') renderBangList(_bkGiai, _bkNd);
+        }
+      }
+    };
+    _reRender();
+
   } catch(e) {
     console.warn('[syncFinished]', e);
   }
@@ -2545,17 +2682,17 @@ function buildDkFromResults(rRows) {
     const bg = String(r[3]||'').trim();
     const cd = String(r[4]||'').trim();
     if (!bg || !cd) return;
-    // Thêm key đầy đủ (tên giải|bang|code)
-    dkSet.add(`${g}|${bg}|${cd}`);
-    // Key Map bao gồm noidung để tránh kết quả nội dung khác (Đôi Nữ) làm ô nhiễm (Đôi Nam-Nữ)
-    const bcKey = `${nd}|${bg}|${cd}`;
+    // Thêm key đầy đủ (giai|noidung|bang|code)
+    dkSet.add(`${g}|${nd}|${bg}|${cd}`);
+    // Key Map bao gồm cả giaiName + noidung để tránh kết quả giải/nội dung khác lẫn vào
+    const bcKey = `${g}|${nd}|${bg}|${cd}`;
     if (!bcSet.has(bcKey)) bcSet.set(bcKey, new Set());
     bcSet.get(bcKey).add(g);
     // Thêm key mã giải nếu có trong _T
     const tByName = _T.find(t => String(t[1]||'') === g);
-    if (tByName) dkSet.add(`${String(tByName[0]||'')}|${bg}|${cd}`);
+    if (tByName) dkSet.add(`${String(tByName[0]||'')}|${nd}|${bg}|${cd}`); // giaiId|noidung|bang|code
     // Lưu tỉ số cuối từ KetQua (ghi đè nếu có bản mới hơn)
-    const key = `${g}|${bg}|${cd}`; // ── FIX: key bao gồm giải để tránh trùng
+    const key = `${g}|${nd}|${bg}|${cd}`; // giai|noidung|bang|code — đầy đủ tránh lẫn nội dung
     const sA = Number(r[7])||0, sB = Number(r[8])||0;
     if (!scores[key] || String(r[0]) > String(scores[key].savedAt||'')) {
       scores[key] = {
@@ -2574,6 +2711,55 @@ function buildDkFromResults(rRows) {
   _dkScores   = scores;
 }
 
+// ── v4 FIX: _syncResultCache — cập nhật _dK/_dkBangCode/_dkScores ngay sau khi
+// admin ghi/sửa/xóa điểm, không cần chờ prefetch 30s poll lại từ GAS.
+// Tham số: m = match row từ _M, sA/sB = điểm mới (số hoặc '' để xóa)
+//          teamA/teamB/ref = tùy chọn, lấy từ m nếu không truyền
+function _syncResultCache(m, sA, sB, teamA, teamB, ref) {
+  const g   = String(m[0]||'').trim();
+  const nd  = String(m[1]||'').trim();
+  const bg  = String(m[2]||'').trim();
+  const cd  = String(m[3]||'').trim();
+  const bcKey    = g + '|' + nd + '|' + bg + '|' + cd; // giai|noidung|bang|code
+  const scoreKey = g + '|' + nd + '|' + bg + '|' + cd; // giai|noidung|bang|code
+  const tA  = teamA !== undefined ? String(teamA||'') : String(m[4]||'');
+  const tB  = teamB !== undefined ? String(teamB||'') : String(m[7]||'');
+  const rf  = ref   !== undefined ? String(ref||'')   : String(m[10]||'');
+  const hasScore = (sA !== '' && sA !== null && sA !== undefined)
+                && (sB !== '' && sB !== null && sB !== undefined);
+  if (hasScore) {
+    const nA = Number(sA), nB = Number(sB);
+    const winner = nA > nB ? tA : nB > nA ? tB : '';
+    // Cập nhật _dK
+    _dK.add(scoreKey);
+    // Thêm giaiId vào _dK nếu có trong _T
+    const tByName = _T.find(t => String(t[1]||'').trim() === g);
+    if (tByName) _dK.add(String(tByName[0]||'') + '|' + nd + '|' + bg + '|' + cd); // giaiId|noidung|bang|code
+    // Cập nhật _dkBangCode
+    if (!(_dkBangCode instanceof Map)) _dkBangCode = new Map();
+    if (!_dkBangCode.has(bcKey)) _dkBangCode.set(bcKey, new Set());
+    _dkBangCode.get(bcKey).add(g);
+    // Cập nhật _dkScores (ghi đè với giá trị mới nhất)
+    _dkScores[scoreKey] = {
+      savedAt: new Date().toISOString(),
+      scoreA: nA, scoreB: nB,
+      teamA: tA, teamB: tB,
+      winner: winner, court: String(m[8]||''), referee: rf
+    };
+    // Đồng bộ _M[5/6] với điểm mới
+    const mIdx = _M.findIndex(r => String(r[0]||'')===g && String(r[1]||'')===nd && String(r[2]||'')===bg && String(r[3]||'')===cd);
+    if (mIdx >= 0) { _M[mIdx][5] = nA; _M[mIdx][6] = nB; }
+  } else {
+    // Xóa điểm → xóa khỏi tất cả cache
+    _dK.delete(scoreKey); // scoreKey = giai|noidung|bang|code
+    if (_dkBangCode instanceof Map) _dkBangCode.delete(bcKey); // bcKey = giai|noidung|bang|code
+    delete _dkScores[scoreKey]; // scoreKey = giai|noidung|bang|code
+    // Reset _M[5/6]
+    const mIdx2 = _M.findIndex(r => String(r[0]||'')===g && String(r[1]||'')===nd && String(r[2]||'')===bg && String(r[3]||'')===cd);
+    if (mIdx2 >= 0) { _M[mIdx2][5] = ''; _M[mIdx2][6] = ''; }
+  }
+}
+
 // ── Helper: kiểm tra trận đã hoàn thành ──
 // QUAN TRỌNG: Nếu trận đang có trong _lK (live playing) → KHÔNG coi là done
 // Trường hợp: trọng tài đánh lại sau khi đã lưu → _lK có key mới nhưng _dK vẫn còn key cũ
@@ -2583,49 +2769,50 @@ function isMatchDone(m) {
   const bg = String(m[2]||''), cd = String(m[3]||'');
   const lk = `${m[1]}|${bg}|${cd}`; // LiveScore key = noidung|bang|code
 
-  // ── ƯU TIÊN: Nếu đang có live 'playing' → KHÔNG done (đang đánh lại) ──
+  // ── ƯU TIÊN: đang live playing → KHÔNG done ──
   if (_lK.has(lk)) return false;
 
-  // ── MATCHES SHEET: nếu m[5] và m[6] đều có điểm → xem là hoàn thành ──
-  const sA = m[5], sB = m[6];
-  const hasScoresInMatches = (sA!==''&&sA!==null&&sA!==undefined) && (sB!==''&&sB!==null&&sB!==undefined);
-  if (hasScoresInMatches) return true;
-
-  // ── KETQUA: kiểm tra bảng kết quả (cho dữ liệu cũ trước khi fix) ──
-  if (_dK.has(`${g}|${bg}|${cd}`)) return true;
-  // Key bao gồm noidung (m[1]) để phân biệt "Đôi Nữ C2" với "Đôi Nam-Nữ C2"
+  // ── v4 FIX: CHỈ đọc KetQua (_dkBangCode/_dK) — nguồn sự thật duy nhất ──
+  // Bỏ nhánh m[5]/m[6]: Matches col[5/6] chỉ là cache hiển thị, không dùng cho logic
+  // Mọi hành động ghi điểm (TT lưu / admin sửa) đều cập nhật _dkBangCode qua _syncResultCache
   const nd = String(m[1]||'').trim();
-  const bc = `${nd}|${bg}|${cd}`;
+  const bc = `${g}|${nd}|${bg}|${cd}`; // giai|noidung|bang|code — đầy đủ để tránh lẫn giải/nội dung
   if (_dkBangCode instanceof Map) {
-    const giaiSet = _dkBangCode.get(bc);
-    if (giaiSet) {
-      if (giaiSet.has(g)) return true;
-      const tById = _T.find(t => String(t[0]||'') === g);
-      if (tById && giaiSet.has(String(tById[1]||''))) return true;
+    if (_dkBangCode.has(bc)) return true;
+    // Fallback: giaiId thay vì giaiName (data cũ có thể lưu mã)
+    const tById = _T.find(t => String(t[0]||'') === g);
+    if (tById) {
+      const gName = String(tById[1]||'');
+      if (_dkBangCode.has(`${gName}|${nd}|${bg}|${cd}`)) return true;
     }
     return false;
   }
-  return _dkBangCode.has ? _dkBangCode.has(bc) : false;
+  // Legacy fallback nếu _dkBangCode chưa phải Map
+  return _dK.has(`${g}|${nd}|${bg}|${cd}`);
 }
 
 // ── Helper: lấy tỉ số chính thức từ KetQua (hoặc từ _M nếu chưa có) ──
 // ── FIX Bug trùng sân: key bao gồm giải để tránh lấy tỉ số giải khác ──
 function getFinalScore(m) {
-  // ── Matches sheet (m[5]/m[6]) là NGUỒN CHÍNH cho tỉ số ──
-  // Admin cập nhật tỉ số → ghi vào Matches → đọc từ đây
+  // ── v4 FIX: KetQua (_dkScores) là NGUỒN CHÍNH ──
+  // _dkScores được cập nhật ngay sau mọi hành động ghi điểm qua _syncResultCache
+  const g   = String(m[0]||'').trim();
+  const nd  = String(m[1]||'').trim();
+  const key = `${g}|${nd}|${m[2]}|${m[3]}`; // giai|noidung|bang|code
+  const dkEntry = _dkScores[key];
+  if (dkEntry) return dkEntry;
+
+  // Fallback: Matches col[5/6] — dùng cho dữ liệu cũ chưa có trong _dkScores
+  // (trận đã đấu trước khi deploy v4, hoặc đang live realtime chưa lưu vào KetQua)
   const sA = (m[5]!==''&&m[5]!==null&&m[5]!==undefined) ? Number(m[5]) : null;
   const sB = (m[6]!==''&&m[6]!==null&&m[6]!==undefined) ? Number(m[6]) : null;
-  // Lấy referee/court từ KetQua nếu có (chỉ để hiển thị, không dùng cho tỉ số)
-  const g = String(m[0]||'').trim();
-  const key = `${g}|${m[2]}|${m[3]}`;
-  const dkEntry = _dkScores[key] || _dkScores[`${m[2]}|${m[3]}`];
-  const referee = String(m[10]||dkEntry?.referee||'');
-  const court   = String(m[8]||dkEntry?.court||'');
   if (sA !== null || sB !== null) {
-    return { scoreA: sA, scoreB: sB, teamA: String(m[4]||''), teamB: String(m[7]||''), winner:'', referee, court };
+    return {
+      scoreA: sA, scoreB: sB,
+      teamA: String(m[4]||''), teamB: String(m[7]||''),
+      winner: '', referee: String(m[10]||''), court: String(m[8]||'')
+    };
   }
-  // Fallback: nếu Matches chưa có điểm, đọc từ KetQua
-  if (dkEntry) return dkEntry;
   return null;
 }
 
@@ -2728,9 +2915,13 @@ async function doLogin() {
   localStorage.setItem('pb_adm_code', code);
 
   const baseUrl = url.replace(/\/+$/, '');
-  // Admin panel luôn đăng nhập bằng mã (code param).
-  // GAS v29: codesMatch tự normalize số 0 đầu, tìm col 0 (Mã) chính xác.
-  const fetchUrl = `${baseUrl}?action=validate&code=${encodeURIComponent(code)}&device=AdminPanel&_t=${Date.now()}`;
+  // Detect: nếu input thuần số >= 8 ký tự → là SĐT → gửi phone param
+  const codeClean = code.replace(/\D/g, '');
+  const isPhone = /^\d{8,12}$/.test(codeClean) && !/[A-Z]/.test(code);
+  const loginParam = isPhone
+    ? `phone=${encodeURIComponent(codeClean)}`
+    : `code=${encodeURIComponent(code)}`;
+  const fetchUrl = `${baseUrl}?action=validate&${loginParam}&device=AdminPanel&_t=${Date.now()}`;
 
   // Fetch với timeout 12s + retry 1 lần nếu timeout
   async function fetchWithTimeout(url, ms) {
@@ -2781,18 +2972,16 @@ async function doLogin() {
     if (!d.valid) {
       err.textContent = '❌ ' + (d.reason || 'Mã không hợp lệ');
       dbg.style.display = 'block';
-      const gasVerWarn = !d._gasVer
-        ? `<br><b style="color:#f87171">⚠️ GAS chưa deploy v29</b> — Vào Google Apps Script → Deploy → New deployment để cập nhật.`
-        : '';
-      dbg.innerHTML = `GAS phản hồi: <code>${JSON.stringify(d).slice(0,300)}</code>${gasVerWarn}<br>
-        <span style="font-size:10px;color:var(--tx3)">URL: <a href="${fetchUrl}" target="_blank" style="color:var(--ac);word-break:break-all">${fetchUrl.replace(/&_t=\d+/,'')}</a></span>`;
+      dbg.innerHTML = `GAS phản hồi: <code>${JSON.stringify(d).slice(0,200)}</code>`;
       return;
     }
 
     if (!d.isAdmin && !d.isManager) {
       err.textContent = '❌ Tài khoản không có quyền Admin/Manager';
       dbg.style.display = 'block';
-      dbg.innerHTML = `<b>${d.name}</b> đã xác thực thành công nhưng chưa có quyền Admin hoặc Manager.<br>Liên hệ quản trị viên để được cấp quyền.`;
+      dbg.innerHTML = `<b>${d.name}</b> hợp lệ nhưng chưa có quyền.<br>
+        Trạng thái hiện tại: <b style="color:#f87171">"${d.statusRaw||'(trống)'}"</b><br>
+        → Vào Google Sheet tab <b>Users</b>, cột <b>Trạng thái</b> (cột H), đổi thành <b>admin</b> hoặc <b>manager</b>`;
       return;
     }
 
@@ -2848,57 +3037,33 @@ async function testGasUrl() {
   const url = document.getElementById('gs-url').value.trim();
   const err = document.getElementById('lerr');
   const dbg = document.getElementById('ldbg');
-  const badge = document.getElementById('gas-ver-badge');
   err.textContent = ''; dbg.style.display = 'none';
-  if (badge) badge.textContent = '';
 
   if (!url) { err.textContent = '⚠️ Nhập URL GAS trước'; return; }
 
-  err.textContent = '🔌 Đang kiểm tra GAS...';
-  err.style.color = '';
+  err.textContent = '🔌 Đang test kết nối...';
   try {
     const baseUrl = url.replace(/\/+$/, '');
-    // Dùng validate với mã giả để kiểm tra version GAS
-    const r = await fetch(`${baseUrl}?action=validate&code=__TEST_VERSION__&device=AdminPanel&_t=${Date.now()}`, { redirect: 'follow' });
+    const r = await fetch(`${baseUrl}?action=ping&_t=${Date.now()}`, { redirect: 'follow' });
     const text = await r.text();
     let d;
     try { d = JSON.parse(text); } catch(e) { d = null; }
 
-    if (!r.ok) {
-      err.textContent = `❌ HTTP ${r.status} — GAS lỗi`;
-      dbg.style.display = 'block';
-      dbg.innerHTML = `HTTP ${r.status}<br>→ Kiểm tra Deploy GAS: phải là "Anyone"`;
-      return;
-    }
-
-    const gasVer = d?._gasVer || null;
-    if (gasVer === 'v29') {
+    if (r.ok && (d?.status === 'ok' || d?.ok || text.includes('ok'))) {
       err.style.color = 'var(--gn)';
-      err.textContent = '✅ GAS v29 kết nối OK!';
-      if (badge) { badge.textContent = '✅ v29'; badge.style.color = 'var(--gn)'; }
-      localStorage.setItem('pb_gs_url', baseUrl);
-    } else if (d?.ok !== undefined) {
-      // GAS phản hồi nhưng không có _gasVer → code cũ
-      err.style.color = 'var(--or)';
-      err.textContent = '⚠️ GAS kết nối được nhưng chưa deploy v29';
-      if (badge) { badge.textContent = '⚠️ code cũ'; badge.style.color = 'var(--or)'; }
-      dbg.style.display = 'block';
-      dbg.innerHTML = `GAS đang chạy code cũ (chưa có v29).<br>
-        <b>Cách fix:</b><br>
-        1. Vào <a href="https://script.google.com" target="_blank" style="color:var(--ac)">script.google.com</a><br>
-        2. Mở project → paste nội dung file <b>Pickleball_gas_v29.js</b> vào editor → <b>Ctrl+S</b> lưu<br>
-        3. Deploy → <b>Manage deployments</b> → chọn deployment → Edit → <b>Version: New version</b> → Deploy`;
+      err.textContent = '✅ Kết nối GAS thành công!';
     } else {
-      err.textContent = '❌ GAS không phản hồi đúng';
+      err.textContent = `⚠️ GAS phản hồi HTTP ${r.status}`;
       dbg.style.display = 'block';
-      dbg.innerHTML = `Phản hồi: <code style="font-size:10px">${text.slice(0,200)}</code>`;
+      dbg.innerHTML = `Phản hồi: <code style="word-break:break-all;font-size:10px">${text.slice(0,300)}</code>`;
     }
   } catch(e) {
-    err.textContent = '❌ Không kết nối được GAS';
+    err.textContent = '❌ Không kết nối được';
     dbg.style.display = 'block';
-    dbg.innerHTML = `Lỗi: <b>${e.message}</b><br>→ Deploy GAS mode phải là "Anyone, even anonymous"`;
+    dbg.innerHTML = `Lỗi: <b>${e.message}</b><br>
+      → Kiểm tra URL và quyền Deploy GAS (phải là "Anyone, even anonymous")`;
   }
-  setTimeout(() => { err.style.color = ''; }, 8000);
+  setTimeout(() => { err.style.color = ''; }, 4000);
 }
 
 function showApp() {
@@ -2996,11 +3161,28 @@ function showApp() {
         }
       }
     }
-    // _M không restore từ localStorage — matches thay đổi thường xuyên (xóa/thêm/kết quả)
-    // → luôn fetch từ GAS để tránh hiện trận đã xóa sau reload
-    // if (lsM) { _M = JSON.parse(lsM); dedupM(); }
+    // Restore _M từ localStorage để render ngay — GAS sẽ sync và overwrite sau
+    // Dùng versioned key (CODE) để tránh stale từ deployment khác
+    const lsMKey = 'pb_adm_M_' + CODE;
+    const lsM2 = localStorage.getItem(lsMKey);
+    if (lsM2) {
+      try {
+        const cachedM = JSON.parse(lsM2);
+        if (Array.isArray(cachedM) && cachedM.length > 0) {
+          _M = normalizeMatchRows(cachedM);
+          dedupM();
+          // Build cache per giai ngay
+          const giaiNames2 = [...new Set(_M.map(r=>String(r[0]||'')).filter(Boolean))];
+          giaiNames2.forEach(gn => cacheSet('matches_'+gn, _M.filter(r=>String(r[0]||'')===gn)));
+        }
+      } catch(e) {}
+    }
     if (lsR) { buildDkFromResults(JSON.parse(lsR)); _dkFromCache = true; }
     if (_T.length) _renderDashFromLocal('', '', '');
+    // Nếu đang xem bảng đấu → render ngay từ _M local
+    if (_curGiaiId && _curNd && document.getElementById('tv-nd')?.style.display !== 'none') {
+      renderBangList(_curGiaiId, _curNd);
+    }
   } catch(e) {}
 
   // Tải dữ liệu nền (non-blocking — chạy nền, UI không chờ)
@@ -3018,8 +3200,75 @@ function showApp() {
 
 // ── Live polling: cập nhật _lK + _liveScores mỗi 8 giây ──
 // Chỉ fetch LiveScore (nhẹ) — không gọi dashboard API nặng
+// Fast results poller: mỗi 5s kiểm tra recentResults riêng biệt
+// → catch kết quả bị miss do race condition (GAS xóa LiveScore trước khi admin poll)
+let _resultsTimer = null;
+let _lastResultsCheck = 0;
+function _startResultsPolling() {
+  if (_resultsTimer) return;
+  _resultsTimer = setInterval(async () => {
+    try {
+      if (!GS || _failCount > 3) return;
+      // Chỉ fetch khi đang ở trang bảng đấu hoặc cây thi đấu
+      if (!['tournaments','bracket'].includes(_curPage)) return;
+      // Debounce: không fetch nếu vừa fetch < 4s trước
+      if (Date.now() - _lastResultsCheck < 4000) return;
+      _lastResultsCheck = Date.now();
+
+      const giaiParam = ROLE === 'manager'
+        ? (_resolveGiaiName(MY_GIAI) || MY_GIAI)
+        : (_curTourn ? String(_curTourn[1]||'') : '');
+      if (!giaiParam) return;
+
+      const rd = await gGet({ action:'recentResults', giai: giaiParam, limit: 30 }, 4000)
+                         .catch(() => null);
+      if (!rd?.rows?.length) return;
+
+      const prevDkSize = _dkBangCode.size;
+      buildDkFromResults(rd.rows.slice(1));
+
+      // Nếu có kết quả mới → rebuild tree + sync winner + re-render
+      if (_dkBangCode.size !== prevDkSize) {
+        if (_curPage === 'tournaments' && _curNd && _curGiaiId) {
+          const tvNd = document.getElementById('tv-nd');
+          if (tvNd && tvNd.style.display !== 'none') renderBangList(_curGiaiId, _curNd);
+        }
+        // Rebuild tree + sync winner vào CK/H3 ngay
+        if (_bkGiai && _bkNd) {
+          const { seeds: s3, bangs: b3, bangDone: bd3 } = _bkCalcSeeds(_bkGiai, _bkNd);
+          const _gn3 = _resolveGiaiName(_bkGiai) || _bkGiai;
+          const allM3 = _M.filter(m => String(m[0]||'')===_gn3 && String(m[1]||'')===_bkNd);
+          const koM3  = allM3.filter(m => { const v=String(m[9]||''); return v&&v!=='Vòng bảng'&&!v.includes('bảng'); });
+          let tree3 = _bkBuildTree(s3, b3, koM3, bd3);
+          tree3 = _bkApplyOverrides(tree3);
+          tree3 = _bkResolveAdvancers(tree3, koM3);
+          _bkCurrentTree = tree3;
+          await _bkDoSyncToSchedule(); // tạo/update CK/H3 ngay
+          // Re-render UI nếu đang ở tab cây
+          const ndWrap = document.getElementById('nd-bk-wrap');
+          if (ndWrap && ndWrap.offsetParent !== null) {
+            const realWrap = document.getElementById('bk-wrap');
+            if (realWrap) realWrap.id = '_bk_swap_hidden';
+            ndWrap.id = 'bk-wrap';
+            try { bkRender(); } finally {
+              ndWrap.id = 'nd-bk-wrap';
+              if (realWrap) realWrap.id = 'bk-wrap';
+            }
+          }
+          // Re-render bảng đấu sau sync
+          if (_curGiaiId === _bkGiai && _curNd === _bkNd) {
+            const tvNd3 = document.getElementById('tv-nd');
+            if (tvNd3 && tvNd3.style.display !== 'none') renderBangList(_bkGiai, _bkNd);
+          }
+        }
+      }
+    } catch(e) {}
+  }, 5000); // check mỗi 5s
+}
+
 function startLivePolling() {
   if (_liveTimer) return;
+  _startResultsPolling(); // bắt đầu fast results polling song song
   _liveTimer = setInterval(async () => {
     try {
       if (!GS || _failCount > 3) return;
@@ -3028,7 +3277,7 @@ function startLivePolling() {
         : (_curTourn ? String(_curTourn[1]||'') : '');
       // FIX v13: Luôn lấy ALL live rows, không filter giai ở GAS
       // → _lK có đủ tất cả playing keys, tránh bị nhảy về subset
-      const ld = await gGet({ action:'live', code:'all', giai: '' }, 8000);
+      const ld = await gGet({ action:'live', code:'all', giai: '' }, 5000);
       const rows = ld?.rows?.slice(1) || [];
       _buildLiveFromRows(rows);
       // Re-render live card nếu đang ở dashboard
@@ -3043,7 +3292,7 @@ function startLivePolling() {
         // nhưng debounce 3s để không spam GAS khi có nhiều live update
         if (rows.length > 0 && !_liveReplayDashPending) {
           _liveReplayDashPending = true;
-          setTimeout(() => { _liveReplayDashPending = false; if(_curPage==='dashboard') loadDash(); }, 3000);
+          setTimeout(() => { _liveReplayDashPending = false; if(_curPage==='dashboard') loadDash(); }, 1500);
         }
       }
       if (_curPage === 'tournaments' && _curNd && _curTourn) {
@@ -3058,7 +3307,7 @@ function startLivePolling() {
       if (_bkGiai && _bkNd) bkRender();
     }
     } catch(e) {}
-  }, 8000);
+  }, 3000); // Poll mỗi 3s (giảm từ 8s) để phát hiện kết quả nhanh hơn
 }
 
 function doLogout() {
@@ -3067,6 +3316,7 @@ function doLogout() {
   // Giữ lại pb_gs_url để không phải nhập lại URL lần sau
   clearInterval(_dtimer); clearInterval(_rtimer);
   clearInterval(_liveTimer); clearInterval(_liveTimer2);
+  clearInterval(_resultsTimer); _resultsTimer = null;
   _bkStopAutoPolling();
   location.reload();
 }
@@ -3097,7 +3347,8 @@ function _invalidateMatchCache(giaiId) {
   _cacheVer++;
   if (giaiName) cacheDel('matches_' + giaiName);
   if (giaiId && giaiId !== giaiName) cacheDel('matches_' + giaiId);
-  // Xóa luôn localStorage _M để reload không load data cũ
+  // Xóa localStorage _M để reload tiếp theo fetch fresh từ GAS
+  // (thay vì dùng stale data sau khi admin đã thay đổi)
   try {
     localStorage.removeItem('pb_adm_M_' + CODE);
     localStorage.removeItem('pb_adm_M');
@@ -3228,12 +3479,35 @@ async function prefetchAll() {
     }
     if (mRes.rows?.length > 1) {
       const allRows = normalizeMatchRows(mRes.rows.slice(1));
-      _M = allRows;
-      cacheSet('matches_' + giaiParam, allRows);
-      const giaiNames = [...new Set(allRows.map(r => String(r[0]||'')).filter(Boolean))];
-      giaiNames.forEach(gn => {
-        cacheSet('matches_' + gn, allRows.filter(r => String(r[0]||'') === gn));
+      // Smart merge: giữ tên đội local nếu GAS chưa sync
+      const localByKeyPF = {};
+      _M.forEach(m => {
+        const k = `${String(m[0]||'')}|${String(m[1]||'')}|${String(m[2]||'')}|${String(m[3]||'')}`;
+        localByKeyPF[k] = m;
       });
+      const mergedAll = allRows.map(nr => {
+        const k = `${String(nr[0]||'')}|${String(nr[1]||'')}|${String(nr[2]||'')}|${String(nr[3]||'')}`;
+        const local = localByKeyPF[k];
+        if (!local) return nr;
+        const merged = [...nr];
+        if (!merged[4] && local[4]) merged[4] = local[4];
+        if (!merged[7] && local[7]) merged[7] = local[7];
+        if ((merged[5]===''||merged[5]===null||merged[5]===undefined) && local[5]!==''&&local[5]!==null&&local[5]!==undefined) merged[5]=local[5];
+        if ((merged[6]===''||merged[6]===null||merged[6]===undefined) && local[6]!==''&&local[6]!==null&&local[6]!==undefined) merged[6]=local[6];
+        return merged;
+      });
+      _M = mergedAll;
+      // Cache per giaiName
+      const giaiNames = [...new Set(mergedAll.map(r => String(r[0]||'')).filter(Boolean))];
+      giaiNames.forEach(gn => {
+        cacheSet('matches_' + gn, mergedAll.filter(r => String(r[0]||'') === gn));
+      });
+      if (giaiParam) cacheSet('matches_' + giaiParam, mergedAll);
+      // Cập nhật localStorage
+      try {
+        const _lsMKeyNow = 'pb_adm_M_' + CODE;
+        localStorage.setItem(_lsMKeyNow, JSON.stringify(mergedAll));
+      } catch(e) {}
     }
     if (rRes.rows?.length > 1) {
       buildDkFromResults(rRes.rows.slice(1));
@@ -3257,9 +3531,13 @@ async function prefetchAll() {
           if (rows.length) cacheSet('matches_'+gn, rows);
         }
       });
-      // Nếu đang xem detail giải → re-render ndCards với số trận đúng
+      // FIX v3: re-render cả ndCards lẫn bangList sau khi có data mới
       if (_curTourn && document.getElementById('nd-cards')) {
         renderNdCards(_curTourn, false);
+      }
+      // Nếu đang xem bảng đấu của 1 nội dung → cập nhật luôn
+      if (_curGiaiId && _curNd && document.getElementById('bang-list')) {
+        renderBangList(_curGiaiId, _curNd);
       }
     }
     // ── Lưu vào localStorage để lần sau render instant ──
@@ -3267,8 +3545,11 @@ async function prefetchAll() {
       const _lsCacheKey = 'pb_adm_T_' + CODE;
       const _lsMKey     = 'pb_adm_M_' + CODE;
       if (_T.length) localStorage.setItem(_lsCacheKey, JSON.stringify(_T));
-      // _M không lưu localStorage — tránh stale sau xóa/thêm trận
-      // if (_M.length) localStorage.setItem(_lsMKey, JSON.stringify(_M));
+      // Lưu _M vào localStorage để restore instant trên reload
+      // GAS sẽ overwrite _M ngay sau khi load → không stale lâu
+      if (_M.length) {
+        try { localStorage.setItem(_lsMKey, JSON.stringify(_M)); } catch(e) {}
+      }
       // Lưu _R (KetQua rows) cho buildDkFromResults
       const cachedR2 = cacheGet('results_' + (ROLE==='manager'?MY_GIAI:''));
       if (cachedR2?.length) {
@@ -3359,6 +3640,12 @@ function nav(p, _skipHash) {
   });
   // Scroll to top on mobile
   window.scrollTo(0, 0);
+  if (p !== 'bracket') bkHideHScroll();
+  // Ẩn thanh cuộn ngang nd-bk khi rời trang tournaments
+  if (p !== 'tournaments') {
+    const sb = document.getElementById('nd-bk-scrollbar-wrap');
+    if (sb) sb.style.display = 'none';
+  }
   clearInterval(_dtimer);
   const loaders = {
     dashboard: () => {
@@ -3661,7 +3948,7 @@ function _buildLiveMatchData(m) {
   const ls   = _liveScores[lk] || {};
   const sA   = ls.scoreA ?? null;
   const sB   = ls.scoreB ?? null;
-  const scoreKey = `${giai}|${bang}|${code}`;
+  const scoreKey = `${giai}|${nd}|${bang}|${code}`; // giai|noidung|bang|code
   const ref  = ls.referee
             || _dkScores[scoreKey]?.referee
             || ((_R||[]).find(r=>String(r[1]||'')===giai&&String(r[3]||'')===bang&&String(r[4]||'')===code)||[])[11]
@@ -3854,9 +4141,27 @@ async function loadDash() {
     // Cập nhật _M nếu có data mới
     if (mRes?.rows?.length > 1) {
       const newRows = normalizeMatchRows(mRes.rows.slice(1));
-      cacheSet(cKeyM, newRows);
+      // Smart merge: giữ tên đội local BK/CK chưa sync GAS
+      const _lkDash = {};
+      _M.filter(m => String(m[0]||'') === giaiName)
+        .forEach(m => {
+          const k = `${String(m[1]||'')}|${String(m[2]||'')}|${String(m[3]||'')}`;
+          _lkDash[k] = m;
+        });
+      const merged__lkDash = newRows.map(nr => {
+        const k = `${String(nr[1]||'')}|${String(nr[2]||'')}|${String(nr[3]||'')}`;
+        const loc = _lkDash[k];
+        if (!loc) return nr;
+        const mg = [...nr];
+        if (!mg[4] && loc[4]) mg[4] = loc[4];
+        if (!mg[7] && loc[7]) mg[7] = loc[7];
+        if ((mg[5]===''||mg[5]===null||mg[5]===undefined) && loc[5]!==''&&loc[5]!==null&&loc[5]!==undefined) mg[5]=loc[5];
+        if ((mg[6]===''||mg[6]===null||mg[6]===undefined) && loc[6]!==''&&loc[6]!==null&&loc[6]!==undefined) mg[6]=loc[6];
+        return mg;
+      });
+      cacheSet(cKeyM, merged__lkDash);
       const others = _M.filter(m => String(m[0]||'') !== giaiName);
-      _M = [...others, ...newRows];
+      _M = [...others, ...merged__lkDash];
       dedupM();
     } else if (cachedM && !_M.some(m => String(m[0]||'') === giaiName)) {
       _M = [..._M, ...cachedM];
@@ -3889,18 +4194,17 @@ async function loadDash() {
         d.recentResults.forEach(r => {
           if (!r || !r.bang || !r.code) return;
           const ndVal = String(r.nd||r.noidung||'').trim(); // noidung từ recentResults
-          const bc    = `${ndVal}|${String(r.bang)}|${String(r.code)}`; // noidung|bang|code
           const gName = String(r.giai||'').trim();
-          // ── FIX: _dkBangCode là Map → dùng get/set thay vì .add ──
+          // Key đầy đủ giai|noidung|bang|code để tránh lẫn giữa các giải/nội dung
+          const bc    = gName ? `${gName}|${ndVal}|${String(r.bang)}|${String(r.code)}`
+                               : `${ndVal}|${String(r.bang)}|${String(r.code)}`;
           if (_dkBangCode instanceof Map) {
             if (!_dkBangCode.has(bc)) _dkBangCode.set(bc, new Set());
             if (gName) _dkBangCode.get(bc).add(gName);
-          } else {
-            _dkBangCode.add(bc); // legacy fallback
           }
-          if (gName) _dK.add(gName + '|' + String(r.bang) + '|' + String(r.code));
+          if (gName) _dK.add(gName + '|' + ndVal + '|' + String(r.bang) + '|' + String(r.code)); // giai|noidung|bang|code
           // ── FIX: key _dkScores bao gồm giải ──
-          const scoreKey = gName ? `${gName}|${r.bang}|${r.code}` : bc;
+          const scoreKey = gName ? `${gName}|${ndVal}|${r.bang}|${r.code}` : bc; // giai|noidung|bang|code
           if (!_dkScores[scoreKey]) {
             _dkScores[scoreKey] = {
               scoreA: Number(r.scoreA)||0, scoreB: Number(r.scoreB)||0,
@@ -4548,22 +4852,9 @@ async function loadTournaments() {
   // ── Fetch GAS để cập nhật mới nhất ──
   try {
     const d = await gGet({ action: 'tournaments', adminCode: CODE });
-    let allRows = d.rows?.slice(1) || [];
-    // Manager: sync trước từ raw rows (để nhận ra giải vừa tạo bởi owner)
-    if (ROLE === 'manager' && allRows.length) {
-      const myCode = CODE.toUpperCase();
-      allRows.forEach(r => {
-        const giaiId = String(r[0]||'').trim().toUpperCase();
-        const ownerCode = r.owner
-          ? String(r.owner||'').trim().toUpperCase()
-          : (Array.isArray(r[8]) ? '' : String(r[8]||'').trim().toUpperCase());
-        if (_codeMatch(ownerCode, myCode) && giaiId && !MY_GIAI_LIST.includes(giaiId)) {
-          MY_GIAI_LIST.push(giaiId);
-        }
-      });
-    }
-    // Filter sau khi đã sync
-    let rows = _filterTournsForRole(allRows);
+    let rows = d.rows?.slice(1) || [];
+    // Manager: filter client-side — bất kể GAS cũ/mới đều đúng
+    rows = _filterTournsForRole(rows);
     // Manager: luôn dùng GAS response; Admin: chỉ cập nhật khi có data
     if (ROLE === 'manager' || rows.length > 0 || _T.length === 0) {
       _T = rows;
@@ -4584,9 +4875,9 @@ function renderTournCards(rows) {
   if (!rows.length) {
     if (ROLE === 'manager') {
       wrap.innerHTML = `<div class="empty" style="grid-column:1/-1">
-        <div class="ei">🏆</div>
-        <p style="font-weight:700;color:var(--tx)">Chưa có giải đấu nào</p>
-        <p style="font-size:12px;color:var(--tx3);margin-top:6px">Nhấn \"+ Tạo giải đấu\" để tạo giải đầu tiên của bạn.</p>
+        <div class="ei">🔒</div>
+        <p style="font-weight:700;color:var(--or)">Chưa được cấp quyền giải đấu nào</p>
+        <p style="font-size:12px;color:var(--tx3);margin-top:6px">Vui lòng liên hệ Admin để được phân quyền.</p>
       </div>`;
     } else {
       wrap.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="ei">🏆</div><p>Chưa có giải đấu nào. Nhấn "+ Tạo giải đấu" để bắt đầu.</p></div>`;
@@ -4648,14 +4939,19 @@ async function openTournDetail(id) {
   // Không chờ matches — load matches nền sau
   renderNdCards(r, false);
 
-  // Load matches nền (không block UI)
+  // FIX v3: luôn load nền để đảm bảo count trận mới nhất
+  // Dù cache có hay không → vẫn fetch GAS nền, render lại sau khi có data
   const giaiName = String(r[1]||id);
   const cached = cacheGet('matches_' + giaiName);
-  if (!cached) {
-    loadMatchesCache(id, false)
-      .then(() => { if (_curTourn === r) renderNdCards(r, false); })
-      .catch(() => {});
+  if (cached) {
+    // Có cache: merge ngay để renderNdCards thấy số trận
+    const others = _M.filter(m => String(m[0]||'') !== giaiName);
+    _M = [...others, ...cached];
   }
+  // Vẫn fetch GAS nền để sync data mới nhất (fire-and-forget)
+  loadMatchesCache(id, true)
+    .then(() => { if (_curTourn === r) renderNdCards(r, false); })
+    .catch(() => {});
 }
 
 // ── Render cards nội dung thi đấu ──
@@ -4676,8 +4972,13 @@ function renderNdCards(r, isLoading) {
     const ndId  = esc(nd);
     const rId   = String(r[0]||'');
     const rName = String(r[1]||'');
-    // Đếm trận — match cả theo mã lẫn tên giải
-    const mFilter = m => { const v=String(m[0]||''); return (v===rId||(rName&&v===rName)) && String(m[1]||'')===nd; };
+    // FIX v3: ưu tiên match theo giaiName; fallback giaiId nếu giaiName rỗng
+    // _M luôn lưu giaiName (tên giải đầy đủ) — không bao giờ lưu mã giải
+    const mFilter = m => {
+      const v = String(m[0]||'');
+      const giaiMatch = rName ? (v === rName) : (v === rId);
+      return giaiMatch && String(m[1]||'') === nd;
+    };
     const matchCount = _M.filter(mFilter).length;
     const bangs = [...new Set(_M.filter(mFilter).map(m=>String(m[2]||'')).filter(Boolean))];
     const hasData = matchCount > 0;
@@ -4736,7 +5037,7 @@ async function confirmDeleteNd(giaiId, nd) {
       const toDelete = _M.filter(mFilter);
       for (const m of toDelete) {
         await gPost({ action:'deleteMatch', adminCode:CODE,
-          giai: giaiName, bang: String(m[2]||''), code: String(m[3]||'') }).catch(()=>{});
+          giai: giaiName, nd: String(m[1]||''), bang: String(m[2]||''), code: String(m[3]||'') }).catch(()=>{}); // FIX v3: thêm nd
       }
     }
     // 2. Xóa DanhSachVDV + DanhSachBang trên GSheets
@@ -4816,12 +5117,18 @@ function switchNdTab(tab, _skipHash) {
     _savePLayersCtx(); // lưu players context khi rời tab danh sách
   }
   if (tab === 'bracket') {
-    _bkRestoreState(); // khôi phục sau reload nếu _curGiaiId chưa set
-    _bkGiai = _curGiaiId || _bkGiai || '';
-    _bkNd   = _curNd     || _bkNd   || '';
-    _bkGiaiName = _resolveGiaiName(_bkGiai) || _bkGiaiName || _bkGiai;
-    _bkOverrides = _bkLoadOverrides();
+    // Chỉ restore từ sessionStorage khi KHÔNG có context hiện tại (trường hợp reload trang)
+    if (!_curGiaiId && !_curNd) _bkRestoreState();
+    // _ndBkRender() là async — tự detect thay đổi, load data đúng rồi mới render
     _ndBkRender();
+    _ndBkUpdateToolbarUI();
+    // Hiện thanh cuộn ngang fixed
+    const sb = document.getElementById('nd-bk-scrollbar-wrap');
+    if (sb) sb.style.display = 'block';
+  } else {
+    // Ẩn thanh cuộn ngang fixed khi rời tab bracket
+    const sb = document.getElementById('nd-bk-scrollbar-wrap');
+    if (sb) sb.style.display = 'none';
   }
   if (tab === 'players') {
     _switchPlayersCtx(_curGiaiId||'', _curNd||''); // đảm bảo context đúng trước khi render
@@ -5965,7 +6272,7 @@ async function confirmGenerateSchedule() {
       toast(`⏳ Đang xóa ${toDelete.length} trận cũ...`, 'in');
       for (const m of toDelete) {
         try {
-          await gPost({action:'deleteMatch', adminCode:CODE, giai:gName, bang:String(m[2]||''), code:String(m[3]||'')});
+          await gPost({action:'deleteMatch', adminCode:CODE, giai:gName, nd:String(m[1]||''), bang:String(m[2]||''), code:String(m[3]||'')}); // FIX v3: thêm nd
         } catch(e) {}
       }
     }
@@ -6025,47 +6332,91 @@ async function confirmGenerateSchedule() {
 
 
 // ── Render cây thi đấu vào nd-bk-wrap (dùng ID swap) ──
-function _ndBkRender() {
+// v2: render ngay từ cache → nhanh, rồi fetch ngầm nếu data cũ/đổi nội dung
+async function _ndBkRender() {
+  const prevGiai = _bkGiai, prevNd = _bkNd;
   _bkGiai = _curGiaiId || _bkGiai;
   _bkNd   = _curNd     || _bkNd;
   _bkGiaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
-  _bkOverrides = _bkLoadOverrides();
-  _bkSaveState(); // lưu state để restore sau reload
-  const ndWrap  = document.getElementById('nd-bk-wrap');
-  const realWrap = document.getElementById('bk-wrap');
+
+  const ndWrap = document.getElementById('nd-bk-wrap');
   if (!ndWrap) return;
   if (!_bkGiai || !_bkNd) {
     ndWrap.innerHTML = '<div class="empty"><div class="ei">🏆</div><p>Chưa chọn giải / nội dung</p></div>';
     return;
   }
-  // Swap IDs: nd-bk-wrap ↔ bk-wrap
-  if (realWrap) realWrap.id = '_bk_swap_hidden';
-  ndWrap.id = 'bk-wrap';
-  try {
-    bkRender();
-  } finally {
-    ndWrap.id = 'nd-bk-wrap';
-    if (realWrap) realWrap.id = 'bk-wrap';
+
+  const ndChanged = (prevGiai !== _bkGiai || prevNd !== _bkNd);
+  if (ndChanged) _bkCurrentTree = null;
+
+  _bkOverrides = _bkLoadOverrides();
+  _bkSaveState();
+
+  // Helper: vẽ cây vào ndWrap ngay lập tức
+  const _renderNow = () => {
+    const realWrap = document.getElementById('bk-wrap');
+    if (realWrap) realWrap.id = '_bk_swap_hidden';
+    ndWrap.id = 'bk-wrap';
+    try { bkRender(); }
+    finally {
+      ndWrap.id = 'nd-bk-wrap';
+      if (realWrap) realWrap.id = 'bk-wrap';
+    }
+    setTimeout(_syncBkScrollbar, 80);
+  };
+
+  const giaiName = _bkGiaiName || _resolveGiaiName(_bkGiai) || _bkGiai;
+  const hasCacheData = _M.some(m => String(m[0]||'') === giaiName && String(m[1]||'') === _bkNd);
+
+  if (hasCacheData && !ndChanged) {
+    // DATA ĐÃ CÓ TRONG MEMORY → render ngay, không cần network
+    _renderNow();
+    return;
   }
-  // Sync sticky scrollbar width after render
-  setTimeout(_syncBkScrollbar, 120);
+
+  if (hasCacheData && ndChanged) {
+    // Đổi nội dung nhưng data đã có → render ngay rồi smart-merge từ GAS nền
+    _renderNow();
+    // Fetch ngầm: smart merge GAS + local, re-render nếu có thay đổi thực
+    loadMatchesCache(_bkGiai, true).then(() => {
+      if (_bkGiai === (_curGiaiId || _bkGiai) && _bkNd === (_curNd || _bkNd)) {
+        // Chỉ re-render nếu tree cần rebuild (có data mới)
+        _bkCurrentTree = null;
+        _renderNow();
+      }
+    }).catch(() => {});
+    return;
+  }
+
+  // Chưa có data → phải fetch trước, hiện loading state
+  ndWrap.innerHTML = '<div class="empty"><div class="ei">⏳</div><p>Đang tải cây thi đấu…</p></div>';
+  try {
+    await loadMatchesCache(_bkGiai, true);
+  } catch(e) { /* tiếp tục với data hiện có */ }
+  _renderNow();
 }
 
 // ── ndBk action wrappers ──
-function ndBkRefresh() {
+async function ndBkRefresh() {
   _bkGiai = _curGiaiId || _bkGiai;
   _bkNd   = _curNd     || _bkNd;
   _bkGiaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
   const btn = document.getElementById('nd-bk-refresh-btn');
   if (btn) { btn.textContent='⏳...'; btn.disabled=true; }
-  // Reload matches then render - forceRefresh=true để bỏ cache, lấy dữ liệu mới nhất
-  loadMatchesCache(_bkGiai, true).then(()=>{
-    _ndBkRender();
+  // Không invalidate cache — chỉ force refresh để merge GAS + local
+  // Invalidate sẽ xóa cache local dẫn đến mất tên đội BK/CK chưa push GAS
+  _bkCurrentTree = null;
+  try {
+    await loadMatchesCache(_bkGiai, true); // forceRefresh=true: fetch GAS nhưng smart merge
+    await _ndBkRender();
+    // Cũng re-render bảng đấu nếu đang ở tab đó
+    if (_curGiaiId === _bkGiai && _curNd === _bkNd) {
+      const tvNd = document.getElementById('tv-nd');
+      if (tvNd && tvNd.style.display !== 'none') renderBangList(_bkGiai, _bkNd);
+    }
+  } finally {
     if (btn) { btn.textContent='↻ Làm mới'; btn.disabled=false; }
-  }).catch(()=>{
-    _ndBkRender();
-    if (btn) { btn.textContent='↻ Làm mới'; btn.disabled=false; }
-  });
+  }
 }
 
 async function ndBkAutoFill() {
@@ -6087,7 +6438,6 @@ async function ndBkApply() {
   _bkNd   = _curNd     || _bkNd;
   _bkGiaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
   await _swapBkWrap('nd-bk-wrap', () => bkApplyAndSave());
-  // Nếu auto mode: sau khi apply xong → điền tiếp nếu đã có KQ
   if (_bkAutoMode) setTimeout(() => _bkAutoAdvanceIfNeeded(), 1000);
 }
 
@@ -6122,6 +6472,8 @@ async function _swapBkWrap(altId, fn) {
 
 // ── Click nội dung → View Bảng ──
 function openNdDetail(giaiId, nd) {
+  // Xóa cache cây cũ khi chuyển sang nội dung khác
+  if (_curNd !== nd || _curGiaiId !== giaiId) _bkCurrentTree = null;
   _curNd = nd; _curGiaiId = giaiId;
   _switchPlayersCtx(giaiId, nd);
   const r = _T.find(t=>String(t[0]||'')===giaiId);
@@ -6135,8 +6487,8 @@ function openNdDetail(giaiId, nd) {
   // Render ngay lập tức từ cache (dù có hay không) — UX không bị block
   renderBangList(giaiId, nd);
 
-  // Load nền — không block UI
-  loadMatchesCache(giaiId, false)
+  // FIX v3: forceRefresh=true đảm bảo data mới nhất, không dùng cache cũ
+  loadMatchesCache(giaiId, true)
     .then(() => renderBangList(giaiId, nd))
     .catch(() => {});
 
@@ -6370,7 +6722,7 @@ function renderBangList(giaiId, nd) {
         // Trọng tài: ưu tiên live → kết quả → Matches col 10
         const lkRef=`${m[1]}|${m[2]}|${m[3]}`;
         const lsRef=_liveScores[lkRef]||{};
-        const dkRef=_dkScores[`${String(m[0]||'').trim()}|${m[2]}|${m[3]}`]||_dkScores[`${m[2]}|${m[3]}`]||{};
+        const dkRef=_dkScores[`${String(m[0]||'').trim()}|${String(m[1]||'').trim()}|${m[2]}|${m[3]}`]||{}; // giai|noidung|bang|code
         const ref=String(lsRef.referee||m[10]||dkRef.referee||'');
         return `<tr style="border-left:2px solid #ea580c;background:rgba(234,88,12,.03)">
           <td style="padding:7px 8px;white-space:nowrap;text-align:center">
@@ -6946,7 +7298,7 @@ Hành động này không thể hoàn tác.`)) return;
   document.getElementById('edit-match-overlay')?.remove();
   const gName = String((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||'');
   try {
-    const d = await gPost({action:'deleteMatch',adminCode:CODE,giai:gName||giaiId,giaiName:gName,bang,code});
+    const d = await gPost({action:'deleteMatch',adminCode:CODE,giai:gName||giaiId,giaiName:gName,nd,bang,code}); // FIX v3: thêm nd
     if (d?.ok) {
       const idx = _M.findIndex(r=>(String(r[0]||'')===giaiId||String(r[0]||'')===gName)&&String(r[1]||'')===nd&&String(r[2]||'')===bang&&String(r[3]||'')===code);
       if (idx>=0) _M.splice(idx,1);
@@ -7009,6 +7361,10 @@ async function saveEditMatch(giaiId, nd, bang, code) {
     const oldTA = String(m[4]||''), oldTB = String(m[7]||'');
     if (mIdx>=0) _M[mIdx] = newRow;
 
+    // v4 FIX: Cập nhật _dkScores/_dkBangCode/_dK ngay (không chờ GAS poll 30s)
+    // Truyền tỉ số và tên đội mới để _syncResultCache tính winner đúng
+    _syncResultCache(newRow, newRow[5], newRow[6], newRow[4], newRow[7], newRow[10]);
+
     // ── Nếu đổi tên đội: chỉ propagate cho VÒNG BẢNG, knockout độc lập ──
     const renamedA = ta !== oldTA;
     const renamedB = tb !== oldTB;
@@ -7051,7 +7407,7 @@ async function saveEditMatch(giaiId, nd, bang, code) {
     }
 
     const extraCount = extraUpdates.length;
-    toast(`✅ Đã cập nhật trận ${code}${extraCount?` + ${extraCount} trận vòng bảng liên quan`:''} → Sheet Matches`,'ok');
+    toast(`✅ Đã cập nhật trận ${code}${extraCount?` + ${extraCount} trận vòng bảng liên quan`:''}`, 'ok');
 
     // ── Cập nhật GAS các trận khác có tên cũ (background, không block UI) ──
     if (extraUpdates.length > 0) {
@@ -7253,13 +7609,20 @@ async function applyEditBang(giaiId, nd, oldBang) {
   }
 
   // Cập nhật local cache _M ngay lập tức
-  matches.forEach(m => {
-    const idx2 = _M.indexOf(m);
-    if (idx2 >= 0) {
-      if (newBang  !== oldBang) _M[idx2][2]  = newBang;
-      if (newCourt) _M[idx2][8]  = newCourt;
-      if (newRef)   _M[idx2][10] = newRef;
-    }
+  // Dùng key-based lookup thay vì indexOf() để tránh stale reference
+  // sau khi await gPost (polling nền có thể reassign _M = [...] trong lúc chờ)
+  const matchKeys = new Set(matches.map(m =>
+    String(m[0]||'') + '|' + String(m[1]||'') + '|' + String(m[2]||'') + '|' + String(m[3]||'')
+  ));
+  const gNameForKey = gName || giaiId;
+  _M.forEach((mr, idx) => {
+    const key1 = String(mr[0]||'') + '|' + String(mr[1]||'') + '|' + String(mr[2]||'') + '|' + String(mr[3]||'');
+    // Cũng match khi mr[0] là giaiId thay vì gName
+    const key2 = gNameForKey + '|' + String(mr[1]||'') + '|' + String(mr[2]||'') + '|' + String(mr[3]||'');
+    if (!matchKeys.has(key1) && !matchKeys.has(key2)) return;
+    if (newBang  !== oldBang) _M[idx][2]  = newBang;
+    if (newCourt) _M[idx][8]  = newCourt;
+    if (newRef !== undefined) _M[idx][10] = newRef; // cập nhật kể cả khi xóa TT (newRef='')
   });
 
   const refMsg = newRef ? ` · TT: ${newRef}` : '';
@@ -7293,7 +7656,7 @@ async function confirmDeleteBang(giaiId, nd, bang) {
       }));
       const results = await Promise.allSettled(
         codes.map(c => gPost({ action:'deleteMatch', adminCode:CODE,
-          giai:c.giai, giaiName, bang:c.bang, code:c.code }))
+          giai:c.giai, giaiName, nd, bang:c.bang, code:c.code })) // FIX v3: thêm nd
       );
       const deleted = results.filter(r=>r.status==='fulfilled'&&r.value?.ok).length;
       const failed  = results.length - deleted;
@@ -7311,6 +7674,16 @@ async function confirmDeleteBang(giaiId, nd, bang) {
     const sameBang = String(mr[2]||'')===bang;
     const sameNd   = String(mr[1]||'')===nd;
     return !(sameGiai && sameNd && sameBang);
+  });
+
+  // FIX v3: Xóa _dK/_dkBangCode/_dkScores cho toàn bộ trận trong bảng bị xóa
+  // Không xóa → tỉ số cũ trong _dkBangCode hiện lại ngay khi tạo bảng mới cùng tên
+  matches.forEach(m => {
+    const bg = String(m[2]||''), cd = String(m[3]||''), ndM = String(m[1]||''), g = String(m[0]||'');
+    const bcKey = `${g}|${ndM}|${bg}|${cd}`; // giai|noidung|bang|code
+    _dK.delete(`${g}|${ndM}|${bg}|${cd}`); // giai|noidung|bang|code
+    if (_dkBangCode instanceof Map) _dkBangCode.delete(bcKey);
+    delete _dkScores[`${g}|${ndM}|${bg}|${cd}`]; // giai|noidung|bang|code
   });
 
   // ── Xóa cache + re-render ──
@@ -7383,7 +7756,7 @@ async function confirmDeleteAllBangs() {
         const bangMatches = matches.filter(m => String(m[2]||'')===bang);
         const results = await Promise.allSettled(
           bangMatches.map(m => gPost({ action:'deleteMatch', adminCode:CODE,
-            giai:String(m[0]||''), giaiName, bang, code:String(m[3]||'') }))
+            giai:String(m[0]||''), giaiName, nd, bang, code:String(m[3]||'') })) // FIX v3: thêm nd
         );
         totalDeleted += results.filter(r=>r.status==='fulfilled'&&r.value?.ok).length;
         totalFailed  += results.filter(r=>r.status!=='fulfilled'||!r.value?.ok).length;
@@ -7394,7 +7767,18 @@ async function confirmDeleteAllBangs() {
   }
 
   // Xóa khỏi _M local cache
+  const allDelMatches = _M.filter(m => matchGiai(m) && String(m[1]||'')===nd);
   _M = _M.filter(m => !(matchGiai(m) && String(m[1]||'')===nd));
+
+  // FIX v3: Xóa _dK/_dkBangCode/_dkScores — tránh tỉ số cũ hiện lại khi tạo mới bảng
+  allDelMatches.forEach(m => {
+    const bg = String(m[2]||''), cd = String(m[3]||''), ndM = String(m[1]||''), g = String(m[0]||'');
+    const bcKey = `${g}|${ndM}|${bg}|${cd}`; // giai|noidung|bang|code
+    _dK.delete(`${g}|${ndM}|${bg}|${cd}`); // giai|noidung|bang|code
+    if (_dkBangCode instanceof Map) _dkBangCode.delete(bcKey);
+    delete _dkScores[`${g}|${ndM}|${bg}|${cd}`]; // giai|noidung|bang|code
+  });
+
   _invalidateMatchCache(giaiId);
   doneProg(totalDeleted, 0, totalFailed);
   document.getElementById('prog-overlay').style.display = 'none';
@@ -7936,9 +8320,26 @@ async function loadMatchesCache(giaiId='', forceRefresh=false) {
   // Dùng cache nếu còn mới VÀ không bị force refresh
   const cached = forceRefresh ? null : cacheGet(cKey);
   if (cached) {
-    // Thay thế hoàn toàn dữ liệu của giải này trong _M (chỉ theo giaiName)
+    // Smart merge với cache (giống GAS merge — giữ tên đội local nếu cache thiếu)
+    const localByKey2 = {};
+    _M.filter(m => String(m[0]||'') === giaiName)
+      .forEach(m => {
+        const k = `${String(m[1]||'')}|${String(m[2]||'')}|${String(m[3]||'')}`;
+        localByKey2[k] = m;
+      });
+    const mergedCache = cached.map(nr => {
+      const k = `${String(nr[1]||'')}|${String(nr[2]||'')}|${String(nr[3]||'')}`;
+      const local = localByKey2[k];
+      if (!local) return nr;
+      const merged = [...nr];
+      if (!merged[4] && local[4]) merged[4] = local[4];
+      if (!merged[7] && local[7]) merged[7] = local[7];
+      if ((merged[5]===''||merged[5]===null||merged[5]===undefined) && local[5]!==''&&local[5]!==null&&local[5]!==undefined) merged[5]=local[5];
+      if ((merged[6]===''||merged[6]===null||merged[6]===undefined) && local[6]!==''&&local[6]!==null&&local[6]!==undefined) merged[6]=local[6];
+      return merged;
+    });
     const others = _M.filter(m => String(m[0]||'') !== giaiName);
-    _M = [...others, ...cached];
+    _M = [...others, ...mergedCache];
     dedupM();
     return;
   }
@@ -7953,16 +8354,38 @@ async function loadMatchesCache(giaiId='', forceRefresh=false) {
 
     if (md.rows?.length > 1) {
       const newRows = normalizeMatchRows(md.rows.slice(1));
-      cacheSet(cKey, newRows);
-      // REPLACE theo giaiName (GSheets luôn lưu tên)
+      // SMART MERGE: GAS là nguồn chính nhưng giữ tên đội local nếu GAS chưa sync
+      // Trường hợp: _bkAutoSyncToSchedule đã điền BK/CK local nhưng chưa push GAS xong
+      const localByKey = {};
+      _M.filter(m => String(m[0]||'') === giaiName)
+        .forEach(m => {
+          const k = `${String(m[1]||'')}|${String(m[2]||'')}|${String(m[3]||'')}`;
+          localByKey[k] = m;
+        });
+
+      const mergedRows = newRows.map(nr => {
+        const k = `${String(nr[1]||'')}|${String(nr[2]||'')}|${String(nr[3]||'')}`;
+        const local = localByKey[k];
+        if (!local) return nr;
+        const merged = [...nr];
+        // Giữ tên đội local nếu GAS trả về rỗng (chưa sync)
+        if (!merged[4] && local[4]) merged[4] = local[4]; // teamA
+        if (!merged[7] && local[7]) merged[7] = local[7]; // teamB
+        // Giữ scores local nếu GAS chưa có (trường hợp đang live)
+        if ((merged[5]===''||merged[5]===null||merged[5]===undefined) && local[5]!=='' && local[5]!==null && local[5]!==undefined) merged[5] = local[5];
+        if ((merged[6]===''||merged[6]===null||merged[6]===undefined) && local[6]!=='' && local[6]!==null && local[6]!==undefined) merged[6] = local[6];
+        return merged;
+      });
+
+      cacheSet(cKey, mergedRows);
       const others = _M.filter(m => String(m[0]||'') !== giaiName);
-      _M = [...others, ...newRows];
+      _M = [...others, ...mergedRows];
     }
     if (rd.rows?.length > 1) buildDkFromResults(rd.rows.slice(1));
     if (ld.rows?.length > 1) {
       _buildLiveFromRows(ld.rows.slice(1));
     }
-    dedupM(); // Safety net
+    dedupM();
     console.log('[loadMatchesCache] giaiName:', giaiName, '→ M:', _M.length, 'done:', _dkBangCode.size);
   } catch(e) {
     console.error('[loadMatchesCache]', e.message);
@@ -8254,6 +8677,7 @@ function bkSetByeRule(rule) {
   if (sel && sel.value !== rule) sel.value = rule;
   _bkCurrentTree = null; // xóa cache để force rebuild theo rule mới
   const tree = _bkCurrentTree;
+  _ndBkUpdateToolbarUI();
   if (rule === 'bye') {
     // Xóa byeMode lucky → auto-advance
     if (tree) {
@@ -9287,8 +9711,12 @@ function bkRender() {
   // Cập nhật seeding panel
   const { seeds: _sp_seeds, bangs: _sp_bangs, bangDone: _sp_bd } = _bkCalcSeeds(_bkGiai, _bkNd);
   _bkUpdateSeedPanel(tree, _sp_seeds, _sp_bangs, _sp_bd);
+  // Auto-sync tree teams → _M + bảng đấu (nếu đang ở auto mode)
+  _bkAutoSyncToSchedule();
   // Auto fit zoom sau render
   if (typeof bkAutoFitOnRender === 'function') bkAutoFitOnRender();
+  // Sync thanh cuộn ngang sau khi render
+  setTimeout(bkSyncHScroll, 100);
 }
 
 // ── Auto-fill button ─────────────────────────────────────────────
@@ -9378,42 +9806,183 @@ function bkShowRules() {
 }
 
 // ── Bracket mode: Tự động / Thủ công ──
+// ── Toolbar mới: Toggle BYE / Lucky ──
+function ndBkToggleByeRule() {
+  const newRule = _bkByeRule === 'bye' ? 'lucky' : 'bye';
+  bkSetByeRule(newRule);
+  _ndBkUpdateToolbarUI();
+}
+
+// ── Toolbar mới: Áp dụng & Tạo lịch + tự động lưu + bật auto-poll ──
+async function ndBkApplyFull() {
+  _bkGiai = _curGiaiId || _bkGiai;
+  _bkNd   = _curNd     || _bkNd;
+  _bkGiaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
+  const btn = document.getElementById('nd-btn-apply');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang tạo...'; }
+  try {
+    await _swapBkWrap('nd-bk-wrap', () => bkApplyAndSave());
+    // Tự động bật auto-poll sau khi áp dụng thành công
+    if (!_bkEditMode) {
+      _bkAutoMode = true;
+      _bkStartAutoPolling();
+    }
+    _ndBkUpdateToolbarUI();
+    // Render bảng đấu ngay nếu đang ở tab bảng đấu
+    if (_curGiaiId === _bkGiai && _curNd === _bkNd) {
+      const tvNd = document.getElementById('tv-nd');
+      if (tvNd && tvNd.style.display !== 'none') renderBangList(_bkGiai, _bkNd);
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Áp dụng & Tạo lịch'; }
+  }
+}
+
+// ── Toolbar mới: Toggle chế độ chỉnh sửa ──
+function ndBkToggleEdit() {
+  if (!_bkEditMode) {
+    // Bật chỉnh sửa: tạm dừng auto
+    _bkAutoModeBeforeEdit = _bkAutoMode;
+    _bkAutoMode = false;
+    _bkStopAutoPolling();
+    _bkEditMode = true;
+  } else {
+    // Tắt chỉnh sửa mà không lưu (hủy)
+    ndBkCancelEdit();
+  }
+  _ndBkUpdateToolbarUI();
+}
+
+// Lưu + tiếp tục auto
+async function ndBkSaveEdit() {
+  _bkGiai = _curGiaiId || _bkGiai;
+  _bkNd   = _curNd     || _bkNd;
+  _bkGiaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
+  const btn = document.querySelector('#nd-bk-edit-banner button');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu...'; }
+  try {
+    // Lưu overrides hiện tại lên GSheets
+    await _swapBkWrap('nd-bk-wrap', () => bkSave());
+    toast('✅ Đã lưu chỉnh sửa', 'ok');
+  } catch(e) {
+    toast('❌ Lỗi lưu: ' + e.message, 'er');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Lưu & Tiếp tục tự động'; }
+  }
+  // Tắt edit mode, khôi phục auto
+  _bkEditMode = false;
+  _bkAutoMode = _bkAutoModeBeforeEdit;
+  if (_bkAutoMode) {
+    _bkStartAutoPolling();
+    toast('🤖 Chế độ tự động tiếp tục', 'ok');
+  }
+  _ndBkUpdateToolbarUI();
+}
+
+// Hủy chỉnh sửa (không lưu, khôi phục lại)
+function ndBkCancelEdit() {
+  _bkEditMode = false;
+  _bkAutoMode = _bkAutoModeBeforeEdit;
+  if (_bkAutoMode) _bkStartAutoPolling();
+  _ndBkUpdateToolbarUI();
+  _ndBkRender(); // re-render để rollback visual
+}
+
+// ── Update toàn bộ toolbar UI theo trạng thái hiện tại ──
+function _ndBkUpdateToolbarUI() {
+  // BYE toggle button
+  const byeBtn = document.getElementById('nd-btn-bye-toggle');
+  if (byeBtn) {
+    if (_bkByeRule === 'lucky') {
+      byeBtn.textContent = '🍀 Lucky';
+      byeBtn.style.background = 'rgba(168,85,247,.18)';
+      byeBtn.style.color = 'var(--pu)';
+      byeBtn.style.border = '1px solid rgba(168,85,247,.4)';
+    } else {
+      byeBtn.textContent = '✅ BYE';
+      byeBtn.style.background = 'rgba(34,197,94,.12)';
+      byeBtn.style.color = 'var(--gn)';
+      byeBtn.style.border = '1px solid rgba(34,197,94,.35)';
+    }
+    // Disable khi đang edit
+    byeBtn.disabled = _bkEditMode;
+    byeBtn.style.opacity = _bkEditMode ? '.4' : '1';
+  }
+
+  // Nút Áp dụng: ẩn khi đang edit
+  const applyBtn = document.getElementById('nd-btn-apply');
+  if (applyBtn) {
+    applyBtn.style.display = _bkEditMode ? 'none' : '';
+  }
+
+  // Nút Chỉnh sửa: đổi trạng thái
+  const editBtn = document.getElementById('nd-btn-edit');
+  if (editBtn) {
+    if (_bkEditMode) {
+      editBtn.textContent = '✏️ Đang sửa…';
+      editBtn.style.background = 'rgba(245,158,11,.18)';
+      editBtn.style.color = 'var(--or)';
+      editBtn.style.border = '1px solid rgba(245,158,11,.45)';
+    } else {
+      editBtn.textContent = '✏️ Chỉnh sửa';
+      editBtn.style.background = 'rgba(14,165,233,.12)';
+      editBtn.style.color = 'var(--ac)';
+      editBtn.style.border = '1px solid rgba(14,165,233,.3)';
+    }
+  }
+
+  // Status bar
+  const statusBar = document.getElementById('nd-bk-status-bar');
+  if (statusBar) {
+    if (_bkEditMode) {
+      statusBar.textContent = '✏️ Chế độ chỉnh sửa — tự động đã tạm dừng';
+      statusBar.style.color = 'var(--or)';
+    } else if (_bkAutoMode) {
+      statusBar.textContent = '🤖 Tự động điền khi có kết quả';
+      statusBar.style.color = 'var(--gn)';
+    } else {
+      statusBar.textContent = 'Tự động từ BXH vòng bảng';
+      statusBar.style.color = 'var(--tx3)';
+    }
+  }
+
+  // Edit banner
+  const banner = document.getElementById('nd-bk-edit-banner');
+  if (banner) banner.style.display = _bkEditMode ? 'flex' : 'none';
+}
+
+// Legacy: bkToggleMode (page-bracket) — giữ nguyên
 function bkToggleMode() {
   _bkAutoMode = !_bkAutoMode;
-  _bkUpdateModeUI();
   if (_bkAutoMode) {
     toast('🤖 Chế độ TỰ ĐỘNG — tự điền ngay khi có kết quả trận KO', 'ok');
-    _bkStartAutoPolling(); // bắt đầu poll + điền ngay
+    _bkStartAutoPolling();
   } else {
     _bkStopAutoPolling();
     toast('🖊 Chế độ THỦ CÔNG — chỉnh sửa từng ô theo ý muốn', 'in');
   }
+  _ndBkUpdateToolbarUI();
 }
 
 function _bkUpdateModeUI() {
-  const btns = ['btn-bk-mode', 'nd-btn-bk-mode'];
+  // Đồng bộ nút legacy page-bracket
+  const btns = ['btn-bk-mode'];
   btns.forEach(id => {
     const btn = document.getElementById(id);
     if (!btn) return;
     if (_bkAutoMode) {
-      // Tự động đang BẬT → xanh lá sáng
       btn.textContent = '🤖 Tự động';
       btn.style.background = 'rgba(34,197,94,.2)';
       btn.style.color = 'var(--gn)';
       btn.style.border = '1px solid rgba(34,197,94,.5)';
     } else {
-      // Thủ công đang BẬT → xanh lá sáng
       btn.textContent = '🖊 Thủ công';
       btn.style.background = 'rgba(34,197,94,.2)';
       btn.style.color = 'var(--gn)';
       btn.style.border = '1px solid rgba(34,197,94,.5)';
     }
   });
-  // Ẩn/hiện nút điền ngay
-  ['btn-bk-autofill','nd-btn-autofill'].forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) btn.style.display = _bkAutoMode ? 'none' : '';
-  });
+  _ndBkUpdateToolbarUI();
 }
 
 // ── Auto-advance: poll KetQua → phát hiện KO match done → tự điền + apply GAS ──
@@ -9438,7 +10007,7 @@ function _bkStopAutoPolling() {
 }
 
 async function _bkAutoAdvanceIfNeeded() {
-  if (!_bkAutoMode || !_bkGiai || !_bkNd) return;
+  if (!_bkAutoMode || _bkEditMode || !_bkGiai || !_bkNd) return;
   try {
     const giaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
 
@@ -9467,9 +10036,37 @@ async function _bkAutoAdvanceIfNeeded() {
 
     if (!hasNewDone) return;
 
-    // 5. Có kết quả mới → tự điền + apply GAS
+    // 5. Có kết quả mới → rebuild tree + sync winner ngay lập tức
     toast('🤖 Có kết quả mới — tự động điền vòng tiếp...', 'in');
+    // Rebuild tree với winner mới
+    const { seeds: _s5, bangs: _b5, bangDone: _bd5 } = _bkCalcSeeds(_bkGiai, _bkNd);
+    const _gn5 = _resolveGiaiName(_bkGiai) || _bkGiai;
+    const _allM5 = _M.filter(m => String(m[0]||'')===_gn5 && String(m[1]||'')===_bkNd);
+    const _koM5  = _allM5.filter(m => { const v=String(m[9]||''); return v&&v!=='Vòng bảng'&&!v.includes('bảng'); });
+    let _tree5 = _bkBuildTree(_s5, _b5, _koM5, _bd5);
+    _tree5 = _bkApplyOverrides(_tree5);
+    _tree5 = _bkResolveAdvancers(_tree5, _koM5);
+    _bkCurrentTree = _tree5;
+    // Sync winner vào _M + GAS ngay (immediate, không debounce)
+    await _bkDoSyncToSchedule();
     await bkAutoFill();
+    // Sau khi autoFill: re-render bảng đấu nếu đang ở tab bảng đấu
+    if (_curGiaiId === _bkGiai && _curNd === _bkNd) {
+      const tvNd = document.getElementById('tv-nd');
+      if (tvNd && tvNd.style.display !== 'none') renderBangList(_bkGiai, _bkNd);
+    }
+    // Re-render cây nếu đang ở tab cây thi đấu
+    const ndWrap = document.getElementById('nd-bk-wrap');
+    if (ndWrap && ndWrap.offsetParent !== null) {
+      _bkCurrentTree = null;
+      const realWrap = document.getElementById('bk-wrap');
+      if (realWrap) realWrap.id = '_bk_swap_hidden';
+      ndWrap.id = 'bk-wrap';
+      try { bkRender(); } finally {
+        ndWrap.id = 'nd-bk-wrap';
+        if (realWrap) realWrap.id = 'bk-wrap';
+      }
+    }
 
   } catch(e) {
     console.warn('[bkAutoAdvance]', e.message);
@@ -9583,8 +10180,13 @@ async function bkAutoFill() {
           toCreate.push([giaiName, _bkNd, roundLabel, m.code, tA, '', '', tB, '', roundLabel, '']);
         } else {
           const curA = String(existing[4]||''), curB = String(existing[7]||'');
-          if (tA !== curA || tB !== curB) {
-            const r2 = [...existing]; r2[4]=tA; r2[7]=tB;
+          // Luôn update nếu tree có tên đội mới (tA/tB khác '' và khác hiện tại)
+          const shouldUpdateA = tA && tA !== 'TBD' && tA !== curA;
+          const shouldUpdateB = tB && tB !== 'TBD' && tB !== curB;
+          if (shouldUpdateA || shouldUpdateB) {
+            const r2 = [...existing];
+            if (shouldUpdateA) r2[4] = tA;
+            if (shouldUpdateB) r2[7] = tB;
             toUpdate.push({ row: r2, code: m.code });
           }
         }
@@ -9646,15 +10248,41 @@ async function bkAutoFill() {
       });
     }
 
-    // 6. Reload matches + re-render cây và bảng đấu
-    _invalidateMatchCache(_bkGiai);
-    await loadMatchesCache(_bkGiai, true);
+    // 6. Cập nhật _M local ngay (không cần đợi GAS reload)
+    // toCreate đã push vào _M ở bước 4; toUpdate cần patch thêm
+    toUpdate.forEach(({ row }) => {
+      const idx = _M.findIndex(m =>
+        String(m[0]||'') === giaiName &&
+        String(m[1]||'') === _bkNd &&
+        String(m[3]||'') === String(row[3]||'')
+      );
+      if (idx >= 0) _M[idx] = normalizeMatchRow(row);
+      else { _M.push(normalizeMatchRow(row)); dedupM(); }
+    });
+
+    // Cập nhật cache với _M đã patch (tránh lần sau loadMatchesCache trả về data cũ)
+    const giaiNameForCache = giaiName;
+    const newCachedRows = _M.filter(m => String(m[0]||'') === giaiNameForCache);
+    cacheSet('matches_' + giaiNameForCache, newCachedRows);
+
+    // Re-render cây ngay từ _M đã cập nhật
     bkRender();
-    // Nếu đang ở tab bảng đấu của nội dung này → render luôn
+
+    // Nếu đang ở tab bảng đấu của nội dung này → render danh sách trận ngay
     if (_curGiaiId === _bkGiai && _curNd === _bkNd) {
       const tvNd = document.getElementById('tv-nd');
       if (tvNd && tvNd.style.display !== 'none') renderBangList(_bkGiai, _bkNd);
     }
+
+    // Fetch ngầm để sync GSheets → local (không block UI)
+    _invalidateMatchCache(_bkGiai);
+    loadMatchesCache(_bkGiai, true).then(() => {
+      bkRender();
+      if (_curGiaiId === _bkGiai && _curNd === _bkNd) {
+        const tvNd2 = document.getElementById('tv-nd');
+        if (tvNd2 && tvNd2.style.display !== 'none') renderBangList(_bkGiai, _bkNd);
+      }
+    }).catch(() => {});
 
     const total = toCreate.length + toUpdate.length;
     if (toCreate.length && toUpdate.length)
@@ -10369,6 +10997,8 @@ function bkSaveEdit(code, seedA, seedB) {
   _bkSyncOverrideToSchedule(code).then(() => {
     toast(`✅ Trận ${code}: ${dispA} vs ${dispB}${isBYECase?' · BYE đã được thay thế và lưu':''}`, 'ok');
   });
+  // Nếu KHÔNG đang ở edit mode → thông báo có thể Lưu & tiếp tục từ banner
+  // (khi edit mode bật thì user dùng banner để lưu tổng)
 }
 
 // Sync 1 trận từ override về bảng đấu (_M + GAS) — await đầy đủ, feedback rõ ràng
@@ -10482,7 +11112,117 @@ function bkClearOverride(code) {
 
 // Biến lưu tree hiện tại để dùng cho Apply
 let _bkCurrentTree = null;
-let _bkAutoMode = false; // true = tự động điền khi có KQ, false = thủ công
+let _bkAutoMode = false;  // true = tự động điền khi có KQ, false = thủ công
+let _bkEditMode = false;  // true = đang chỉnh sửa thủ công, tạm dừng auto
+let _bkAutoModeBeforeEdit = false; // lưu trạng thái auto trước khi edit
+
+
+// ── Auto-sync: sau mỗi bkRender, cập nhật tên đội từ tree vào _M + re-render bảng đấu ──
+// Chạy debounce 300ms để không spam khi bkRender gọi liên tiếp
+let _bkSyncTimer = null;
+function _bkAutoSyncToSchedule(immediate = false) {
+  if (_bkEditMode) return;
+  if (_bkSyncTimer) clearTimeout(_bkSyncTimer);
+  if (immediate) {
+    // Gọi ngay khi vừa có kết quả trận xong
+    _bkDoSyncToSchedule().catch(() => {});
+    return;
+  }
+  // Debounce 200ms cho render UI thông thường
+  _bkSyncTimer = setTimeout(async () => {
+    await _bkDoSyncToSchedule();
+  }, 200);
+}
+
+async function _bkDoSyncToSchedule() {
+  const tree = _bkCurrentTree;
+  if (!tree || !_bkGiai || !_bkNd) return;
+
+  const giaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
+  const allM  = _M.filter(m => String(m[0]||'')===giaiName && String(m[1]||'')===_bkNd);
+  const koByCode = {};
+  allM.filter(m => { const v=String(m[9]||''); return v&&v!=='Vòng bảng'&&!v.includes('bảng'); })
+      .forEach(m => { koByCode[String(m[3]||'')] = m; });
+
+  const toUpdate = []; // { row, code, isNew }
+
+  for (const round of tree.rounds) {
+    for (const m of round.matches) {
+      if (m.isByeA && m.isByeB) continue;
+      const tA = m.isByeA ? '' : (m.teamA || '');
+      const tB = m.isByeB ? '' : (m.teamB || '');
+      if (!tA && !tB) continue; // cả 2 chưa resolve — bỏ qua
+
+      const existing = koByCode[m.code];
+
+      if (!existing) {
+        // ── ROOT CAUSE FIX: Trận chưa tồn tại trong _M (CK/H3 chưa tạo)
+        // → TẠO MỚI ngay nếu tree đã resolve được ít nhất 1 đội
+        // Không chờ admin bấm "Áp dụng & Tạo lịch"
+        const newRow = [giaiName, _bkNd, round.name, m.code,
+                        tA, '', '', tB, '', round.name, ''];
+        _M.push(normalizeMatchRow(newRow));
+        dedupM();
+        koByCode[m.code] = newRow; // cập nhật map để vòng lặp tiếp theo nhận diện
+        toUpdate.push({ row: newRow, code: m.code, isNew: true });
+        continue;
+      }
+
+      // Trận đã tồn tại — kiểm tra có cần update tên đội không
+      const curA = String(existing[4]||''), curB = String(existing[7]||'');
+      const updateA = tA && tA !== 'TBD' && tA !== curA;
+      const updateB = tB && tB !== 'TBD' && tB !== curB;
+      if (!updateA && !updateB) continue;
+
+      const newRow = [...existing];
+      if (updateA) newRow[4] = tA;
+      if (updateB) newRow[7] = tB;
+      const idx = _M.indexOf(existing);
+      if (idx >= 0) _M[idx] = normalizeMatchRow(newRow);
+      else { _M.push(normalizeMatchRow(newRow)); dedupM(); }
+      toUpdate.push({ row: newRow, code: m.code, isNew: false });
+    }
+  }
+
+  if (!toUpdate.length) return;
+
+  // Re-render bảng đấu ngay lập tức (local đã update)
+  if (_curGiaiId === _bkGiai && _curNd === _bkNd) {
+    const tvNd = document.getElementById('tv-nd');
+    if (tvNd && tvNd.style.display !== 'none') renderBangList(_bkGiai, _bkNd);
+  }
+
+  // Cập nhật cache + localStorage ngay
+  const cKey = 'matches_' + giaiName;
+  const cachedRows = _M.filter(m => String(m[0]||'') === giaiName);
+  cacheSet(cKey, cachedRows);
+  try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
+
+  // Push lên GAS song song — tạo mới hoặc update
+  (async () => {
+    await Promise.allSettled(
+      toUpdate.map(({ row, code, isNew }) => {
+        if (isNew) {
+          // addMatchAdmin để tạo row mới trên GAS
+          return gPost({ action:'addMatchAdmin', adminCode:CODE, row })
+            .catch(() =>
+              // Fallback: nếu đã tồn tại trên GAS → updateMatch
+              gPost({ action:'updateMatch', adminCode:CODE,
+                giai:giaiName, giaiName, bang:String(row[2]||''), code, row })
+            );
+        } else {
+          return gPost({ action:'updateMatch', adminCode:CODE,
+            giai:giaiName, giaiName, bang:String(row[2]||''), code, row });
+        }
+      })
+    );
+    // Cập nhật lại cache sau khi GAS confirm
+    const cKeySync = 'matches_' + giaiName;
+    const rowsSync = _M.filter(m => String(m[0]||'') === giaiName);
+    cacheSet(cKeySync, rowsSync);
+    try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
+  })().catch(() => {});
+}
 
 // Gọi sau bkRender để cập nhật seeding panel
 function _bkUpdateSeedPanel(tree, seeds, bangs, bangDone) {
@@ -11158,7 +11898,38 @@ function _bkZoomApply(level) {
   if (wrap && inner) {
     wrap.style.height = Math.ceil(inner.scrollHeight * _bkZoomLevel + 40) + 'px';
   }
+  // Sync thanh cuộn ngang
+  setTimeout(bkSyncHScroll, 50);
 }
+
+// ── Sync thanh cuộn ngang với nội dung bracket ──
+function bkSyncHScroll() {
+  var wrap   = document.getElementById('bk-zoom-wrap');
+  var inner  = document.getElementById('bk-zoom-inner');
+  var hbar   = document.getElementById('bk-hscroll-bar');
+  var hinner = document.getElementById('bk-hscroll-inner');
+  if (!wrap || !inner || !hbar || !hinner) return;
+
+  // Set width của fake scroll = width thực của nội dung sau scale
+  var scaledW = Math.ceil(inner.scrollWidth * _bkZoomLevel);
+  hinner.style.width = scaledW + 'px';
+
+  // Sync scroll 2 chiều (flag tránh loop)
+  var _syncing = false;
+  hbar.onscroll = function() {
+    if (_syncing) return; _syncing = true;
+    wrap.scrollLeft = hbar.scrollLeft;
+    requestAnimationFrame(function(){ _syncing = false; });
+  };
+  wrap.onscroll = function() {
+    if (_syncing) return; _syncing = true;
+    hbar.scrollLeft = wrap.scrollLeft;
+    requestAnimationFrame(function(){ _syncing = false; });
+  };
+}
+
+// Không cần ẩn/hiện vì thanh nằm trong container bracket
+function bkHideHScroll() {}
 
 function bkZoom(delta) {
   // Round to nearest 0.05 for clean steps
@@ -11321,7 +12092,9 @@ async function genKnockout(giaiId, nd) {
       if(!table[tA])table[tA]={team:tA,pts:0,pf:0,pa:0};
       if(!table[tB])table[tB]={team:tB,pts:0,pf:0,pa:0};
       if(!isMatchDone(m))return;
-      const sA=Number(m[5]||0),sB=Number(m[6]||0);
+      // v4 FIX: dùng getFinalScore() → đọc _dkScores (KetQua) thay vì m[5]/m[6]
+      const fs1=getFinalScore(m);
+      const sA=fs1?Number(fs1.scoreA)||0:0, sB=fs1?Number(fs1.scoreB)||0:0;
       table[tA].pf+=sA;table[tA].pa+=sB;
       table[tB].pf+=sB;table[tB].pa+=sA;
       if(sA>sB)table[tA].pts+=2;else if(sB>sA)table[tB].pts+=2;
@@ -11594,14 +12367,7 @@ async function saveTournament() {
   try{
     const d = await gPost({action:isEdit?'updateTournament':'addTournament',adminCode:CODE,tournament:tourn});
     if(!d.ok)toast('Lỗi: '+d.reason,'er');
-    else {
-      // Manager: thêm giải mới vào MY_GIAI_LIST ngay lập tức để filter đúng
-      if (!isEdit && ROLE === 'manager') {
-        const newId = id.toUpperCase();
-        if (newId && !MY_GIAI_LIST.includes(newId)) MY_GIAI_LIST.push(newId);
-      }
-      loadTournaments();
-    }
+    else loadTournaments();
   }catch(e){toast('Lỗi kết nối','er');}
 }
 async function delTourn(id, name) {
@@ -12203,11 +12969,12 @@ async function saveRefsToTournament() {
 
 async function _fallbackAssignRefs(codes) {
   // Gán giải cho từng TT một bằng action assignRef (GAS v5 cũ)
+  // FIX v32: bỏ noidung — GAS giữ nguyên noidung cũ của TT
   let ok = 0;
   for (const code of codes) {
     try {
       await gPost({ action:'assignRef', adminCode:CODE, refCode:code, giai:_asgnGiai,
-                    courts: '', rounds: '', noidung: '' });
+                    courts: '', rounds: '' });
       ok++;
     } catch(e) {}
   }
@@ -12621,14 +13388,31 @@ async function loadMatches() {
     if (md.rows?.length > 1) {
       const newRows = normalizeMatchRows(md.rows.slice(1));
       if (giaiName) {
-        // Merge: giữ các giải khác, thay thế giải đang load
+        // Smart merge: giữ tên đội local BK/CK chưa sync GAS
+      const _lk13 = {};
+      _M.filter(m => String(m[0]||'') === giaiName)
+        .forEach(m => {
+          const k = `${String(m[1]||'')}|${String(m[2]||'')}|${String(m[3]||'')}`;
+          _lk13[k] = m;
+        });
+      const merged__lk13 = newRows.map(nr => {
+        const k = `${String(nr[1]||'')}|${String(nr[2]||'')}|${String(nr[3]||'')}`;
+        const loc = _lk13[k];
+        if (!loc) return nr;
+        const mg = [...nr];
+        if (!mg[4] && loc[4]) mg[4] = loc[4];
+        if (!mg[7] && loc[7]) mg[7] = loc[7];
+        if ((mg[5]===''||mg[5]===null||mg[5]===undefined) && loc[5]!==''&&loc[5]!==null&&loc[5]!==undefined) mg[5]=loc[5];
+        if ((mg[6]===''||mg[6]===null||mg[6]===undefined) && loc[6]!==''&&loc[6]!==null&&loc[6]!==undefined) mg[6]=loc[6];
+        return mg;
+      });
         const others = _M.filter(m => String(m[0]||'') !== giaiName);
-        _M = [...others, ...newRows];
+        _M = [...others, ...merged__lk13];
         dedupM();
+        cacheSet('matches_' + giaiName, merged__lk13);
       } else {
         _M = newRows;
       }
-      if (giaiName) cacheSet('matches_' + giaiName, newRows);
     }
     buildDkFromResults(rd.rows?.slice(1)||[]);
     _buildLiveFromRows((ld.rows?.slice(1)||[]));
@@ -12722,7 +13506,7 @@ function renderMatches(rows) {
       <td><div style="display:flex;gap:3px">
         <button class="btn bh bsm" title="Sửa tỉ số" onclick="openScoreMo('${g}','${nd}','${bg}','${cd}','${esc(r[4])}','${esc(r[7])}','${r[5]||0}','${r[6]||0}')">✏️</button>
         <button class="btn bh bsm" title="Sửa trận" onclick="editMatchRow('${g}','${nd}','${bg}','${cd}')">🔧</button>
-        <button class="btn br bsm" title="Xóa" onclick="delMatch('${g}','${bg}','${cd}')">🗑</button>
+        <button class="btn br bsm" title="Xóa" onclick="delMatch('${g}','${nd}','${bg}','${cd}')">🗑</button>
       </div></td></tr>`;
   }).join('');
 }
@@ -12784,12 +13568,12 @@ async function saveMatch() {
     loadMatches();
   } catch(e) { toast('Lỗi kết nối','er'); }
 }
-async function delMatch(g,bg,code) {
+async function delMatch(g,nd,bg,code) { // FIX v3: thêm nd vào signature
   if (!confirm(`Xóa trận ${code}?`)) return;
-  _M = _M.filter(r=>!(r[0]===g&&r[2]===bg&&r[3]===code));
+  _M = _M.filter(r=>!(r[0]===g&&r[1]===nd&&r[2]===bg&&r[3]===code));
   filterMatches();
   toast(`🗑 Đã xóa ${code}`,'in');
-  try { await gPost({ action:'deleteMatch', adminCode:CODE, giai:g, bang:bg, code }); }
+  try { await gPost({ action:'deleteMatch', adminCode:CODE, giai:g, nd, bang:bg, code }); } // FIX v3: thêm nd
   catch(e) {}
 }
 
@@ -12812,17 +13596,26 @@ async function saveScore() {
   const sA   = Number(document.getElementById('sc-sa').value)||0;
   const sB   = Number(document.getElementById('sc-sb').value)||0;
   closeMo('mo-score');
-  // Cập nhật local cache
-  const idx = _M.findIndex(r=>r[0]===g&&r[1]===nd&&r[2]===bg&&r[3]===code);
-  if (idx>=0) { _M[idx][5]=sA; _M[idx][6]=sB; }
+
+  const giaiNameSC = String((_T.find(t=>String(t[0]||'')===g)||[])[1]||g);
+  const idx = _M.findIndex(r=>String(r[0]||'')===g&&String(r[1]||'')===nd&&String(r[2]||'')===bg&&String(r[3]||'')===code);
+  const mRow = idx >= 0 ? _M[idx] : [giaiNameSC,nd,bg,code,'',sA,sB,'','','',''];
+
+  // v4 FIX: Cập nhật _dkScores/_dkBangCode/_dK ngay lập tức (không chờ GAS poll)
+  _syncResultCache(mRow, sA, sB);
+
+  // Re-render tất cả màn hình liên quan ngay
   filterMatches();
-  // Sync cây thi đấu nếu đang xem cùng nội dung
+  if (_curGiaiId && _curNd === nd) renderBangList(_curGiaiId, nd);
   if (_bkGiai && _bkNd === nd) bkRender();
+
   toast('✅ Đã cập nhật tỉ số','ok');
-  // Gửi GAS ngầm (updateMatch với row đầy đủ)
+
+  // Gửi GAS ngầm: updateMatch ghi Matches + tự upsert KetQua (v31)
   try {
-    const giaiNameSC = String((_T.find(t=>String(t[0]||'')===g)||[])[1]||g);
-    const row = idx>=0 ? _M[idx] : [giaiNameSC,nd,bg,code,'',sA,sB,'','','',''];
+    if (idx >= 0) _M[idx][5] = sA; // đảm bảo _M đồng bộ trước khi gửi
+    if (idx >= 0) _M[idx][6] = sB;
+    const row = idx >= 0 ? _M[idx] : [giaiNameSC,nd,bg,code,'',sA,sB,'','','',''];
     await gPost({ action:'updateMatch', adminCode:CODE, giai:giaiNameSC, giaiName:giaiNameSC, bang:bg, code, row });
   } catch(e) {}
 }
@@ -12877,19 +13670,23 @@ function openBatchMo() {
   openMo('mo-rr');
 }
 function genRR() {
-  const giai=document.getElementById('rr-giai').value;
+  const giaiId=document.getElementById('rr-giai').value;
+  // FIX v3: dùng tên giải (giaiName) thay vì mã giải (giaiId) cho row[0]
+  // GAS Matches sheet lưu tên giải, không phải mã — dùng mã sẽ mismatch khi lookup
+  const giaiName = giaiId ? ((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||giaiId) : giaiId;
   const nd=document.getElementById('rr-nd').value.trim();
   const bang=document.getElementById('rr-bang').value.trim();
   const ct=document.getElementById('rr-court').value.trim();
   const rd=document.getElementById('rr-round').value.trim();
   const teams=document.getElementById('rr-teams').value.trim().split('\n').map(l=>l.trim()).filter(Boolean);
-  if(!giai||!nd||!bang){toast('Vui lòng nhập đủ Giải, Nội dung, Bảng','er');return;}
+  if(!giaiId||!nd||!bang){toast('Vui lòng nhập đủ Giải, Nội dung, Bảng','er');return;}
   if(teams.length<2){toast('Cần ít nhất 2 đội','er');return;}
   _rrRows=[];
   const pfx=bang.replace(/[^A-Z0-9]/gi,'').substring(0,3);
   let idx=1;
   for(let i=0;i<teams.length;i++)for(let j=i+1;j<teams.length;j++){
-    _rrRows.push([giai,nd,bang,pfx+idx,teams[i],'','',teams[j],ct,rd,'']);idx++;
+    // FIX v3: row[0] = giaiName (tên giải đầy đủ), không phải giaiId (mã)
+    _rrRows.push([giaiName,nd,bang,pfx+idx,teams[i],'','',teams[j],ct,rd,'']);idx++;
   }
   document.getElementById('rr-cnt').textContent=_rrRows.length;
   document.getElementById('rr-list').innerHTML=_rrRows.map(r=>`<div style="padding:3px 0;border-bottom:1px solid var(--bdr);color:var(--tx2)"><span class="mono" style="color:var(--ac)">${r[3]}</span>  ${r[4]} <span style="color:var(--tx3)">vs</span> ${r[7]}</div>`).join('');
@@ -13377,7 +14174,9 @@ async function atrAssignDirect(code, phone, name) {
   if (idx >= 0) _U[idx][8] = _assignTournGiaiName;
   atrRenderLists();
   try {
-    const d = await gPost({action:'assignRef',adminCode:CODE,refCode:code,refPhone:phone,giai:_assignTournGiaiName,courts:'',rounds:'',noidung:''});
+    // FIX v32: bỏ noidung khỏi payload — GAS sẽ giữ nguyên noidung cũ của TT
+    // Trước đây gửi noidung:'' → xóa mất nội dung đã phân cho TT
+    const d = await gPost({action:'assignRef',adminCode:CODE,refCode:code,refPhone:phone,giai:_assignTournGiaiName,courts:'',rounds:''});
     if (d?.ok) {
       toast(`✅ Đã phân công ${name} → ${_assignTournGiaiName}`, 'ok');
     } else {
@@ -14416,11 +15215,26 @@ async function _restoreFromHash() {
         openNdDetail(state.g, state.nd);
         // Restore tab
         if (state.tab) {
-          await new Promise(r => setTimeout(r, 200));
-          switchNdTab(state.tab, true);
           if (state.tab === 'bracket') {
+            // Đợi loadMatchesCache xong rồi mới switch tab & render bracket
+            try {
+              await loadMatchesCache(state.g, true);
+            } catch(e) {}
+            _bkGiai = state.g;
+            _bkNd   = state.nd;
+            _bkGiaiName = _resolveGiaiName(state.g) || state.g;
+            _bkOverrides = _bkLoadOverrides();
+            // Switch tab SAU khi data sẵn sàng — switchNdTab tự gọi _ndBkRender bên trong
+            switchNdTab(state.tab, true);
+            // Sync thanh cuộn ngang sau khi render xong
+            await new Promise(r => setTimeout(r, 400));
+            _syncBkScrollbar();
+            // Hiện thanh cuộn fixed
+            const sb = document.getElementById('nd-bk-scrollbar-wrap');
+            if (sb) sb.style.display = 'block';
+          } else {
             await new Promise(r => setTimeout(r, 200));
-            _ndBkRender();
+            switchNdTab(state.tab, true);
           }
         }
       } else if (state.tv === 'detail' && state.g) {
@@ -14467,6 +15281,9 @@ function _syncBkScrollbar() {
   // Re-sync when content changes
   const obs = new MutationObserver(update);
   obs.observe(wrap, { childList:true, subtree:true });
+  // Hiện thanh nếu tab bracket đang mở
+  const bracketVisible = document.getElementById('nd-panel-bracket')?.style.display !== 'none';
+  if (bracketVisible) bar.style.display = 'block';
 }
 // Init after page loads & re-init after bracket render
 document.addEventListener('DOMContentLoaded', _syncBkScrollbar);
@@ -14493,101 +15310,125 @@ const _origNdBkRender = window._ndBkRender;
      → hiển thị popup theo đúng giai của manager đó
 ══════════════════════════════════════════════════════════════ -->
 <style>
-/* ═══ CALL NOTIFICATION TRAY ═══ */
+/* ═══ CALL NOTIFICATION TRAY — Lime / Xanh Chuối ═══ */
+/* Palette: --lime:#a3e635  --lime2:#84cc16  --lime3:#65a30d  --limeDark:#1a2e05 */
 #cp-tray {
   position: fixed;
-  top: 16px; right: 16px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   z-index: 9990;
-  display: flex; flex-direction: column; gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   pointer-events: none;
-  max-width: 360px;
-  width: calc(100vw - 32px);
+  width: min(420px, calc(100vw - 48px));
+}
+@media(min-width:1025px){
+  #cp-tray { left: calc(50% + var(--sb)/2); }
+}
+@media(max-width:1024px) and (min-width:641px){
+  #cp-tray { left: calc(50% + var(--sbs)/2); }
 }
 
 .cpn {
-  background: linear-gradient(145deg, #160830 0%, #1e0d42 50%, #160830 100%);
-  border: 1.5px solid rgba(139,92,246,.45);
-  border-radius: 18px;
+  background: linear-gradient(145deg, #0d1a05 0%, #142208 55%, #0d1a05 100%);
+  border: 1.5px solid rgba(163,230,53,.4);
+  border-radius: 16px;
   padding: 0;
   box-shadow:
-    0 12px 40px rgba(0,0,0,.65),
-    0 0 0 1px rgba(139,92,246,.12),
+    0 20px 60px rgba(0,0,0,.8),
+    0 0 0 1px rgba(163,230,53,.08),
+    0 0 40px rgba(163,230,53,.06),
     inset 0 1px 0 rgba(255,255,255,.05);
   pointer-events: all;
   overflow: hidden;
-  animation: cpSlideIn .4s cubic-bezier(.34,1.4,.64,1);
+  animation: cpSlideIn .38s cubic-bezier(.34,1.35,.64,1);
   position: relative;
 }
 
 @keyframes cpSlideIn {
-  from { opacity:0; transform: translateX(80px) scale(.92); }
+  from { opacity:0; transform: translateY(-24px) scale(.93); }
   to   { opacity:1; transform: none; }
 }
 @keyframes cpFadeOut {
-  to { opacity:0; transform: translateX(60px) scale(.94); }
+  to { opacity:0; transform: translateY(16px) scale(.95); }
 }
 
-/* Accent bar trên đầu */
+/* Accent bar — xanh chuối shimmer */
 .cpn-bar {
-  height: 3px; width: 100%;
-  background: linear-gradient(90deg, #8b5cf6, #a78bfa, #7c3aed);
+  height: 4px; width: 100%;
+  background: linear-gradient(90deg, #65a30d, #a3e635, #bef264, #a3e635, #65a30d);
+  background-size: 250% 100%;
+  animation: cpBarShimmer 2.2s linear infinite;
 }
-.cpn.clr-match   .cpn-bar { background: linear-gradient(90deg, #f59e0b, #fbbf24, #d97706); }
-.cpn.clr-team-a  .cpn-bar { background: linear-gradient(90deg, #22c55e, #4ade80, #16a34a); }
-.cpn.clr-team-b  .cpn-bar { background: linear-gradient(90deg, #3b82f6, #60a5fa, #1d4ed8); }
+@keyframes cpBarShimmer {
+  0%   { background-position: 0% 0; }
+  100% { background-position: 250% 0; }
+}
+.cpn.clr-match   .cpn-bar { background: linear-gradient(90deg, #d97706, #f59e0b, #fbbf24); animation: none; }
+.cpn.clr-team-a  .cpn-bar { background: linear-gradient(90deg, #65a30d, #a3e635, #bef264); animation: none; }
+.cpn.clr-team-b  .cpn-bar { background: linear-gradient(90deg, #65a30d, #a3e635, #bef264); animation: none; }
 
-.cpn-inner { padding: 13px 15px 12px; }
+.cpn-inner { padding: 14px 16px 13px; }
 
 .cpn-hdr {
-  display: flex; align-items: flex-start; gap: 10px; margin-bottom: 9px;
+  display: flex; align-items: flex-start; gap: 11px; margin-bottom: 10px;
 }
 .cpn-icon {
-  width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
-  background: rgba(139,92,246,.15); border: 1px solid rgba(139,92,246,.2);
-  display: flex; align-items: center; justify-content: center; font-size: 19px;
+  width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(163,230,53,.22), rgba(190,242,100,.1));
+  border: 1px solid rgba(163,230,53,.35);
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+  box-shadow: 0 0 18px rgba(163,230,53,.15);
 }
-.cpn.clr-match  .cpn-icon { background: rgba(245,158,11,.15); border-color: rgba(245,158,11,.2); }
-.cpn.clr-team-a .cpn-icon { background: rgba(34,197,94,.15);  border-color: rgba(34,197,94,.2); }
-.cpn.clr-team-b .cpn-icon { background: rgba(59,130,246,.15); border-color: rgba(59,130,246,.2); }
+.cpn.clr-match  .cpn-icon { background: rgba(245,158,11,.15); border-color: rgba(245,158,11,.3); box-shadow: 0 0 14px rgba(245,158,11,.1); }
+.cpn.clr-team-a .cpn-icon { background: rgba(163,230,53,.18); border-color: rgba(163,230,53,.3); box-shadow: 0 0 14px rgba(163,230,53,.12); }
+.cpn.clr-team-b .cpn-icon { background: rgba(163,230,53,.18); border-color: rgba(163,230,53,.3); box-shadow: 0 0 14px rgba(163,230,53,.12); }
 
 .cpn-meta { flex: 1; min-width: 0; }
 .cpn-type {
-  font-size: 10px; font-weight: 800; letter-spacing: 1px;
-  text-transform: uppercase; color: #a78bfa; margin-bottom: 2px;
+  font-size: 10px; font-weight: 800; letter-spacing: 1.2px;
+  text-transform: uppercase; color: #a3e635; margin-bottom: 2px;
 }
 .cpn.clr-match  .cpn-type { color: #fbbf24; }
-.cpn.clr-team-a .cpn-type { color: #4ade80; }
-.cpn.clr-team-b .cpn-type { color: #60a5fa; }
+.cpn.clr-team-a .cpn-type { color: #bef264; }
+.cpn.clr-team-b .cpn-type { color: #bef264; }
 
 .cpn-match {
-  font-size: 12.5px; font-weight: 700; color: #f1f5f9; line-height: 1.3;
+  font-size: 13px; font-weight: 700; color: #f0fdf4; line-height: 1.3;
 }
 .cpn-close {
-  flex-shrink: 0; background: rgba(255,255,255,.07); border: none;
-  color: #64748b; border-radius: 7px;
-  width: 26px; height: 26px; font-size: 14px;
+  flex-shrink: 0;
+  background: rgba(163,230,53,.08);
+  border: 1px solid rgba(163,230,53,.18);
+  color: #4d7c0f; border-radius: 8px;
+  width: 27px; height: 27px; font-size: 14px;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: background .15s;
+  transition: all .15s;
 }
-.cpn-close:hover { background: rgba(255,255,255,.14); color: #94a3b8; }
+.cpn-close:hover { background: rgba(163,230,53,.2); color: #a3e635; border-color: rgba(163,230,53,.4); }
 
 /* Players list */
-.cpn-players { display: flex; flex-direction: column; gap: 5px; margin-bottom: 9px; }
+.cpn-players { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
 .cpn-player {
-  display: flex; align-items: center; gap: 8px;
-  background: rgba(255,255,255,.055);
-  border: 1px solid rgba(255,255,255,.07);
-  border-radius: 9px; padding: 7px 10px;
+  display: flex; align-items: center; gap: 9px;
+  background: rgba(163,230,53,.07);
+  border: 1px solid rgba(163,230,53,.14);
+  border-radius: 10px; padding: 8px 11px;
+  transition: background .15s;
 }
+.cpn-player:hover { background: rgba(163,230,53,.12); }
+
 .cpn-side {
-  font-size: 9px; font-weight: 800; letter-spacing: .4px;
-  padding: 2px 7px; border-radius: 5px; flex-shrink: 0; text-transform: uppercase;
+  font-size: 9px; font-weight: 800; letter-spacing: .5px;
+  padding: 2px 8px; border-radius: 5px; flex-shrink: 0; text-transform: uppercase;
 }
-.side-a { background: rgba(34,197,94,.18);  color: #86efac; border: 1px solid rgba(34,197,94,.2); }
-.side-b { background: rgba(59,130,246,.18); color: #93c5fd; border: 1px solid rgba(59,130,246,.2); }
+.side-a { background: rgba(163,230,53,.2);  color: #bef264; border: 1px solid rgba(163,230,53,.3); }
+.side-b { background: rgba(132,204,22,.15); color: #a3e635; border: 1px solid rgba(132,204,22,.25); }
 
 .cpn-pname {
-  font-size: 12.5px; font-weight: 700; color: #f1f5f9;
+  font-size: 13px; font-weight: 700; color: #ecfccb;
   flex: 1; min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
@@ -14595,32 +15436,33 @@ const _origNdBkRender = window._ndBkRender;
 /* Footer */
 .cpn-footer {
   display: flex; align-items: center; justify-content: space-between;
-  padding-top: 7px; border-top: 1px solid rgba(255,255,255,.06);
+  padding-top: 8px; border-top: 1px solid rgba(163,230,53,.1);
+  margin-top: 2px;
 }
-.cpn-court { font-size: 10px; color: #94a3b8; font-weight: 600; }
-.cpn-time  { font-size: 10px; color: #475569; }
+.cpn-court { font-size: 10.5px; color: #84cc16; font-weight: 600; }
+.cpn-time  { font-size: 10px; color: #3f6212; }
 
-/* Progress bar (auto-dismiss) */
+/* Progress bar */
 .cpn-progress {
-  height: 2px; background: rgba(139,92,246,.15);
-  margin-top: 9px; border-radius: 2px; overflow: hidden;
+  height: 2px; background: rgba(163,230,53,.1);
+  margin-top: 10px; border-radius: 2px; overflow: hidden;
 }
 .cpn-progress-bar {
   height: 100%; border-radius: 2px;
-  background: rgba(139,92,246,.5);
+  background: linear-gradient(90deg, #65a30d, #a3e635, #bef264);
   transition: width linear;
 }
 
 /* ═══ BELL BUTTON ═══ */
 #cp-bell {
-  position: fixed; bottom: 80px; right: 16px;
+  position: fixed; bottom: 80px; right: 18px;
   z-index: 9980;
   width: 52px; height: 52px; border-radius: 50%; border: none;
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
-  color: #fff; font-size: 22px; cursor: pointer;
-  box-shadow: 0 6px 24px rgba(109,40,217,.55);
+  background: linear-gradient(135deg, #65a30d, #a3e635);
+  color: #1a2e05; font-size: 22px; cursor: pointer;
+  box-shadow: 0 6px 24px rgba(101,163,13,.55);
   display: none; align-items: center; justify-content: center;
-  animation: cpBellPulse 2.2s ease-in-out infinite;
+  animation: cpBellPulse 2.4s ease-in-out infinite;
   transition: transform .15s;
 }
 #cp-bell.show { display: flex; }
@@ -14636,59 +15478,62 @@ const _origNdBkRender = window._ndBkRender;
 }
 
 @keyframes cpBellPulse {
-  0%,100% { box-shadow: 0 6px 24px rgba(109,40,217,.55); }
-  50%      { box-shadow: 0 6px 32px rgba(109,40,217,.9), 0 0 0 10px rgba(109,40,217,.12); }
+  0%,100% { box-shadow: 0 6px 24px rgba(101,163,13,.55); }
+  50%      { box-shadow: 0 8px 32px rgba(163,230,53,.8), 0 0 0 10px rgba(163,230,53,.1); }
 }
 
 /* ═══ HISTORY MODAL ═══ */
 #cp-modal {
   display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.72); backdrop-filter: blur(7px);
+  background: rgba(0,0,0,.75); backdrop-filter: blur(7px);
   z-index: 9995; align-items: center; justify-content: center; padding: 16px;
 }
 #cp-modal.show { display: flex; }
 
 .cp-modal-box {
-  background: #0f1b2d;
-  border: 1.5px solid #1b3255;
-  border-radius: 22px;
+  background: #0d1a05;
+  border: 1.5px solid rgba(163,230,53,.3);
+  border-radius: 20px;
   width: 100%; max-width: 480px; max-height: 88vh;
   display: flex; flex-direction: column;
-  box-shadow: 0 28px 72px rgba(0,0,0,.65);
+  box-shadow: 0 28px 72px rgba(0,0,0,.7), 0 0 0 1px rgba(163,230,53,.06);
   animation: cpSlideIn .32s cubic-bezier(.34,1.3,.64,1);
   overflow: hidden;
 }
 
 .cp-modal-hdr {
   padding: 18px 20px 14px;
-  border-bottom: 1px solid #1b3255;
+  border-bottom: 1px solid rgba(163,230,53,.15);
   display: flex; align-items: center; gap: 12px;
   flex-shrink: 0;
-  background: linear-gradient(135deg, rgba(124,58,237,.08), transparent);
+  background: linear-gradient(135deg, rgba(163,230,53,.08), transparent);
 }
 .cp-modal-icon {
   width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0;
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  background: linear-gradient(135deg, #65a30d, #a3e635);
   display: flex; align-items: center; justify-content: center; font-size: 20px;
-  box-shadow: 0 4px 14px rgba(109,40,217,.4);
+  box-shadow: 0 4px 16px rgba(101,163,13,.45);
 }
 .cp-modal-title { flex: 1; }
 .cp-modal-title div:first-child {
-  font-size: 15px; font-weight: 700; color: #e2e8f0;
+  font-size: 15px; font-weight: 700; color: #ecfccb;
 }
 .cp-modal-title div:last-child {
-  font-size: 11px; color: #64748b; margin-top: 2px;
+  font-size: 11px; color: #4d7c0f; margin-top: 2px;
 }
 
 .cp-modal-body { flex: 1; overflow-y: auto; padding: 14px 16px; }
+.cp-modal-body::-webkit-scrollbar { width: 4px; }
+.cp-modal-body::-webkit-scrollbar-track { background: transparent; }
+.cp-modal-body::-webkit-scrollbar-thumb { background: rgba(163,230,53,.25); border-radius: 4px; }
 
 .cp-hist-row {
-  border: 1px solid #1b3255; border-radius: 13px;
+  border: 1px solid rgba(163,230,53,.15); border-radius: 12px;
   padding: 12px 14px; margin-bottom: 9px;
-  background: rgba(255,255,255,.025);
+  background: rgba(163,230,53,.04);
   transition: background .15s;
 }
-.cp-hist-row:hover { background: rgba(255,255,255,.045); }
+.cp-hist-row:hover { background: rgba(163,230,53,.08); }
 .cp-hist-top {
   display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
 }
@@ -14697,22 +15542,22 @@ const _origNdBkRender = window._ndBkRender;
   text-transform: uppercase; letter-spacing: .5px;
 }
 .hbg-match  { background: rgba(245,158,11,.15); color: #fbbf24; border: 1px solid rgba(245,158,11,.2); }
-.hbg-team-a { background: rgba(34,197,94,.15);  color: #86efac;  border: 1px solid rgba(34,197,94,.2); }
-.hbg-team-b { background: rgba(59,130,246,.15); color: #93c5fd;  border: 1px solid rgba(59,130,246,.2); }
-.hbg-player { background: rgba(139,92,246,.15); color: #c4b5fd;  border: 1px solid rgba(139,92,246,.2); }
+.hbg-team-a { background: rgba(163,230,53,.15); color: #bef264; border: 1px solid rgba(163,230,53,.25); }
+.hbg-team-b { background: rgba(132,204,22,.12); color: #a3e635; border: 1px solid rgba(132,204,22,.22); }
+.hbg-player { background: rgba(163,230,53,.12); color: #a3e635; border: 1px solid rgba(163,230,53,.2); }
 
 .cp-hist-match {
-  font-size: 12px; font-weight: 700; color: #e2e8f0; flex: 1;
+  font-size: 12px; font-weight: 700; color: #ecfccb; flex: 1;
 }
-.cp-hist-time { font-size: 10px; color: #475569; }
+.cp-hist-time { font-size: 10px; color: #3f6212; }
 .cp-hist-players { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .cp-hist-ptag {
-  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
-  color: #cbd5e1; border-radius: 6px;
+  background: rgba(163,230,53,.1); border: 1px solid rgba(163,230,53,.18);
+  color: #bef264; border-radius: 6px;
   padding: 3px 9px; font-size: 11px; font-weight: 600;
 }
 .cp-hist-detail {
-  font-size: 10.5px; color: #64748b; margin-top: 5px; line-height: 1.4;
+  font-size: 10.5px; color: #4d7c0f; margin-top: 5px; line-height: 1.4;
 }
 </style>
 
@@ -14817,8 +15662,47 @@ function _cpGiaiMatch(rowGiai) {
   if (!rowGiai) return true; // không có giai → hiển thị tất cả
   if (ROLE === 'admin') return true; // admin thấy tất cả
   if (!MY_GIAI_LIST || !MY_GIAI_LIST.length) return true;
+
   const rg = String(rowGiai).trim().toLowerCase();
-  return MY_GIAI_LIST.some(g => g.trim().toLowerCase() === rg);
+
+  // 1. So sánh trực tiếp với MY_GIAI_LIST (ID hoặc tên giải)
+  if (MY_GIAI_LIST.some(g => g.trim().toLowerCase() === rg)) return true;
+
+  // 2. _T chưa load → mặc định cho qua (tránh block khi data đang fetch)
+  if (!_T || !_T.length) return true;
+
+  // 3. Resolve giaiId → tên giải qua _T rồi so sánh với rowGiai (tên giải từ EventLog)
+  for (const id of MY_GIAI_LIST) {
+    const idLow = id.trim().toLowerCase();
+    // Tìm trong _T theo id hoặc tên
+    const t = _T.find(t =>
+      String(t[0]||'').trim().toLowerCase() === idLow ||
+      String(t[1]||'').trim().toLowerCase() === idLow
+    );
+    if (!t) continue;
+    const tId   = String(t[0]||'').trim().toLowerCase();
+    const tName = String(t[1]||'').trim().toLowerCase();
+    // So sánh tên giải đầy đủ
+    if (tName === rg || tId === rg) return true;
+    // Fallback: so sánh contains (đề phòng tên giải bị lưu khác chút)
+    if (tName && rg && (tName.includes(rg) || rg.includes(tName))) return true;
+  }
+
+  // 4. Chiều ngược: rowGiai có thể là ID → resolve sang tên rồi so sánh với _T của manager
+  const tByRowGiai = _T.find(t =>
+    String(t[0]||'').trim().toLowerCase() === rg ||
+    String(t[1]||'').trim().toLowerCase() === rg
+  );
+  if (tByRowGiai) {
+    const resolvedId   = String(tByRowGiai[0]||'').trim().toLowerCase();
+    const resolvedName = String(tByRowGiai[1]||'').trim().toLowerCase();
+    return MY_GIAI_LIST.some(g => {
+      const gl = g.trim().toLowerCase();
+      return gl === resolvedId || gl === resolvedName;
+    });
+  }
+
+  return false;
 }
 
 // ── Hiển thị một notification ──
@@ -15070,50 +15954,49 @@ function _cpRenderHistory() {
 //  BACKUP POLLING: Poll trực tiếp action=live mỗi 6s
 //  phòng trường hợp hook không bắt được
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+//  CALL PLAYER POLLING — gọi đúng action=getCallPlayer từ EventLog
+//  action=live chỉ đọc LiveScore sheet, KHÔNG có CALL rows
+//  action=getCallPlayer đọc EventLog — đúng nguồn dữ liệu
+// ══════════════════════════════════════════════════════════════
 let _cpPollTimer = null;
-let _cpLastPollTs = Date.now() - 30000; // poll từ 30s trước
+let _cpLastPollTs = Date.now() - 60000; // lấy 60s gần nhất lần đầu
 
 async function _cpPoll() {
   if (!GS) return;
   try {
-    const url = `${GS}?action=live&code=all&giai=&_t=${Date.now()}`;
+    // Gọi đúng action=getCallPlayer (đọc EventLog)
+    // Truyền since để GAS chỉ trả CALL mới hơn timestamp cuối
+    const giaiParam = (ROLE === 'manager' && MY_GIAI_LIST.length === 1)
+      ? encodeURIComponent(MY_GIAI_LIST[0]) : '';
+    const url = `${GS}?action=getCallPlayer&since=${_cpLastPollTs}&giai=${giaiParam}&_t=${Date.now()}`;
     const res  = await fetch(url, { method: 'GET', redirect: 'follow' });
     const text = await res.text();
     let data;
     try { data = JSON.parse(text); } catch(e) { return; }
+    if (!data?.ok) return;
 
-    const rows = (data?.rows || []).slice(1); // skip header
-    const callRows = rows.filter(r => String(r[0]||'').startsWith('CALL|'));
+    // Cập nhật since để lần sau chỉ lấy mới hơn
+    _cpLastPollTs = Date.now();
 
-    callRows.forEach(r => {
-      const key    = String(r[0]||'');
-      const parts  = key.split('|');
-      const rowTs  = Number(r[7]||parts[2]||0);
+    const calls = data.calls || [];
+    calls.forEach(call => {
+      const rowTs = Number(call.ts || 0);
       if (_cpSeenTs.has(rowTs)) return;
-      if (rowTs < _cpLastPollTs - 60000) return; // bỏ qua row cũ hơn 1 phút
 
-      const rowGiai = String(r[1]||parts[1]||'');
+      const rowGiai = String(call.matchGiai || '');
       if (!_cpGiaiMatch(rowGiai)) return;
 
-      let players = [];
-      try {
-        const parsed = JSON.parse(r[2]||'[]');
-        if (Array.isArray(parsed)) players = parsed;
-      } catch(e) { if (r[2]) players = [String(r[2])]; }
-
-      const callType  = String(r[3]||'match');
-      const matchBang = String(r[5]||'');
-      const court     = String(r[6]||'');
-      const referee   = String(r[8]||'');
-
-      let extraInfo = {};
-      try { extraInfo = JSON.parse(r[4]||'{}'); } catch(e) {}
-
       const callData = {
-        ts: rowTs, callType, players,
-        matchBang, matchCode: extraInfo.matchCode||'',
-        matchNd: extraInfo.matchNd||'',
-        court, referee, matchGiai: rowGiai,
+        ts        : rowTs,
+        callType  : call.callType  || 'match',
+        players   : call.players   || [],
+        matchBang : call.matchBang || '',
+        matchCode : call.matchCode || '',
+        matchNd   : call.matchNd   || '',
+        court     : call.court     || '',
+        referee   : call.referee   || '',
+        matchGiai : rowGiai,
       };
 
       _cpSeenTs.add(rowTs);
@@ -15128,8 +16011,10 @@ async function _cpPoll() {
 function _cpStartPolling() {
   if (_cpPollTimer) return;
   _cpPollTimer = setInterval(_cpPoll, 6000);
-  // Poll ngay lần đầu sau 1s (chờ GS set)
+  // Poll lần đầu sau 1s (chờ GS set)
   setTimeout(_cpPoll, 1000);
+  // Poll thêm 1 lần sau 8s để đảm bảo _T đã load (manager cần _T để match tên giải)
+  setTimeout(_cpPoll, 8000);
 }
 
 // Khởi động sau khi GS đã set (sau login)
@@ -15172,5 +16057,7 @@ window.cpTestNotif = function(type) {
   console.log('[CP] Test notification shown:', type);
 };
 </script>
+<!-- Thanh cuộn ngang cây thi đấu (nd-bk-wrap) — fixed bottom viewport -->
+<div id="nd-bk-scrollbar-wrap"><div id="nd-bk-scrollbar-inner" style="height:1px;background:transparent"></div></div>
 </body>
 </html>
