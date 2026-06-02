@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<!-- Pickleball v8.1 | FIX: Park priority in renderMatchCard — tỉ số tím đúng khi switch trận | 2026-05-23 -->
+<!-- Pickleball v8.8 2026-06-03: FIX swapPlayersDisplay — chấm cam giữ nguyên ô vật lý khi swap tên VĐV | v8.7; player-slot fixed height 44px; serve-balls min-width giữ chỗ | v8.6: auto-cleanup kết quả (TTL 1 ngày, cap 100) + nhật ký (TTL 12h, cap 300) | v8.5: FIX v34 — auto-hide polling-driven (CK có điểm từ GAS → ẩn ngay); | v8.4 FIX v33 — auto-hide nội dung/giải khi CK hoàn thành; sort trận (live→chưa đấu→hoàn thành); nút ẩn/hiện trận HT; | v8.2 FIX v32 — _removeDiacritics normalize tên TT; renderMatchGrid hiển thị khi có trận phân tên dù courts=[]; | v8.1 FIX: Park priority in renderMatchCard — tỉ số tím đúng khi switch trận | 2026-05-23 -->
 <meta charset="UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>v29 Da Nang Referee v17 – Pickleball</title>
+<title>v2.523 - Da Nang Referee v17 – Pickleball</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -201,18 +201,13 @@ select, input { font-family: inherit; }
   Layout: flex column, gap nhỏ giữa các hàng
   Nút ↑↓ nằm trong .swap-row, không che tên VĐV
 */
-.players-list {
-  width: 100%;
-  position: relative;
-  display: flex; flex-direction: column; gap: 3px;
-  margin-bottom: 4px;
-}
-
 /* Hàng = [khung tên flex:1] [dot] [badge] — không gap thừa, sát mép */
 .player-slot {
   display: flex; align-items: center;
   width: 100%;
   gap: 0;
+  height: 44px; /* cố định chiều cao bằng player-row — không nhảy khi swap */
+  flex-shrink: 0;
 }
 
 /* Khung tên — chiều cao cố định, flex:1 chiếm hết phần còn lại */
@@ -289,9 +284,23 @@ select, input { font-family: inherit; }
   display: flex; align-items: center; gap: 2px;
   flex-shrink: 0;
 }
+
+/* ── players-list: column thẳng đứng như cũ ── */
+.players-list {
+  width: 100%;
+  position: relative;
+  display: flex; flex-direction: column; gap: 3px;
+  margin-bottom: 4px;
+}
+
+/* serve-balls: absolute bám vào player-right, KHÔNG di chuyển khi swap tên
+   Nguyên lý: serve-balls render đúng vị trí slot (top/bot) qua JS,
+   nhưng khi swap chỉ tên thay đổi, serve-balls vẫn đúng slot vì JS
+   gán theo slot id (sballs-a-top / sballs-a-bot), không theo tên VĐV */
 .serve-balls {
   display: flex; flex-direction: column; gap: 2px; align-items: center;
   margin-right: 2px;
+  min-width: 10px; /* giữ chỗ khi không có chấm để layout không nhảy */
 }
 .serve-dot {
   width: 8px; height: 8px; border-radius: 50%;
@@ -965,9 +974,6 @@ select, input { font-family: inherit; }
         <button class="sc-btn plus"  onclick="addScore('b',1)">+</button>
       </div>
     </div>
-
-  </div>
-
   <!-- Hàng ngang: T/O A · tỉ số · Med A · tỉ số · T/O B · Med B -->
   <div class="sb-action-bar">
     <button class="ex-btn timeout" onclick="startTimer('timeout','a')">⏱ T/O</button>
@@ -2056,6 +2062,10 @@ async function loadAllFromGS() {
     });
     matchList = newMatches;
     saveMatchList();
+    // FIX v33: nếu admin thêm nội dung/trận mới chưa có điểm → bỏ ẩn nội dung đó
+    _clearHiddenIfNewNDs(newMatches);
+    // FIX v34: quét toàn bộ matches từ GAS → tự động ẩn nội dung có CK đã xong
+    _autoHideFromMatches(newMatches);
     gotMatches = true;
   }
   let addedResults = 0;
@@ -2422,6 +2432,45 @@ try { S.results = JSON.parse(localStorage.getItem('pb_res6')||'{}'); } catch(e){
 let evLog = [];
 try { evLog = JSON.parse(localStorage.getItem('pb_ev6')||'[]'); } catch(e){}
 
+// ── Auto-cleanup: TTL + cap để tránh tích lũy dữ liệu cũ ──────────────────
+// Kết quả: giữ tối đa 1 ngày / 100 trận — xong giải là sạch
+// Nhật ký: giữ tối đa 12 giờ / 300 sự kiện — chỉ cần trong ngày thi đấu
+(function _autoCleanup() {
+  const now  = Date.now();
+  const DAY  = 24 * 60 * 60 * 1000;
+  const HALF = 12 * 60 * 60 * 1000;
+  const CAP_RES = 100;  // tối đa 100 kết quả
+  const CAP_EV  = 300;  // tối đa 300 sự kiện
+
+  // Kết quả: xóa nếu savedAt cũ hơn 1 ngày
+  let resChanged = false;
+  Object.keys(S.results).forEach(k => {
+    const savedAt = S.results[k]?.savedAt;
+    if (savedAt) {
+      // savedAt dạng "HH:MM:SS DD/MM/YYYY" — dùng Date.parse nếu có timestamp ms
+      const ts = S.results[k]?.savedAtMs || 0;
+      if (ts && (now - ts) > DAY) { delete S.results[k]; resChanged = true; }
+    }
+  });
+  // Cap: chỉ giữ 100 kết quả mới nhất (theo savedAtMs)
+  const resEntries = Object.entries(S.results);
+  if (resEntries.length > CAP_RES) {
+    resEntries.sort((a,b) => (b[1].savedAtMs||0) - (a[1].savedAtMs||0));
+    resEntries.slice(CAP_RES).forEach(([k]) => { delete S.results[k]; });
+    resChanged = true;
+  }
+  if (resChanged) try { localStorage.setItem('pb_res6', JSON.stringify(S.results)); } catch(e){}
+
+  // Nhật ký: chỉ giữ 300 sự kiện gần nhất, xóa sự kiện cũ hơn 12 giờ
+  const before = evLog.length;
+  evLog = evLog.filter(e => {
+    const ts = e.tsMs || 0;
+    return !ts || (now - ts) <= HALF;
+  });
+  if (evLog.length > CAP_EV) evLog = evLog.slice(-CAP_EV);
+  if (evLog.length !== before) try { localStorage.setItem('pb_ev6', JSON.stringify(evLog)); } catch(e){}
+})();
+
 // ── Lưu / Khôi phục trận đang chấm điểm vào localStorage ──────
 const _SAV_KEY = 'pb_active7';
 
@@ -2514,23 +2563,29 @@ function _renderPlayerRows() {
   const m = S.currentMatch;
   const playersA = (m && m.playersA) ? m.playersA : S.playersA;
   const playersB = (m && m.playersB) ? m.playersB : S.playersB;
-  if (!S.posA) S.posA = [0, 1]; // posA[0]=Ô1idx, posA[1]=Ô2idx
-  if (!S.posB) S.posB = [0, 1]; // posB[0]=Ô1idx, posB[1]=Ô2idx
+  if (!S.posA) S.posA = [0, 1];
+  if (!S.posB) S.posB = [0, 1];
+
+  // FIX: isServer tính theo Ô vật lý (slot), KHÔNG theo tên VĐV
+  // → chấm cam đứng yên khi swap tên, chỉ tên thay đổi
   {
     const isServing = S.server === 'a';
     const o1 = S.posA[0]; // playerDataIdx ở Ô1 (bot)
     const o2 = S.posA[1]; // playerDataIdx ở Ô2 (top)
-    const sIdx = isServing ? S.serverPlayerIdx : -1;
-    _setPlayerSlot('a','top', playersA, o2, isServing && o2===sIdx, 'Ô2','pos-badge-2');
-    _setPlayerSlot('a','bot', playersA, o1, isServing && o1===sIdx, 'Ô1','pos-badge-1');
+    // Ô nào đang giao bóng = ô chứa serverPlayerIdx
+    const serverSlotIsBot = isServing && S.posA[0] === S.serverPlayerIdx;
+    const serverSlotIsTop = isServing && S.posA[1] === S.serverPlayerIdx;
+    _setPlayerSlot('a','top', playersA, o2, serverSlotIsTop, 'Ô2','pos-badge-2');
+    _setPlayerSlot('a','bot', playersA, o1, serverSlotIsBot, 'Ô1','pos-badge-1');
   }
   {
     const isServing = S.server === 'b';
     const o1 = S.posB[0]; // playerDataIdx ở Ô1 (top)
     const o2 = S.posB[1]; // playerDataIdx ở Ô2 (bot)
-    const sIdx = isServing ? S.serverPlayerIdx : -1;
-    _setPlayerSlot('b','top', playersB, o1, isServing && o1===sIdx, 'Ô1','pos-badge-1');
-    _setPlayerSlot('b','bot', playersB, o2, isServing && o2===sIdx, 'Ô2','pos-badge-2');
+    const serverSlotIsTop = isServing && S.posB[0] === S.serverPlayerIdx;
+    const serverSlotIsBot = isServing && S.posB[1] === S.serverPlayerIdx;
+    _setPlayerSlot('b','top', playersB, o1, serverSlotIsTop, 'Ô1','pos-badge-1');
+    _setPlayerSlot('b','bot', playersB, o2, serverSlotIsBot, 'Ô2','pos-badge-2');
   }
 
   _updateScoreBtnLock();
@@ -2785,19 +2840,20 @@ function renderMatchGrid() {
     badge.textContent = total;
     if (title) title.textContent = '📋 Chọn trận đấu';
 
-    // Trọng tài được phân sân → hiển thị luôn danh sách trận, không cần chọn nội dung
-    if (_userPerm.isAdmin || _userPerm.courts.length > 0) {
+    // FIX v32: Hiển thị trận nếu TT có tên trong Matches[10] dù chưa phân sân (courts=[])
+    // Trước đây chỉ kiểm tra isAdmin || courts.length > 0 → TT được phân tên nhưng không phân sân bị khóa
+    if (_userPerm.isAdmin || _userPerm.courts.length > 0 || total > 0) {
       grid.innerHTML = '';
       if (total === 0) {
         const courtLabel = _userPerm.courts.length ? _userPerm.courts.join(', ') : '';
         const giaiLabel  = _userPerm.giai ? ` · ${_userPerm.giai}` : '';
         grid.innerHTML = `<div class="empty-msg" style="grid-column:1/-1;text-align:center;padding:16px">
           <div style="font-size:28px;margin-bottom:6px">📭</div>
-          <strong style="color:var(--red)">Không có trận nào${giaiLabel ? ' tại ' + giaiLabel : ''} · ${courtLabel}.</strong><br>
+          <strong style="color:var(--red)">Không có trận nào${giaiLabel ? ' tại ' + giaiLabel : ''}${courtLabel ? ' · ' + courtLabel : ''}.</strong><br>
           <span style="color:var(--g500);font-size:12px;margin-top:4px;display:block">Kiểm tra lại lịch đấu đã được tải chưa.</span>
         </div>`;
       } else {
-        allowedMatches.forEach(m => {
+        _sortedMatches(allowedMatches).forEach(m => {
           const idx = matchList.indexOf(m);
           _renderMatchCard(grid, m, idx);
         });
@@ -2838,7 +2894,7 @@ function renderMatchGrid() {
   }
 
   grid.innerHTML = '';
-  filtered.forEach(m => {
+  _sortedMatches(filtered).forEach(m => {
     const idx = matchList.indexOf(m);
     _renderMatchCard(grid, m, idx);
   });
@@ -3329,10 +3385,30 @@ function toggleServe() { S.server=S.server==='a'?'b':'a'; render(); }
 
 function swapSides() { confirmSwap(); }
 
-/* ── Hoán đổi vị trí hiển thị 2 VĐV (không đổi serve dots) ── */
+/* ── Hoán đổi vị trí hiển thị 2 VĐV — chấm cam giữ nguyên ô vật lý ── */
 function swapPlayersDisplay(side) {
-  if (side === 'a') { S.posA = [S.posA[1], S.posA[0]]; }
-  else              { S.posB = [S.posB[1], S.posB[0]]; }
+  if (side === 'a') {
+    // Lưu lại ô nào đang có chấm cam TRƯỚC khi swap
+    // posA[0] = playerDataIdx ở Ô1(bot), posA[1] = playerDataIdx ở Ô2(top)
+    const servingSlot = (S.server === 'a')
+      ? (S.posA[0] === S.serverPlayerIdx ? 'bot' : 'top')  // ô bot hay top đang có chấm
+      : null;
+
+    S.posA = [S.posA[1], S.posA[0]]; // hoán đổi 2 người
+
+    // Sau swap: đặt serverPlayerIdx = người MỚI ở đúng ô đó
+    if (servingSlot === 'bot') S.serverPlayerIdx = S.posA[0]; // bot vẫn là Ô1 = posA[0]
+    if (servingSlot === 'top') S.serverPlayerIdx = S.posA[1]; // top vẫn là Ô2 = posA[1]
+  } else {
+    const servingSlot = (S.server === 'b')
+      ? (S.posB[0] === S.serverPlayerIdx ? 'top' : 'bot')  // đội B: posB[0]=Ô1(top), posB[1]=Ô2(bot)
+      : null;
+
+    S.posB = [S.posB[1], S.posB[0]];
+
+    if (servingSlot === 'top') S.serverPlayerIdx = S.posB[0];
+    if (servingSlot === 'bot') S.serverPlayerIdx = S.posB[1];
+  }
   render();
 }
 
@@ -3479,13 +3555,15 @@ async function finishLiveGS(m, scoreA, scoreB) {
 function pushLog(desc, snap) {
   const s = snap ? JSON.parse(snap) : {a:S.a, b:S.b};
   evLog.push({
-    time: now(), desc,
+    time: now(), tsMs: Date.now(), desc,
     score: `${s.a}–${s.b}`,
     ref: S.currentMatch?.code || '',
     noidung: S.currentMatch?.noidung || '',
     bang: S.currentMatch?.bang || '',
     game: S.game,
   });
+  // Cap realtime: không để evLog vượt 300 entry
+  if (evLog.length > 300) evLog = evLog.slice(-300);
   try { localStorage.setItem('pb_ev6', JSON.stringify(evLog)); } catch(e) {}
   renderHistory();
 }
@@ -3577,12 +3655,12 @@ function confirmSave() {
                : 'Hoà';
 
   const entry = {
-    savedAt: now(), code: m.code, noidung: m.noidung, bang: m.bang,
+    savedAt: now(), savedAtMs: Date.now(), code: m.code, noidung: m.noidung, bang: m.bang,
     giai: m.giai||'',
-    teamA:  origTeamA,   // luôn là đội A gốc từ Matches
-    teamB:  origTeamB,   // luôn là đội B gốc từ Matches
-    scoreA: scoreOrig_A, // điểm đội A gốc
-    scoreB: scoreOrig_B, // điểm đội B gốc
+    teamA:  origTeamA,
+    teamB:  origTeamB,
+    scoreA: scoreOrig_A,
+    scoreB: scoreOrig_B,
     winner, court, referee: ref,
     winRule: RULES[winRule].label,
   };
@@ -3635,6 +3713,8 @@ function confirmSave() {
       entry.winner, entry.court||'', entry.referee||'', entry.winRule,
     ]);
   }
+  // FIX v33: tự động ẩn nội dung/giải khi trận chung kết hoàn thành
+  _checkAutoHideAfterSave(m);
 }
 
 function loadMatch(idx) {
@@ -4517,6 +4597,10 @@ async function pollMatches() {
         _savedMatchKeys.delete(m.key);
       }
     });
+    // FIX v33: nếu GAS có trận chưa có điểm thuộc nội dung đang bị ẩn → bỏ ẩn
+    _clearHiddenIfNewNDs(newMatches);
+    // FIX v34: quét CK có điểm → tự động ẩn nội dung/giải đã kết thúc
+    _autoHideFromMatches(newMatches);
     syncDropdownsFromData(true);
     syncBXHDropdowns();
     if (added > 0) {
@@ -5217,8 +5301,146 @@ function _updateTimerBtnLabels() {
     }
   });
 }
+// FIX v32: normalize bỏ dấu để so sánh tên TT không phân biệt hoa/thường và dấu tiếng Việt
+// VD: "HỘI" === "hội" === "hoi" sau normalize
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AUTO-HIDE v2: Ẩn trận dựa trên dữ liệu từ GAS (polling-driven, không phụ thuộc ai bấm Lưu)
+// ── Nguồn sự thật = Matches sheet: CK có matchScoreA/B → nội dung đã xong → ẩn hết
+// ══════════════════════════════════════════════════════════════════════════════
+const _HIDDEN_ND_KEY   = 'pb_hidden_nds_v2';
+const _HIDDEN_GIAI_KEY = 'pb_hidden_giais_v2';
+
+let _hiddenNDs   = new Set(JSON.parse(localStorage.getItem(_HIDDEN_ND_KEY)   || '[]'));
+let _hiddenGiais = new Set(JSON.parse(localStorage.getItem(_HIDDEN_GIAI_KEY) || '[]'));
+
+function _saveHiddenState() {
+  localStorage.setItem(_HIDDEN_ND_KEY,   JSON.stringify([..._hiddenNDs]));
+  localStorage.setItem(_HIDDEN_GIAI_KEY, JSON.stringify([..._hiddenGiais]));
+}
+
+function _isMatchHidden(m) {
+  if (!m) return false;
+  const g = (m.giai || '').trim();
+  const k = g + '|' + (m.noidung || '').trim();
+  return _hiddenGiais.has(g) || _hiddenNDs.has(k);
+}
+
+// Nhận diện trận chung kết qua round hoặc code
+function _isFinalMatch(m) {
+  if (!m) return false;
+  const round = _removeDiacritics(m.round || '');
+  const code  = (m.code || '').trim().toUpperCase();
+  const bang  = _removeDiacritics(m.bang  || '');
+  return round.includes('chung ket') ||
+         bang.includes('chung ket')  ||
+         code === 'CK' || /^CK\d*$/.test(code) || code === 'FINAL';
+}
+
+// Hàm cốt lõi: quét matches từ GAS → tự ẩn/hiện nội dung/giải
+// Gọi sau mỗi lần nhận dữ liệu mới (loadAllFromGS + pollMatches)
+function _autoHideFromMatches(matches) {
+  if (!matches || !matches.length) return;
+  let changed = false;
+
+  // Nhóm theo "giai|noidung" — tìm xem CK có điểm chưa
+  const ndMap = new Map();
+  matches.forEach(m => {
+    const giai = (m.giai    || '').trim();
+    const nd   = (m.noidung || '').trim();
+    if (!nd) return;
+    const key = giai + '|' + nd;
+    if (!ndMap.has(key)) ndMap.set(key, { giai, nd, key, finalDone: false });
+    if (_isFinalMatch(m) && m.matchScoreA !== null && m.matchScoreA !== undefined) {
+      ndMap.get(key).finalDone = true;
+    }
+  });
+
+  // Ẩn nội dung có CK đã xong; bỏ ẩn nội dung CK bị xóa điểm
+  ndMap.forEach((rec, ndKey) => {
+    if (rec.finalDone && !_hiddenNDs.has(ndKey)) {
+      _hiddenNDs.add(ndKey);
+      changed = true;
+      toast(`🏆 "${rec.nd}" đã kết thúc! Trận đã được ẩn.`, 5000);
+    } else if (!rec.finalDone && _hiddenNDs.has(ndKey)) {
+      _hiddenNDs.delete(ndKey);
+      _hiddenGiais.delete(rec.giai);
+      changed = true;
+    }
+  });
+
+  // Ẩn/hiện cả giải dựa trên trạng thái từng nội dung
+  const giaiNDs = new Map();
+  ndMap.forEach((rec, ndKey) => {
+    if (!rec.giai) return;
+    if (!giaiNDs.has(rec.giai)) giaiNDs.set(rec.giai, new Set());
+    giaiNDs.get(rec.giai).add(ndKey);
+  });
+  giaiNDs.forEach((ndKeys, giai) => {
+    const allDone = [...ndKeys].every(k => _hiddenNDs.has(k));
+    if (allDone && ndKeys.size > 0 && !_hiddenGiais.has(giai)) {
+      _hiddenGiais.add(giai); changed = true;
+    } else if (!allDone && _hiddenGiais.has(giai)) {
+      _hiddenGiais.delete(giai); changed = true;
+    }
+  });
+
+  if (changed) { _saveHiddenState(); renderMatchGrid(); }
+}
+
+// Gọi sau confirmSave (trọng tài chính bấm Lưu CK) — chạy ngay không đợi poll
+function _checkAutoHideAfterSave(m) {
+  if (!m) return;
+  _autoHideFromMatches(matchList); // matchList đã được cập nhật trước đó trong confirmSave
+}
+
+// Nội dung mới chưa có điểm → bỏ ẩn (dự phòng)
+function _clearHiddenIfNewNDs(newMatches) {
+  let changed = false;
+  newMatches.forEach(m => {
+    if (m.matchScoreA === null || m.matchScoreA === undefined) {
+      const g   = (m.giai || '').trim();
+      const key = g + '|' + (m.noidung || '').trim();
+      if (_hiddenNDs.has(key)) { _hiddenNDs.delete(key); _hiddenGiais.delete(g); changed = true; }
+    }
+  });
+  if (changed) _saveHiddenState();
+}
+
+// ── Sort: active → parked → live GAS → chưa đấu → hoàn thành
+function _matchSortKey(m) {
+  const active      = S.currentMatch?.key === m.key;
+  const isLiveOnGAS = liveScores[m.key] &&
+                      liveScores[m.key].status !== 'finished' &&
+                      !_savedMatchKeys.has(m.key) &&
+                      !_clearedLiveKeys.has(m.key);
+  const isParked    = !active && !!_parkedMatches.get(m.key) &&
+                      !_savedMatchKeys.has(m.key) && !_clearedLiveKeys.has(m.key);
+  const done        = !(active && matchStarted) && !isParked && !isLiveOnGAS && (
+                        (m.matchScoreA !== null && m.matchScoreA !== undefined)
+                      || !!S.results[m.key]
+                      || _savedMatchKeys.has(m.key)
+                      );
+  if (active)      return 0; // đang chấm — trên đỉnh
+  if (isParked)    return 1; // tạm dừng
+  if (isLiveOnGAS) return 2; // live máy khác
+  if (!done)       return 3; // chưa đấu
+  return 4;                  // hoàn thành — xuống đáy
+}
+
+function _sortedMatches(arr) {
+  return [...arr].sort((a, b) => _matchSortKey(a) - _matchSortKey(b));
+}
+
+function _removeDiacritics(str) {
+  return String(str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+
 function _matchAllowed(m) {
   if (_userPerm.isAdmin) return true;
+
+  // FIX v33: ẩn trận của nội dung/giải đã kết thúc (CK hoàn thành)
+  if (_isMatchHidden(m)) return false;
 
   // ── Bắt buộc khớp GIẢI (case-insensitive, trim) ─────────────────
   if (_userPerm.giai) {
@@ -5227,12 +5449,11 @@ function _matchAllowed(m) {
     if (matchGiai && matchGiai !== permGiai) return false;
   }
 
-  // ── QUY TẮC MỚI: Lọc theo TÊN TRỌNG TÀI ─────────────────────────
-  // Admin gán TT vào bảng/trận → m.referee (m[10]) = tên TT
-  // TT chỉ thấy trận có tên mình trong trường referee
-  const myName     = (_userPerm.name || '').trim().toLowerCase();
-  // m.referee = col 10 (GhiChú) - assigned by admin per-match or per-bang
-  const matchRef   = (m.referee || '').trim().toLowerCase();
+  // ── Lọc theo TÊN TRỌNG TÀI ─────────────────────────────────────
+  // Admin gán TT vào bảng/trận → m.referee (Matches col 10) = tên TT
+  // FIX v32: normalize bỏ dấu để "HỘI" khớp "hội", "HOI", "Hội"...
+  const myName   = _removeDiacritics(_userPerm.name);
+  const matchRef = _removeDiacritics(m.referee);
 
   if (myName && matchRef) {
     // Hỗ trợ nhiều TT: "CƯƠNG,THANH NGUYET" → TT nào có tên trong list đều thấy
