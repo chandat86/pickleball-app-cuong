@@ -4,7 +4,7 @@
 <!-- Pickleball v65 2026-06-01: FIX bracket overflow + nút tràn màn hình PC | v25 | FIX: Login detailed errors, Test GAS button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) GAS dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên GSheets | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (GSheets renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) GAS v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Admin v69 — Referee Pickleball / DA NANG ®</title>
+<title>Admin v70 — Referee Pickleball / DA NANG ®</title>
 <style>
 /* ═══════════════════════════════════════════════════════
    Pickleball Admin — Mobile-First Professional UI
@@ -3277,11 +3277,13 @@ async function prefetchAll() {
     if (mRes.rows?.length > 1) {
       const allRows = normalizeMatchRows(mRes.rows.slice(1));
       _M = allRows;
-      cacheSet('matches_' + giaiParam, allRows);
+      // FIX v3: cache per giaiName (bỏ key 'matches_' rỗng gây miss lookup)
       const giaiNames = [...new Set(allRows.map(r => String(r[0]||'')).filter(Boolean))];
       giaiNames.forEach(gn => {
         cacheSet('matches_' + gn, allRows.filter(r => String(r[0]||'') === gn));
       });
+      // Cũng set key giaiParam để backward compat (manager filter)
+      if (giaiParam) cacheSet('matches_' + giaiParam, allRows);
     }
     if (rRes.rows?.length > 1) {
       buildDkFromResults(rRes.rows.slice(1));
@@ -3305,9 +3307,13 @@ async function prefetchAll() {
           if (rows.length) cacheSet('matches_'+gn, rows);
         }
       });
-      // Nếu đang xem detail giải → re-render ndCards với số trận đúng
+      // FIX v3: re-render cả ndCards lẫn bangList sau khi có data mới
       if (_curTourn && document.getElementById('nd-cards')) {
         renderNdCards(_curTourn, false);
+      }
+      // Nếu đang xem bảng đấu của 1 nội dung → cập nhật luôn
+      if (_curGiaiId && _curNd && document.getElementById('bang-list')) {
+        renderBangList(_curGiaiId, _curNd);
       }
     }
     // ── Lưu vào localStorage để lần sau render instant ──
@@ -4689,14 +4695,19 @@ async function openTournDetail(id) {
   // Không chờ matches — load matches nền sau
   renderNdCards(r, false);
 
-  // Load matches nền (không block UI)
+  // FIX v3: luôn load nền để đảm bảo count trận mới nhất
+  // Dù cache có hay không → vẫn fetch GAS nền, render lại sau khi có data
   const giaiName = String(r[1]||id);
   const cached = cacheGet('matches_' + giaiName);
-  if (!cached) {
-    loadMatchesCache(id, false)
-      .then(() => { if (_curTourn === r) renderNdCards(r, false); })
-      .catch(() => {});
+  if (cached) {
+    // Có cache: merge ngay để renderNdCards thấy số trận
+    const others = _M.filter(m => String(m[0]||'') !== giaiName);
+    _M = [...others, ...cached];
   }
+  // Vẫn fetch GAS nền để sync data mới nhất (fire-and-forget)
+  loadMatchesCache(id, true)
+    .then(() => { if (_curTourn === r) renderNdCards(r, false); })
+    .catch(() => {});
 }
 
 // ── Render cards nội dung thi đấu ──
@@ -4717,8 +4728,13 @@ function renderNdCards(r, isLoading) {
     const ndId  = esc(nd);
     const rId   = String(r[0]||'');
     const rName = String(r[1]||'');
-    // Đếm trận — match cả theo mã lẫn tên giải
-    const mFilter = m => { const v=String(m[0]||''); return (v===rId||(rName&&v===rName)) && String(m[1]||'')===nd; };
+    // FIX v3: ưu tiên match theo giaiName; fallback giaiId nếu giaiName rỗng
+    // _M luôn lưu giaiName (tên giải đầy đủ) — không bao giờ lưu mã giải
+    const mFilter = m => {
+      const v = String(m[0]||'');
+      const giaiMatch = rName ? (v === rName) : (v === rId);
+      return giaiMatch && String(m[1]||'') === nd;
+    };
     const matchCount = _M.filter(mFilter).length;
     const bangs = [...new Set(_M.filter(mFilter).map(m=>String(m[2]||'')).filter(Boolean))];
     const hasData = matchCount > 0;
@@ -6183,8 +6199,8 @@ function openNdDetail(giaiId, nd) {
   // Render ngay lập tức từ cache (dù có hay không) — UX không bị block
   renderBangList(giaiId, nd);
 
-  // Load nền — không block UI
-  loadMatchesCache(giaiId, false)
+  // FIX v3: forceRefresh=true đảm bảo data mới nhất, không dùng cache cũ
+  loadMatchesCache(giaiId, true)
     .then(() => renderBangList(giaiId, nd))
     .catch(() => {});
 
