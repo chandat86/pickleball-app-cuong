@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
-<title>Pickleball v3.22— Xem Giải Đấu</title>
+<title>Pickleball v4— Xem Giải Đấu</title>
 <style>
 /* system font - no import needed */
 :root{
@@ -450,7 +450,7 @@ async function gGet(params,timeout=12000){
 // ══ LOGIN ══
 function loadSaved(){
   try{
-    const s=localStorage.getItem('pb_player3');
+    const s=localStorage.getItem('pb_player_v6');
     if(!s)return false;
     const j=JSON.parse(s);
     if(!j.u||!j.c)return false;
@@ -477,7 +477,7 @@ async function doLogin(){
     const st=(d.statusRaw||'').toLowerCase();
     if(st==='khóa'||st==='disabled'){showErr('Tài khoản bị khóa');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
     USER_NAME=d.name||'';USER_CODE=d.code||'';USER_GIAI=d.giai||'';USER_ND=d.noidung||'';
-    localStorage.setItem('pb_player3',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
+    localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
     startApp();
   }catch(e){showErr('Lỗi: '+e.message);btn.disabled=false;btn.textContent='Đăng nhập →';}
 }
@@ -485,7 +485,7 @@ function showErr(m){const e=$('login-err');e.textContent=m;e.style.display='bloc
 function hideErr(){$('login-err').style.display='none';}
 function doLogout(){
   if(!confirm('Đăng xuất?'))return;
-  localStorage.removeItem('pb_player3');
+  localStorage.removeItem('pb_player_v6');
   stopRefresh();
   $('app').style.display='none';
   $('login-screen').style.display='flex';
@@ -497,8 +497,17 @@ function doLogout(){
 async function startApp(){
   $('login-screen').style.display='none';
   $('app').style.display='block';
-  // Reset state giải cũ trước khi load mới
+  // Reset toàn bộ state cũ
   _M=[];_R=[];_L=[];_T=null;_giaiName='';_curNd='';_allNds=[];
+  // Đảm bảo USER_GIAI đã có (đã được set từ validate) rồi mới load
+  if(!USER_GIAI||!USER_GIAI.trim()){
+    // Thử validate lại 1 lần nữa để lấy phân quyền
+    try{
+      const r=await fetch(GS+'?action=validate&device=player-web&_t='+Date.now()+'&code='+encodeURIComponent(USER_CODE),{cache:'no-store'});
+      const d=await r.json();
+      if(d.valid){USER_NAME=d.name||'';USER_GIAI=d.giai||'';USER_ND=d.noidung||'';}
+    }catch(e){console.warn('startApp re-validate:',e);}
+  }
   try{await loadAll();}catch(e){console.error('loadAll:',e);}
   switchTab('live');
   startRefresh();
@@ -527,10 +536,10 @@ async function checkPermission(){
     const newNd=(d.noidung||'').trim();
     const oldGiai=(USER_GIAI||'').trim();
     const oldNd=(USER_ND||'').trim();
-    // Nếu phân quyền đã thay đổi → cập nhật và reload data
-    if(newGiai!==oldGiai||newNd!==oldNd){
+    // Nếu phân quyền thay đổi HOẶC lần đầu chưa có giải → cập nhật và reload
+    if(newGiai!==oldGiai||newNd!==oldNd||!oldGiai){
       USER_NAME=d.name||'';USER_GIAI=newGiai;USER_ND=newNd;
-      localStorage.setItem('pb_player3',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
+      localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
       // Reset state và load lại data giải mới
       _T=null;_giaiName='';_curNd='';_allNds=[];
       _M=[];_R=[];_L=[];
@@ -548,14 +557,19 @@ async function refreshAll(){
 
 // ══ LOAD DATA ══
 async function loadAll(){
+  // Guard: không load nếu chưa có phân quyền giải đấu
+  if(!USER_GIAI||!USER_GIAI.trim()){
+    console.warn('loadAll: USER_GIAI rỗng, bỏ qua load');
+    return;
+  }
   // Step 1: Resolve giai name from tournaments list
   try{
     const td=await gGet({action:'tournaments'});
     if(td.rows?.length>1){
       const trows=td.rows.slice(1);
       const gUp=(USER_GIAI||'').trim().toUpperCase();
+      // Chỉ tìm giải khớp với USER_GIAI, KHÔNG fallback trows[0] (tránh lấy nhầm giải cũ)
       let found=gUp?trows.find(r=>String(r[0]||'').trim().toUpperCase()===gUp||String(r[1]||'').trim().toUpperCase()===gUp):null;
-      if(!found&&trows.length)found=trows[0];
       if(found){_T=found;_giaiName=String(found[1]||'').trim();}
     }
   }catch(e){console.warn('tournaments fetch:',e);}
@@ -1287,7 +1301,7 @@ async function autoLoginFromCache(){
     // Cập nhật phân quyền mới từ server (không dùng cache cũ)
     USER_NAME=d.name||'';USER_CODE=d.code||'';USER_GIAI=d.giai||'';USER_ND=d.noidung||'';
     // Lưu lại cache với phân quyền mới
-    localStorage.setItem('pb_player3',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
+    localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
     return true;
   }catch(e){return false;}
 }
@@ -1298,7 +1312,7 @@ window.addEventListener('load',async()=>{
     if(ok)startApp();
     else{
       // Xóa cache cũ nếu không validate được, yêu cầu đăng nhập lại
-      localStorage.removeItem('pb_player3');
+      localStorage.removeItem('pb_player_v6');
     }
   }
 });
