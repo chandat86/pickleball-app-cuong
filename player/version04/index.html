@@ -417,7 +417,9 @@ let GS=GAS_URL, USER_NAME='', USER_CODE='', USER_GIAI='', USER_ND='';
 let _M=[], _R=[], _L=[], _T=null, _giaiName='';
 let _curTab='live', _curNd='', _allNds=[];
 let _liveTimer=null;
+let _permTimer=null; // Timer kiểm tra phân quyền
 const REFRESH_SEC=12;
+const PERM_CHECK_SEC=30; // Kiểm tra phân quyền mỗi 30s
 
 // ══ UTILS ══
 const $=id=>document.getElementById(id);
@@ -501,9 +503,43 @@ async function startApp(){
   switchTab('live');
   startRefresh();
 }
-function startRefresh(){stopRefresh();_liveTimer=setInterval(()=>silentRefresh(),REFRESH_SEC*1000);}
-function stopRefresh(){if(_liveTimer){clearInterval(_liveTimer);_liveTimer=null;}}
+function startRefresh(){
+  stopRefresh();
+  _liveTimer=setInterval(()=>silentRefresh(),REFRESH_SEC*1000);
+  // Kiểm tra phân quyền định kỳ - tự động cập nhật giải đấu nếu admin đổi
+  _permTimer=setInterval(()=>checkPermission(),PERM_CHECK_SEC*1000);
+}
+function stopRefresh(){
+  if(_liveTimer){clearInterval(_liveTimer);_liveTimer=null;}
+  if(_permTimer){clearInterval(_permTimer);_permTimer=null;}
+}
 async function silentRefresh(){try{await loadAll();renderCurrentTab();}catch(e){}}
+
+// ── Tự động kiểm tra phân quyền & cập nhật giải đấu nếu thay đổi ──
+async function checkPermission(){
+  if(!GS||!USER_CODE)return;
+  try{
+    const r=await fetch(GS+'?action=validate&device=player-web&_t='+Date.now()+'&code='+encodeURIComponent(USER_CODE),{cache:'no-store'});
+    if(!r.ok)return;
+    const d=await r.json();
+    if(!d.valid)return;
+    const newGiai=(d.giai||'').trim();
+    const newNd=(d.noidung||'').trim();
+    const oldGiai=(USER_GIAI||'').trim();
+    const oldNd=(USER_ND||'').trim();
+    // Nếu phân quyền đã thay đổi → cập nhật và reload data
+    if(newGiai!==oldGiai||newNd!==oldNd){
+      USER_NAME=d.name||'';USER_GIAI=newGiai;USER_ND=newNd;
+      localStorage.setItem('pb_player3',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
+      // Reset state và load lại data giải mới
+      _T=null;_giaiName='';_curNd='';_allNds=[];
+      _M=[];_R=[];_L=[];
+      await loadAll();
+      renderCurrentTab();
+      toast('🔄 Giải đấu đã được cập nhật!',3000);
+    }
+  }catch(e){}
+}
 async function refreshAll(){
   const btn=$('rf-btn');btn.disabled=true;btn.textContent='⏳';
   try{await loadAll();renderCurrentTab();toast('✅ Đã cập nhật');}
