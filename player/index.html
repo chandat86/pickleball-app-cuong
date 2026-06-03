@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
-<title>Pickleball v4— Xem Giải Đấu</title>
+<title>Pickleball v3.22— Xem Giải Đấu</title>
 <style>
 /* system font - no import needed */
 :root{
@@ -74,12 +74,11 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);min-height:100vh
 .tb-logout:hover{color:var(--tx);border-color:var(--bdr2)}
 
 /* ── NAV ── */
-#navtabs{display:flex;border-bottom:1px solid var(--bdr);background:var(--bg2);
-  position:sticky;top:54px;z-index:90;width:100%;box-sizing:border-box;overflow:hidden}
+#navtabs{display:flex;border-bottom:1px solid var(--bdr);background:var(--bg2);overflow-x:auto;scrollbar-width:none;
+  position:sticky;top:54px;z-index:90}
 #navtabs::-webkit-scrollbar{display:none}
-.ntab{flex:1;padding:10px 4px;font-family:var(--fh);font-size:12px;font-weight:700;border:none;
+.ntab{padding:11px 18px;font-family:var(--fh);font-size:14px;font-weight:700;border:none;
   background:transparent;color:var(--tx3);cursor:pointer;white-space:nowrap;
-  text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis;
   border-bottom:2.5px solid transparent;margin-bottom:-1px;transition:color .15s;
   display:flex;align-items:center;gap:6px;flex-shrink:0}
 .ntab:hover{color:var(--tx)}
@@ -109,7 +108,7 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);min-height:100vh
   padding:8px 14px;font-size:11px;color:#fca5a5;font-family:monospace;line-height:1.6}
 
 /* ── MAIN ── */
-#main{padding:12px 14px;max-width:1100px;margin:0 auto;overflow-x:hidden;box-sizing:border-box}
+#main{padding:12px 14px;max-width:1100px;margin:0 auto}
 .page{display:none}.page.on{display:block}
 
 /* ── SPIN ── */
@@ -330,7 +329,6 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);min-height:100vh
 .bk-sec-line{flex:1;height:1px;background:var(--bdr)}
 /* Bracket wrapper with scroll */
 .bk-scroll{overflow-x:auto;overflow-y:visible;padding-bottom:8px;
-  max-width:calc(100vw - 28px);box-sizing:border-box;
   scrollbar-width:thin;scrollbar-color:var(--bdr3) transparent}
 .bk-scroll::-webkit-scrollbar{height:6px}
 .bk-scroll::-webkit-scrollbar-track{background:var(--bg2);border-radius:4px}
@@ -388,7 +386,7 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);min-height:100vh
     <button class="ntab on" data-tab="live" onclick="switchTab('live')">🔴 Đang đấu</button>
     <button class="ntab" data-tab="schedule" onclick="switchTab('schedule')">📋 Lịch đấu</button>
     <button class="ntab" data-tab="standings" onclick="switchTab('standings')">🏅 BXH</button>
-    <button class="ntab" data-tab="bracket" onclick="switchTab('bracket')">🏆 Bracket</button>
+    <button class="ntab" data-tab="bracket" onclick="switchTab('bracket')">🏆 Cây thi đấu</button>
   </div>
 
   <div id="nd-filter-bar"></div>
@@ -419,7 +417,9 @@ let GS=GAS_URL, USER_NAME='', USER_CODE='', USER_GIAI='', USER_ND='';
 let _M=[], _R=[], _L=[], _T=null, _giaiName='';
 let _curTab='live', _curNd='', _allNds=[];
 let _liveTimer=null;
+let _permTimer=null; // Timer kiểm tra phân quyền
 const REFRESH_SEC=12;
+const PERM_CHECK_SEC=30; // Kiểm tra phân quyền mỗi 30s
 
 // ══ UTILS ══
 const $=id=>document.getElementById(id);
@@ -450,11 +450,13 @@ async function gGet(params,timeout=12000){
 // ══ LOGIN ══
 function loadSaved(){
   try{
-    const s=localStorage.getItem('pb_player3');
+    const s=localStorage.getItem('pb_player_v6');
     if(!s)return false;
     const j=JSON.parse(s);
     if(!j.u||!j.c)return false;
-    GS=j.u;USER_NAME=j.n||'';USER_CODE=j.c;USER_GIAI=j.g||'';USER_ND=j.nd||'';
+    GS=j.u;USER_CODE=j.c;
+    // KHÔNG restore USER_GIAI/USER_ND từ cache - luôn fetch lại từ server
+    USER_NAME='';USER_GIAI='';USER_ND='';
     return true;
   }catch(e){return false;}
 }
@@ -471,11 +473,21 @@ async function doLogin(){
     const r=await fetch(GS+'?action=validate&device=player-web&_t='+Date.now()+param,{cache:'no-store'});
     if(!r.ok){showErr('Lỗi kết nối HTTP '+r.status);btn.disabled=false;btn.textContent='Đăng nhập →';return;}
     const d=await r.json();
+    console.log('[LOGIN] GAS response:', JSON.stringify(d));
     if(!d.valid){showErr(d.reason||'Số điện thoại hoặc mã không đúng');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
     const st=(d.statusRaw||'').toLowerCase();
     if(st==='khóa'||st==='disabled'){showErr('Tài khoản bị khóa');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
-    USER_NAME=d.name||'';USER_CODE=d.code||'';USER_GIAI=d.giai||'';USER_ND=d.noidung||'';
-    localStorage.setItem('pb_player3',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
+    USER_NAME=d.name||'';
+    USER_CODE=d.code||'';
+    USER_GIAI=d.giai||'';
+    USER_ND=d.noidung||'';
+    console.log('[LOGIN] USER_GIAI:', USER_GIAI, '| USER_ND:', USER_ND);
+    // Nếu chưa được cấp quyền xem giải nào → báo rõ
+    if(!USER_GIAI.trim()){
+      showErr('⚠️ Tài khoản chưa được cấp quyền xem giải đấu. Vui lòng liên hệ admin.');
+      btn.disabled=false;btn.textContent='Đăng nhập →';return;
+    }
+    localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
     startApp();
   }catch(e){showErr('Lỗi: '+e.message);btn.disabled=false;btn.textContent='Đăng nhập →';}
 }
@@ -483,7 +495,7 @@ function showErr(m){const e=$('login-err');e.textContent=m;e.style.display='bloc
 function hideErr(){$('login-err').style.display='none';}
 function doLogout(){
   if(!confirm('Đăng xuất?'))return;
-  localStorage.removeItem('pb_player3');
+  localStorage.removeItem('pb_player_v6');
   stopRefresh();
   $('app').style.display='none';
   $('login-screen').style.display='flex';
@@ -495,16 +507,52 @@ function doLogout(){
 async function startApp(){
   $('login-screen').style.display='none';
   $('app').style.display='block';
+  // Reset toàn bộ state cũ
+  _M=[];_R=[];_L=[];_T=null;_giaiName='';_curNd='';_allNds=[];
   try{await loadAll();}catch(e){console.error('loadAll:',e);}
   switchTab('live');
   startRefresh();
 }
-function startRefresh(){stopRefresh();_liveTimer=setInterval(()=>silentRefresh(),REFRESH_SEC*1000);}
-function stopRefresh(){if(_liveTimer){clearInterval(_liveTimer);_liveTimer=null;}}
-async function silentRefresh(){try{await loadAll();renderCurrentTab();restoreBangState();}catch(e){}}
+function startRefresh(){
+  stopRefresh();
+  _liveTimer=setInterval(()=>silentRefresh(),REFRESH_SEC*1000);
+  // Kiểm tra phân quyền định kỳ - tự động cập nhật giải đấu nếu admin đổi
+  _permTimer=setInterval(()=>checkPermission(),PERM_CHECK_SEC*1000);
+}
+function stopRefresh(){
+  if(_liveTimer){clearInterval(_liveTimer);_liveTimer=null;}
+  if(_permTimer){clearInterval(_permTimer);_permTimer=null;}
+}
+async function silentRefresh(){try{await loadAll();renderCurrentTab();}catch(e){}}
+
+// ── Tự động kiểm tra phân quyền & cập nhật giải đấu nếu thay đổi ──
+async function checkPermission(){
+  if(!GS||!USER_CODE)return;
+  try{
+    const r=await fetch(GS+'?action=validate&device=player-web&_t='+Date.now()+'&code='+encodeURIComponent(USER_CODE),{cache:'no-store'});
+    if(!r.ok)return;
+    const d=await r.json();
+    if(!d.valid)return;
+    const newGiai=(d.giai||'').trim();
+    const newNd=(d.noidung||'').trim();
+    const oldGiai=(USER_GIAI||'').trim();
+    const oldNd=(USER_ND||'').trim();
+    // Nếu phân quyền thay đổi HOẶC lần đầu chưa có giải → cập nhật và reload
+    if(newGiai!==oldGiai||newNd!==oldNd||!oldGiai){
+      USER_NAME=d.name||'';USER_GIAI=newGiai;USER_ND=newNd;
+      localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
+      // Reset state và load lại data giải mới
+      _T=null;_giaiName='';_curNd='';_allNds=[];
+      _M=[];_R=[];_L=[];
+      await loadAll();
+      renderCurrentTab();
+      toast('🔄 Giải đấu đã được cập nhật!',3000);
+    }
+  }catch(e){}
+}
 async function refreshAll(){
   const btn=$('rf-btn');btn.disabled=true;btn.textContent='⏳';
-  try{await loadAll();renderCurrentTab();restoreBangState();toast('✅ Đã cập nhật');}
+  try{await loadAll();renderCurrentTab();toast('✅ Đã cập nhật');}
   finally{btn.disabled=false;btn.textContent='↻ Làm mới';}
 }
 
@@ -516,9 +564,16 @@ async function loadAll(){
     if(td.rows?.length>1){
       const trows=td.rows.slice(1);
       const gUp=(USER_GIAI||'').trim().toUpperCase();
-      let found=gUp?trows.find(r=>String(r[0]||'').trim().toUpperCase()===gUp||String(r[1]||'').trim().toUpperCase()===gUp):null;
-      if(!found&&trows.length)found=trows[0];
-      if(found){_T=found;_giaiName=String(found[1]||'').trim();}
+      let found=null;
+      if(gUp){
+        // Tìm match chính xác trước
+        found=trows.find(r=>String(r[0]||'').trim().toUpperCase()===gUp||String(r[1]||'').trim().toUpperCase()===gUp);
+        // Nếu không match chính xác, thử contains (partial match)
+        if(!found)found=trows.find(r=>String(r[1]||'').trim().toUpperCase().includes(gUp)||gUp.includes(String(r[1]||'').trim().toUpperCase()));
+      }
+      if(found){_T=found;_giaiName=String(found[1]||'').trim();
+        console.log('[LOAD] Matched tournament:', _giaiName);}
+      else if(gUp){console.warn('[LOAD] No tournament match for USER_GIAI:', USER_GIAI,'| Available:', trows.map(r=>r[1]).join(' / '));}
     }
   }catch(e){console.warn('tournaments fetch:',e);}
 
@@ -804,9 +859,9 @@ function renderSchedule(){
       <div class="bang-head" onclick="toggleBang(this)">
         <div class="bang-head-title">${isKo(bang)?'🏆 ':''} ${esc(bang)}</div>
         <div class="bang-head-meta">${meta}</div>
-        <div class="bang-chevron">▾</div>
+        <div class="bang-chevron open">▾</div>
       </div>
-      <div class="bang-body">${rows}</div>
+      <div class="bang-body open">${rows}</div>
     </div>`;
   }).join('');
 }
@@ -816,25 +871,6 @@ function toggleBang(head){
   const chev=head.querySelector('.bang-chevron');
   const open=body.classList.toggle('open');
   if(chev)chev.classList.toggle('open',open);
-  // Lưu state vào sessionStorage
-  const title=head.querySelector('.bang-head-title')?.textContent?.trim()||'';
-  if(title){
-    const key='pb_bang_'+title;
-    if(open) sessionStorage.setItem(key,'1');
-    else sessionStorage.removeItem(key);
-  }
-}
-
-function restoreBangState(){
-  document.querySelectorAll('.bang-head').forEach(head=>{
-    const title=head.querySelector('.bang-head-title')?.textContent?.trim()||'';
-    if(!title) return;
-    const open=sessionStorage.getItem('pb_bang_'+title)==='1';
-    const body=head.nextElementSibling;
-    const chev=head.querySelector('.bang-chevron');
-    body?.classList.toggle('open',open);
-    chev?.classList.toggle('open',open);
-  });
 }
 
 // ══ RENDER BXH ══
@@ -1256,9 +1292,37 @@ function selectBkNd(nd){
 }
 
 // ══ BOOT ══
-window.addEventListener('load',()=>{
+async function autoLoginFromCache(){
+  // Re-validate với server để lấy phân quyền mới nhất, không tin cache cũ
+  try{
+    const r=await fetch(GS+'?action=validate&device=player-web&_t='+Date.now()+'&code='+encodeURIComponent(USER_CODE),{cache:'no-store'});
+    if(!r.ok)return false;
+    const d=await r.json();
+    if(!d.valid)return false;
+    const st=(d.statusRaw||'').toLowerCase();
+    if(st==='khóa'||st==='disabled')return false;
+    // Cập nhật phân quyền mới từ server (không dùng cache cũ)
+    USER_NAME=d.name||'';USER_CODE=d.code||'';
+    USER_GIAI=d.giai||'';
+    USER_ND=d.noidung||'';
+    console.log('[AUTO-LOGIN] USER_GIAI:', USER_GIAI);
+    if(!USER_GIAI.trim())return false; // Chưa có phân quyền → yêu cầu đăng nhập lại
+    localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
+    return true;
+  }catch(e){return false;}
+}
+window.addEventListener('load',async()=>{
   $('gs-url').value=GAS_URL;
-  if(loadSaved()&&GS&&USER_CODE)startApp();
+  if(loadSaved()&&GS&&USER_CODE){
+    const ok=await autoLoginFromCache();
+    if(ok){
+      startApp();
+    }else{
+      // validate thất bại hoặc chưa có phân quyền → xóa cache, hiện login
+      localStorage.removeItem('pb_player_v6');
+      // Không redirect, giữ màn hình login để user tự đăng nhập lại
+    }
+  }
 });
 </script>
 </body>
