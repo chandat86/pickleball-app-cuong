@@ -479,14 +479,12 @@ async function doLogin(){
     if(st==='khóa'||st==='disabled'){showErr('Tài khoản bị khóa');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
     USER_NAME=d.name||'';
     USER_CODE=d.code||'';
-    // Thử tất cả field có thể chứa tên giải (GAS có thể dùng tên field khác nhau)
-    USER_GIAI=d.giai||d.tournament||d.giaidau||d.giaiDau||d.GiaiDau||d.Giai||d.giải||d['giải đấu']||d.giaiDauPhan||d['Giải đấu phân']||'';
-    USER_ND=d.noidung||d.nd||d.noiDung||d.NoidDung||d['nội dung']||'';
-    console.log('[LOGIN] USER_GIAI resolved:', USER_GIAI, '| USER_ND:', USER_ND);
-    // Hiện cảnh báo nếu không lấy được giải
-    if(!USER_GIAI){
-      const allKeys=Object.keys(d).join(', ');
-      showErr('⚠️ Không tìm thấy field giải đấu. GAS fields: '+allKeys+'. Vui lòng báo admin.');
+    USER_GIAI=d.giai||'';
+    USER_ND=d.noidung||'';
+    console.log('[LOGIN] USER_GIAI:', USER_GIAI, '| USER_ND:', USER_ND);
+    // Nếu chưa được cấp quyền xem giải nào → báo rõ
+    if(!USER_GIAI.trim()){
+      showErr('⚠️ Tài khoản chưa được cấp quyền xem giải đấu. Vui lòng liên hệ admin.');
       btn.disabled=false;btn.textContent='Đăng nhập →';return;
     }
     localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
@@ -535,8 +533,8 @@ async function checkPermission(){
     if(!r.ok)return;
     const d=await r.json();
     if(!d.valid)return;
-    const newGiai=(d.giai||d.tournament||d.giaidau||d.giaiDau||d.GiaiDau||d.Giai||d['giải đấu']||d.giaiDauPhan||d['Giải đấu phân']||'').trim();
-    const newNd=(d.noidung||d.nd||d.noiDung||d['nội dung']||'').trim();
+    const newGiai=(d.giai||'').trim();
+    const newNd=(d.noidung||'').trim();
     const oldGiai=(USER_GIAI||'').trim();
     const oldNd=(USER_ND||'').trim();
     // Nếu phân quyền thay đổi HOẶC lần đầu chưa có giải → cập nhật và reload
@@ -1305,9 +1303,10 @@ async function autoLoginFromCache(){
     if(st==='khóa'||st==='disabled')return false;
     // Cập nhật phân quyền mới từ server (không dùng cache cũ)
     USER_NAME=d.name||'';USER_CODE=d.code||'';
-    USER_GIAI=d.giai||d.tournament||d.giaidau||d.giaiDau||d.GiaiDau||d.Giai||d.giải||d['giải đấu']||d.giaiDauPhan||d['Giải đấu phân']||'';
-    USER_ND=d.noidung||d.nd||d.noiDung||d['nội dung']||'';
+    USER_GIAI=d.giai||'';
+    USER_ND=d.noidung||'';
     console.log('[AUTO-LOGIN] USER_GIAI:', USER_GIAI);
+    if(!USER_GIAI.trim())return false; // Chưa có phân quyền → yêu cầu đăng nhập lại
     localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
     return true;
   }catch(e){return false;}
@@ -1316,10 +1315,12 @@ window.addEventListener('load',async()=>{
   $('gs-url').value=GAS_URL;
   if(loadSaved()&&GS&&USER_CODE){
     const ok=await autoLoginFromCache();
-    if(ok)startApp();
-    else{
-      // Xóa cache cũ nếu không validate được, yêu cầu đăng nhập lại
+    if(ok){
+      startApp();
+    }else{
+      // validate thất bại hoặc chưa có phân quyền → xóa cache, hiện login
       localStorage.removeItem('pb_player_v6');
+      // Không redirect, giữ màn hình login để user tự đăng nhập lại
     }
   }
 });
