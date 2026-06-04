@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<!-- Pickleball v8.8 2026-06-03: FIX swapPlayersDisplay — chấm cam giữ nguyên ô vật lý khi swap tên VĐV | v8.7; player-slot fixed height 44px; serve-balls min-width giữ chỗ | v8.6: auto-cleanup kết quả (TTL 1 ngày, cap 100) + nhật ký (TTL 12h, cap 300) | v8.5: FIX v34 — auto-hide polling-driven (CK có điểm từ GAS → ẩn ngay); | v8.4 FIX v33 — auto-hide nội dung/giải khi CK hoàn thành; sort trận (live→chưa đấu→hoàn thành); nút ẩn/hiện trận HT; | v8.2 FIX v32 — _removeDiacritics normalize tên TT; renderMatchGrid hiển thị khi có trận phân tên dù courts=[]; | v8.1 FIX: Park priority in renderMatchCard — tỉ số tím đúng khi switch trận | 2026-05-23 -->
+<!-- Pickleball v8.11 2026-06-04: FIX CRITICAL — thêm </div> đóng sb-teams-row; sb-action-bar không còn nằm trong grid 2-cột → 2 card cân đối 50/50 | v8.10 2026-06-04: FIX sb-action-bar căn giữa tỉ số (3-col grid + ex-side groups); hai card cân đối | v8.9 2026-06-04: FIX loadAllFromGS — REPLACE thay vì MERGE S.results từ GAS (source of truth); xóa bảng+tạo lại không còn bị stale "Hoàn thành" trên màn hình trọng tài | v8.8 2026-06-03: FIX swapPlayersDisplay — chấm cam giữ nguyên ô vật lý khi swap tên VĐV | v8.7; player-slot fixed height 44px; serve-balls min-width giữ chỗ | v8.6: auto-cleanup kết quả (TTL 1 ngày, cap 100) + nhật ký (TTL 12h, cap 300) | v8.5: FIX v34 — auto-hide polling-driven (CK có điểm từ GAS → ẩn ngay); | v8.4 FIX v33 — auto-hide nội dung/giải khi CK hoàn thành; sort trận (live→chưa đấu→hoàn thành); nút ẩn/hiện trận HT; | v8.2 FIX v32 — _removeDiacritics normalize tên TT; renderMatchGrid hiển thị khi có trận phân tên dù courts=[]; | v8.1 FIX: Park priority in renderMatchCard — tỉ số tím đúng khi switch trận | 2026-05-23 -->
 <meta charset="UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>v2.523 - Da Nang Referee v17 – Pickleball</title>
+<title>v3 - Da Nang Referee v17 – Pickleball</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -381,11 +381,23 @@ select, input { font-family: inherit; }
 /* ── Hàng T/O – tỉ số – Med nằm ngang ── */
 .sb-action-bar {
   display: grid;
-  grid-template-columns: 1fr 1fr auto 1fr 1fr;
+  grid-template-columns: 1fr auto 1fr;
   gap: 6px;
   align-items: center;
 }
-.sb-action-bar .ex-btn { width: 100%; text-align: center; }
+.sb-action-bar .ex-side {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.sb-action-bar .ex-side.right { justify-content: flex-end; }
+.sb-action-bar .ex-side .ex-btn { flex: 1; text-align: center; min-width: 0; }
+.sb-action-bar .score-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
 
 .score-announce {
   font-family: 'Oswald', sans-serif;
@@ -422,7 +434,7 @@ select, input { font-family: inherit; }
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
   color: #fff; font-family: 'Oswald', sans-serif;
   font-size: 16px; font-weight: 900; letter-spacing: 1.3px;
-  padding: 12px 0; cursor: pointer;
+  padding: 12px 0; cursor: pointer; width: 100%;
   box-shadow: 0 4px 14px rgba(245,158,11,.4);
   transition: all .15s;
 }
@@ -974,23 +986,30 @@ select, input { font-family: inherit; }
         <button class="sc-btn plus"  onclick="addScore('b',1)">+</button>
       </div>
     </div>
-  <!-- Hàng ngang: T/O A · tỉ số · Med A · tỉ số · T/O B · Med B -->
+  </div><!-- /sb-teams-row -->
+  <!-- Hàng ngang: [T/O A · Med A] · [tỉ số] · [T/O B · Med B] — căn giữa tỉ số -->
   <div class="sb-action-bar">
-    <button class="ex-btn timeout" onclick="startTimer('timeout','a')">⏱ T/O</button>
-    <button class="ex-btn medical" onclick="startTimer('medical','a')">🏥 Med</button>
-    <div class="score-announce" id="score-announce">0-0-2</div>
-    <button class="ex-btn timeout" onclick="startTimer('timeout','b')">⏱ T/O</button>
-    <button class="ex-btn medical" onclick="startTimer('medical','b')">🏥 Med</button>
-    <div class="serve-dots-center" id="serve-dots-center" style="display:none"></div>
-    <div class="game-pill" id="game-pill" style="display:none">Game 1</div>
+    <div class="ex-side left">
+      <button class="ex-btn timeout" onclick="startTimer('timeout','a')">⏱ T/O</button>
+      <button class="ex-btn medical" onclick="startTimer('medical','a')">🏥 Med</button>
+    </div>
+    <div class="score-center">
+      <div class="score-announce" id="score-announce">0-0-2</div>
+      <div class="serve-dots-center" id="serve-dots-center" style="display:none"></div>
+      <div class="game-pill" id="game-pill" style="display:none">Game 1</div>
+    </div>
+    <div class="ex-side right">
+      <button class="ex-btn timeout" onclick="startTimer('timeout','b')">⏱ T/O</button>
+      <button class="ex-btn medical" onclick="startTimer('medical','b')">🏥 Med</button>
+    </div>
   </div>
 
   <!-- Nút ĐỔI GIAO nằm 1 hàng căn giữa -->
 
 </div>
 <!-- ── ĐỔI GIAO ROW ── -->
-<div style="display:flex;justify-content:center;margin-bottom:6px;">
-  <button id="btn-transfer-serve" onclick="transferServe()" style="width:40%;">⇄ ĐỔI GIAO</button>
+<div style="margin-bottom:6px;">
+  <button id="btn-transfer-serve" onclick="transferServe()">⇄ ĐỔI GIAO</button>
 </div>
 <!-- ── CONTROLS ── -->
 <div class="ctrl-row" style="grid-template-columns:repeat(5,1fr)">
@@ -2069,29 +2088,38 @@ async function loadAllFromGS() {
     gotMatches = true;
   }
   let addedResults = 0;
-  if (!_resultsCleared && resultData?.rows?.length > 1) {
-    resultData.rows.slice(1).forEach(r => {
-      if (!r[0] || !r[4]) return;
-      // GAS v3 KetQua: Thời gian(0) | Giải đấu(1) | Nội dung(2) | Bảng(3) | Mã trận(4) | Đội A(5) | Đội B(6) | Điểm A(7) | Điểm B(8) | Thắng(9) | Sân(10) | Trọng tài(11) | Quy tắc(12)
-      const noidung = String(r[2]||'').trim();
-      const bang    = String(r[3]||'').trim();
-      const code    = String(r[4]||'').trim();
-      const key = `${noidung}|${bang}|${code}`;
-      S.results[key] = {
-        savedAt: r[0],
-        giai:    String(r[1]||'').trim(),
-        noidung, bang, code,
-        teamA:   String(r[5]||'').trim(),
-        teamB:   String(r[6]||'').trim(),
-        scoreA:  Number(r[7])||0,
-        scoreB:  Number(r[8])||0,
-        winner:  String(r[9]||'').trim(),
-        court:   String(r[10]||'').trim(),
-        referee: String(r[11]||'').trim(),
-        winRule: String(r[12]||'').trim(),
-      };
-      addedResults++;
-    });
+  // FIX v_sync: GAS là source of truth — REPLACE thay vì MERGE để tránh kết quả
+  // stale khi admin xóa bảng rồi tạo lại (KetQua sheet rỗng → S.results phải rỗng).
+  // Trước đây: nếu resultData rỗng → block if bị skip → S.results/localStorage
+  // vẫn giữ kết quả cũ (VD: A1 "Hoàn thành") dù GAS đã xóa sạch.
+  if (!_resultsCleared && resultData) {
+    // GAS đã phản hồi resultData → rebuild hoàn toàn từ GAS (xóa stale local entries)
+    const gsResults = {};
+    if (resultData?.rows?.length > 1) {
+      resultData.rows.slice(1).forEach(r => {
+        if (!r[0] || !r[4]) return;
+        // GAS v3 KetQua: Thời gian(0) | Giải đấu(1) | Nội dung(2) | Bảng(3) | Mã trận(4) | Đội A(5) | Đội B(6) | Điểm A(7) | Điểm B(8) | Thắng(9) | Sân(10) | Trọng tài(11) | Quy tắc(12)
+        const noidung = String(r[2]||'').trim();
+        const bang    = String(r[3]||'').trim();
+        const code    = String(r[4]||'').trim();
+        const key = `${noidung}|${bang}|${code}`;
+        gsResults[key] = {
+          savedAt: r[0],
+          giai:    String(r[1]||'').trim(),
+          noidung, bang, code,
+          teamA:   String(r[5]||'').trim(),
+          teamB:   String(r[6]||'').trim(),
+          scoreA:  Number(r[7])||0,
+          scoreB:  Number(r[8])||0,
+          winner:  String(r[9]||'').trim(),
+          court:   String(r[10]||'').trim(),
+          referee: String(r[11]||'').trim(),
+          winRule: String(r[12]||'').trim(),
+        };
+        addedResults++;
+      });
+    }
+    S.results = gsResults; // REPLACE (không merge) — GAS là source of truth
     try { localStorage.setItem('pb_res6', JSON.stringify(S.results)); } catch(e){}
   }
 
