@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<!-- Pickleball v67 2026-06-03: v6 FIX NGUỒN DUY NHẤT — buildDkFromResults/isMatchDone/getFinalScore/_syncResultCache/_buildLiveFromRows đều dùng key 4 trường "TênGiải|NộiDung|Bảng|MãTrận"; bỏ fallback Matches col[5/6] trong getFinalScore; bỏ giaiId duplicate trong _dK; bỏ fallback giaiId trong isMatchDone — badge Hoàn thành/Chưa đấu/Đang đấu giờ chính xác 100% từ KetQua | v66 2026-06-03: FIX v32 referee bugs — assignCourtToRef/assignRef/atrAssignDirect không xóa noidung cũ; _matchAllowed normalize dấu; renderMatchGrid hiển thị khi có trận phân tên | v65 2026-06-01: FIX bracket overflow + nút tràn màn hình PC | v25 | FIX: Login detailed errors, Test GAS button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) GAS dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên GSheets | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (GSheets renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) GAS v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang -->
+<!-- Pickleball v72 2026-06-04: FIX Xóa tất cả bảng dùng 1 request deleteAllBangs thay vì N requests tuần tự — nhanh gấp 15x; bỏ confirm() dùng double-tap | v71 2026-06-04: FIX saveBang+importMultiBang gửi upsert=true → GAS xóa bảng cũ trước khi tạo lại, tránh dedup skip trận | v70 2026-06-04: FIX bkDeleteTree dùng double-tap thay confirm() bị browser block; GAS v37 fix giaiName undefined trong deleteBracketTree | v69 2026-06-04: FIX confirm() trong bkApplyAndSave bị browser block → return sớm không save BracketTree; thay bằng toast cảnh báo tiếp tục luôn | v68 2026-06-04: FIX saveBracketTree bị bỏ qua khi Apply lần 2 (toCreate=0, toUpdate=0 → return sớm trước khi save GSheet) | v67 2026-06-03: v6 FIX NGUỒN DUY NHẤT — buildDkFromResults/isMatchDone/getFinalScore/_syncResultCache/_buildLiveFromRows đều dùng key 4 trường "TênGiải|NộiDung|Bảng|MãTrận"; bỏ fallback Matches col[5/6] trong getFinalScore; bỏ giaiId duplicate trong _dK; bỏ fallback giaiId trong isMatchDone — badge Hoàn thành/Chưa đấu/Đang đấu giờ chính xác 100% từ KetQua | v66 2026-06-03: FIX v32 referee bugs — assignCourtToRef/assignRef/atrAssignDirect không xóa noidung cũ; _matchAllowed normalize dấu; renderMatchGrid hiển thị khi có trận phân tên | v65 2026-06-01: FIX bracket overflow + nút tràn màn hình PC | v25 | FIX: Login detailed errors, Test GAS button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) GAS dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên GSheets | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (GSheets renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) GAS v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Admin v8.1 — Referee Pickleball / DA NANG ®</title>
+<title>Admin v10 — Referee Pickleball / DA NANG ®</title>
 <style>
 /* ═══════════════════════════════════════════════════════
    Pickleball Admin — Mobile-First Professional UI
@@ -693,7 +693,20 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
   background:var(--bg3);border:1px solid var(--bdr);color:var(--tx3);flex-shrink:0
 }
 .bk-sbox.s-win{background:#22c55e;color:#fff;border-color:#22c55e}
+.bk-sbox.s-live{background:#f97316;color:#fff;border-color:#f97316}
 .bk-sbox.s-empty{color:var(--tx4);font-size:12px}
+/* Footer meta: sân · giờ · trọng tài */
+.bk-card-ft{
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap;
+  padding:4px 10px;border-top:1px solid var(--bdr);
+  background:rgba(0,0,0,.1);min-height:22px
+}
+.bk-ft-chip{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;
+  color:var(--tx3);white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis}
+.bk-ft-chip.time{color:var(--or);font-family:var(--mo)}
+.bk-ft-chip.court{color:var(--ac2)}
+.bk-ft-chip.ref{color:var(--tx3)}
+.bk-ft-sep{color:var(--bdr2);font-size:9px;flex-shrink:0}
 
 /* ════ CSS CONNECTOR ════
    Theo hình chuẩn (hình 3):
@@ -991,7 +1004,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .bxh-scroll::-webkit-scrollbar-thumb { background:var(--bdr2,rgba(255,255,255,.15));border-radius:3px; }
 </style>
 
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script></head>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
 <body>
 
 <!-- ══════════ LOGIN ══════════ -->
@@ -1027,6 +1042,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
       </div>
       <div class="lerr" id="lerr"></div>
       <div class="ldbg" id="ldbg"></div>
+      <!-- Nút xóa cache — hiện khi kết nối chậm hoặc lỗi -->
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);text-align:center">
+        <button onclick="clearAllAdminCache()" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#f87171;border-radius:8px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s" title="Xóa toàn bộ cache và thử lại nếu đăng nhập chậm">
+          🗑 Xóa cache & thử lại
+        </button>
+        <div style="font-size:10px;color:var(--tx4);margin-top:5px">Dùng khi đăng nhập chậm hoặc bị lỗi</div>
+      </div>
     </div>
     <div class="rb">
       <strong style="color:var(--gn)">🏓 Trọng tài đăng nhập ở đâu?</strong><br>
@@ -1396,6 +1418,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
               <!-- Xóa cây -->
               <button class="btn bsm" style="background:rgba(239,68,68,.12);color:var(--rd);border:1px solid rgba(239,68,68,.3)"
                 onclick="ndBkDelete()">🗑 Xóa cây</button>
+              <!-- Xuất hình ảnh -->
+              <button id="nd-btn-export-img"
+                onclick="bkExportImage()"
+                style="background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.35);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s"
+                title="Xuất cây thi đấu ra file hình ảnh PNG">
+                🖼 Xuất ảnh
+              </button>
             </div>
           </div>
           <!-- Edit mode banner -->
@@ -2577,22 +2606,11 @@ async function _syncFinishedMatches(finishedKeys) {
       ? (_resolveGiaiName(MY_GIAI) || MY_GIAI)
       : (_curTourn ? String(_curTourn[1]||'') : '');
 
-    // Bước 1: thử recentResults trước (nhanh ~200ms) — chỉ lấy 20 row mới nhất
-    let gotData = false;
-    try {
-      const rd = await gGet({ action:'recentResults', giai: giaiParam, limit: 30 }, 4000);
-      if (rd?.rows?.length > 1) {
-        buildDkFromResults(rd.rows.slice(1));
-        gotData = true;
-      }
-    } catch(e2) {}
-
-    // Bước 2: nếu recentResults không có → fallback full results
-    if (!gotData) {
-      const d = await gGet({ action:'results', giai: giaiParam }, 8000);
-      if (!d?.rows?.length) return;
-      buildDkFromResults(d.rows.slice(1));
-    }
+    // FIX v75c: dùng action='results' trực tiếp (recentResults không có trong GAS)
+    // Giảm timeout xuống 5s để phản hồi nhanh hơn
+    const rd = await gGet({ action:'results', giai: giaiParam }, 5000).catch(() => null);
+    if (!rd?.rows?.length) return;
+    buildDkFromResults(rd.rows.slice(1));
 
     // Cập nhật _M với scores từ KetQua cho các trận vừa finish
     // _lK key = "NộiDung|Bảng|MãTrận" → cần resolve TênGiải từ _M
@@ -2635,8 +2653,8 @@ async function _syncFinishedMatches(finishedKeys) {
       // ── KEY FIX: Luôn rebuild tree + sync winner vào vòng tiếp ──
       // Kể cả khi không ở tab cây thi đấu — để _bkCurrentTree có winner mới
       // rồi _bkDoSyncToSchedule tạo/update CK/H3 trong _M và GAS
-      // v8: NHƯNG chỉ làm điều này khi cây thi đấu đang hoạt động (không bị xóa)
-      if (_bkGiai && _bkNd && !_bkIsEmpty) {
+      // v37: Sau Apply → chỉ resolve winners, không rebuild; Trước Apply → bỏ qua (user chưa set tree)
+      if (_bkGiai && _bkNd && !_bkIsEmpty && _bkApplied && _bkCurrentTree) {
         // Rebuild tree silently (không cần render vào UI nếu tab đang ẩn)
         const { seeds, bangs, bangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
         const _gn2 = _resolveGiaiName(_bkGiai) || _bkGiai;
@@ -2815,8 +2833,11 @@ window.onload = () => {
       more.style.display = 'none';
   });
 
+  // ── Startup: kiểm tra build version + cache age ngầm ──
+  _checkBuildVersion();   // Clear cache nếu deploy GAS mới
+  _checkLsCacheAge();     // Clear localStorage data nếu quá cũ
+
   // ── Khôi phục URL + code đã lưu vào form ──
-  // Ưu tiên: localStorage → DEFAULT_GAS_URL (không cần copy paste mỗi lần)
   const savedUrl  = localStorage.getItem('pb_gs_url') || DEFAULT_GAS_URL;
   const savedCode = localStorage.getItem('pb_adm_code') || '';
   const urlEl  = document.getElementById('gs-url');
@@ -3047,6 +3068,7 @@ async function testGasUrl() {
 }
 
 function showApp() {
+  _startBgCacheWatcher(); // Bắt đầu kiểm tra cache ngầm mỗi 60s
   document.getElementById('ls').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('sb-usr').textContent = NAME;
@@ -3191,8 +3213,8 @@ function _startResultsPolling() {
       if (!GS || _failCount > 3) return;
       // Chỉ fetch khi đang ở trang bảng đấu hoặc cây thi đấu
       if (!['tournaments','bracket'].includes(_curPage)) return;
-      // Debounce: không fetch nếu vừa fetch < 4s trước
-      if (Date.now() - _lastResultsCheck < 4000) return;
+      // FIX v75c: giảm debounce từ 4s → 2s để cập nhật nhanh hơn
+      if (Date.now() - _lastResultsCheck < 2000) return;
       _lastResultsCheck = Date.now();
 
       const giaiParam = ROLE === 'manager'
@@ -3200,15 +3222,29 @@ function _startResultsPolling() {
         : (_curTourn ? String(_curTourn[1]||'') : '');
       if (!giaiParam) return;
 
-      const rd = await gGet({ action:'recentResults', giai: giaiParam, limit: 30 }, 4000)
+      // FIX v75c: action='recentResults' không tồn tại trong GAS → dùng action='results'
+      const rd = await gGet({ action:'results', giai: giaiParam }, 5000)
                          .catch(() => null);
       if (!rd?.rows?.length) return;
 
       const prevDkSize = _dkBangCode.size;
+      // FIX v74: Track bangDone trước khi update để detect khi bảng MỚI hoàn thành
+      const _prevBangDone = (_bkGiai && _bkNd) ? (() => {
+        try { const {bangDone:bd} = _bkCalcSeeds(_bkGiai, _bkNd); return new Set(Object.keys(bd).filter(k=>bd[k])); } catch(e){return new Set();}
+      })() : new Set();
+
       buildDkFromResults(rd.rows.slice(1));
 
-      // Nếu có kết quả mới → rebuild tree + sync winner + re-render
-      if (_dkBangCode.size !== prevDkSize) {
+      // FIX v74: Kiểm tra cả khi _dkBangCode.size thay đổi VÀ khi bảng mới hoàn thành
+      // (limit:30 có thể làm size không đổi dù có kết quả mới)
+      const _newBangDone = (_bkGiai && _bkNd) ? (() => {
+        try { const {bangDone:bd} = _bkCalcSeeds(_bkGiai, _bkNd); return new Set(Object.keys(bd).filter(k=>bd[k])); } catch(e){return new Set();}
+      })() : new Set();
+      const _bangDoneChanged = _newBangDone.size !== _prevBangDone.size ||
+        [..._newBangDone].some(k => !_prevBangDone.has(k));
+
+      // Nếu có kết quả mới HOẶC bảng mới hoàn thành → rebuild tree + sync winner + re-render
+      if (_dkBangCode.size !== prevDkSize || _bangDoneChanged) {
         if (_curPage === 'tournaments' && _curNd && _curGiaiId) {
           const tvNd = document.getElementById('tv-nd');
           if (tvNd && tvNd.style.display !== 'none') renderBangList(_curGiaiId, _curNd);
@@ -3284,22 +3320,147 @@ function startLivePolling() {
         }
       }
       if (_curPage === 'bracket') {
-      _bkRestoreState();
-      if (_bkGiai && _bkNd) bkRender();
-    }
+        _bkRestoreState();
+        if (_bkGiai && _bkNd) bkRender();
+      }
     } catch(e) {}
   }, 3000); // Poll mỗi 3s (giảm từ 8s) để phát hiện kết quả nhanh hơn
 }
 
+// ══════════════════════════════════════════════════════════════
+//  BACKGROUND CACHE MANAGER — tự động, người dùng không thấy
+// ══════════════════════════════════════════════════════════════
+
+// Xóa cache ngầm — không reload, không thông báo
+function _silentClearCache(reason) {
+  console.log('[CACHE] Silent clear:', reason || 'no reason');
+  try {
+    // Xóa tất cả localStorage data (giữ URL + code + build key)
+    const keep = {
+      'pb_gs_url':    localStorage.getItem('pb_gs_url'),
+      'pb_adm_code':  localStorage.getItem('pb_adm_code'),
+      [LS_BUILD_KEY]: APP_BUILD, // Cập nhật build key sau khi clear
+    };
+    const toClear = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('pb_adm') || k.startsWith('pb_bk') || k.startsWith('pb_bye'))) {
+        if (!keep[k]) toClear.push(k);
+      }
+    }
+    toClear.forEach(k => localStorage.removeItem(k));
+    // Restore keep values
+    Object.entries(keep).forEach(([k, v]) => { if (v) localStorage.setItem(k, v); });
+  } catch(e) { console.warn('[CACHE] Clear error:', e); }
+
+  // Xóa in-memory cache
+  try { Object.keys(_cache).forEach(k => delete _cache[k]); _cacheVer++; } catch(e) {}
+  try { sessionStorage.removeItem('pb_bk_state'); } catch(e) {}
+
+  // Reset bracket state
+  _bkCurrentTree = null;
+  _bkApplied     = false;
+  _bkOverrides   = {};
+  _bkLastVersion = 0;
+}
+
+// Chạy khi page load — kiểm tra build version, tự clear nếu deploy mới
+function _checkBuildVersion() {
+  try {
+    const savedBuild = localStorage.getItem(LS_BUILD_KEY);
+    if (savedBuild && savedBuild !== APP_BUILD) {
+      console.log('[CACHE] Build changed:', savedBuild, '→', APP_BUILD, '— clearing stale cache');
+      _silentClearCache('build_changed');
+      localStorage.setItem(LS_BUILD_KEY, APP_BUILD);
+    } else if (!savedBuild) {
+      localStorage.setItem(LS_BUILD_KEY, APP_BUILD);
+    }
+  } catch(e) {}
+}
+
+// Kiểm tra localStorage cache age — xóa nếu quá cũ
+function _checkLsCacheAge() {
+  try {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('pb_adm_M') || k.startsWith('pb_adm_T') || k.startsWith('pb_adm_R'))) {
+        keys.push(k);
+      }
+    }
+    if (!keys.length) return;
+    // Kiểm tra timestamp từ _M (dùng key pb_adm_cache_ts)
+    const tsKey = 'pb_adm_cache_ts';
+    const ts = parseInt(localStorage.getItem(tsKey) || '0');
+    if (ts && Date.now() - ts > CACHE_LS_TTL) {
+      console.log('[CACHE] LS data expired after', Math.round((Date.now()-ts)/1000), 's — purging');
+      keys.forEach(k => localStorage.removeItem(k));
+      localStorage.removeItem(tsKey);
+    }
+  } catch(e) {}
+}
+
+// Cập nhật timestamp cache khi lưu data mới
+function _touchCacheTs() {
+  try { localStorage.setItem('pb_adm_cache_ts', Date.now()); } catch(e) {}
+}
+
+// Background watcher — chạy mỗi 60s khi đã đăng nhập
+let _bgCacheTimer = null;
+function _startBgCacheWatcher() {
+  if (_bgCacheTimer) clearInterval(_bgCacheTimer);
+  _bgCacheTimer = setInterval(async () => {
+    if (!GS || !CODE) return;
+    try {
+      // Re-validate session ngầm
+      const url = new URL(GS);
+      url.searchParams.set('action', 'validate');
+      url.searchParams.set('code', CODE);
+      url.searchParams.set('device', 'AdminPanel');
+      url.searchParams.set('_t', Date.now());
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 8000);
+      const r = await fetch(url.toString(), { signal: ctrl.signal, cache: 'no-store' });
+      clearTimeout(tid);
+      const d = await r.json();
+      if (!d.valid) {
+        // Session không còn hợp lệ → clear và về login
+        console.log('[CACHE] Session invalid — clearing and reloading');
+        _silentClearCache('session_invalid');
+        location.reload();
+        return;
+      }
+      // Session OK — check xem có thay đổi phân quyền không
+      if (d.giai && MY_GIAI && d.giai !== MY_GIAI) {
+        console.log('[CACHE] Permission changed — clearing match cache');
+        _silentClearCache('permission_changed');
+        MY_GIAI = d.giai;
+        MY_GIAI_LIST = MY_GIAI.split(',').map(g=>g.trim()).filter(Boolean);
+        await loadMatchesCache(GS, true); // reload ngầm
+      }
+    } catch(e) {
+      // Timeout/network error — bỏ qua, không crash
+      console.log('[CACHE BG] validate skip:', e.message);
+    }
+  }, 60000); // mỗi 60s
+}
+
+function _stopBgCacheWatcher() {
+  if (_bgCacheTimer) { clearInterval(_bgCacheTimer); _bgCacheTimer = null; }
+}
+
 function doLogout() {
-  localStorage.removeItem('pb_adm3');
-  localStorage.removeItem('pb_adm_code'); // xóa code khi đăng xuất (bảo mật)
-  // Giữ lại pb_gs_url để không phải nhập lại URL lần sau
-  clearInterval(_dtimer); clearInterval(_rtimer);
-  clearInterval(_liveTimer); clearInterval(_liveTimer2);
-  clearInterval(_resultsTimer); _resultsTimer = null;
-  _bkStopAutoPolling();
+  _stopBgCacheWatcher();
+  _silentClearCache('logout');
   location.reload();
+}
+
+// Xóa toàn bộ cache admin — dùng khi đăng nhập chậm hoặc lỗi cache
+function clearAllAdminCache() {
+  _silentClearCache('manual_user_clear');
+  const lerr = document.getElementById('lerr');
+  if (lerr) { lerr.style.color = '#4ade80'; lerr.textContent = '✅ Đã xóa cache · Đang tải lại...'; }
+  setTimeout(() => location.reload(), 600);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -3307,7 +3468,11 @@ function doLogout() {
 // ════════════════════════════════════════════════════════════════
 const _cache = {}; // { key: { ts, data, ver } }
 let   _cacheVer = 0; // Tăng mỗi khi invalidate matches → cache cũ tự vô hiệu
-const CACHE_TTL = 300000; // 300s (5 phút) — giảm số lần hit GAS; force refresh khi cần
+// v37: Cache thông minh — tự expire, tự clear khi stale
+const CACHE_TTL       = 60000;  // 60s — giảm từ 5p xuống 1p, stale data ít hơn
+const CACHE_LS_TTL    = 300000; // 5p — localStorage cache expire (matches, tournaments)
+const APP_BUILD       = 'v38_' + '20260604'; // Tăng mỗi lần deploy GAS mới → tự clear cache cũ
+const LS_BUILD_KEY    = 'pb_adm_build';
 
 function cacheGet(key) {
   const c = _cache[key];
@@ -3530,6 +3695,7 @@ async function prefetchAll() {
       // GAS sẽ overwrite _M ngay sau khi load → không stale lâu
       if (_M.length) {
         try { localStorage.setItem(_lsMKey, JSON.stringify(_M)); } catch(e) {}
+      _touchCacheTs(); // Update cache timestamp
       }
       // Lưu _R (KetQua rows) cho buildDkFromResults
       const cachedR2 = cacheGet('results_' + (ROLE==='manager'?MY_GIAI:''));
@@ -5080,26 +5246,32 @@ async function ndRefresh() {
 function _bkStartSyncPoll() {
   if (_bkGasPollTimer) clearInterval(_bkGasPollTimer);
   _bkGasPollTimer = setInterval(async () => {
-    if (!_bkGiai || !_bkNd || !GS || !CODE) return;
-    // v8: Dừng sync poll khi cây đã xóa — tránh re-render cây trống
+    if (!_bkGiai || !_bkNd || !GS) return;
     if (_bkIsEmpty) return;
-    // v7: Block poll trong 5s sau khi xóa cây
     if (_bkDeletedAt && Date.now() - _bkDeletedAt < 5000) return;
     try {
-      // v7: Poll nhẹ — chỉ lấy version timestamp, không kéo toàn bộ data
+      // v37: Poll nhẹ bằng GET bracketVersion — không cần adminCode
       const giaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
-      const vRes = await gPost({ action:'getBracketVersion', adminCode:CODE, giai:giaiName, nd:_bkNd });
-      if (vRes.ok && vRes.version && vRes.version > _bkLastVersion) {
-        console.log('[BK SYNC] Remote change detected (version', vRes.version, '>', _bkLastVersion, '), fetching...');
-        const before = JSON.stringify(_bkOverrides);
-        await _bkLoadOverridesFromGAS();
-        if (JSON.stringify(_bkOverrides) !== before) {
-          // v7 FIX: renderBracketPage không tồn tại → dùng _swapBkWrap + bkRender
-          await _swapBkWrap('nd-bk-wrap', () => Promise.resolve(bkRender()));
-        }
+      const url = new URL(GS);
+      url.searchParams.set('action', 'bracketVersion');
+      url.searchParams.set('giai', giaiName);
+      url.searchParams.set('nd', _bkNd);
+      url.searchParams.set('_t', Date.now());
+      const r = await fetch(url.toString(), { cache: 'no-store' });
+      const vRes = await r.json();
+      if (!vRes.ok) return;
+      const remoteVer = vRes.version || 0;
+      if (remoteVer <= _bkLastVersion) return;
+      console.log('[BK SYNC] GSheet BracketTree mới (v', remoteVer, '>', _bkLastVersion, ') — đang tải...');
+      // Có phiên bản mới → load cây từ GSheet
+      const loaded = await _bkLoadTreeFromSheet();
+      if (loaded) {
+        _bkCurrentTree = null; // force bkRender dùng tree mới từ GSheet
+        await _swapBkWrap('nd-bk-wrap', () => Promise.resolve(bkRender()));
+        toast('🔄 Cây thi đấu đã được cập nhật từ GSheet', 'in', 2500);
       }
     } catch(e) { console.warn('[BK SYNC] Poll error:', e); }
-  }, 5000); // v7: poll mỗi 5 giây (nhẹ vì chỉ check version)
+  }, 5000);
 }
 function _bkStopSyncPoll() {
   if (_bkGasPollTimer) { clearInterval(_bkGasPollTimer); _bkGasPollTimer = null; }
@@ -6365,15 +6537,18 @@ async function _ndBkRender() {
   }
 
   const ndChanged = (prevGiai !== _bkGiai || prevNd !== _bkNd);
-  if (ndChanged) _bkCurrentTree = null;
+  // v37: Không reset khi _bkApplied=true — cây đã khóa, chỉ resolve winners
+  if (ndChanged && !_bkApplied) _bkCurrentTree = null;
 
   _bkOverrides = _bkLoadOverrides();
   _bkSaveState();
-  // Load lại từ GAS sau 300ms (source of truth) để sync với admin khác
-  // v7 FIX: renderBracketPage không tồn tại → dùng _swapBkWrap + bkRender trực tiếp
+  // v37: Load cây từ GSheet BracketTree — single source of truth
+  // Render local trước (nhanh), sau đó sync từ GSheet
   setTimeout(async () => {
-    await _bkLoadOverridesFromGAS();
-    await _swapBkWrap('nd-bk-wrap', () => Promise.resolve(bkRender()));
+    const loaded = await _bkLoadTreeFromSheet();
+    if (loaded || _bkCurrentTree) {
+      await _swapBkWrap('nd-bk-wrap', () => Promise.resolve(bkRender()));
+    }
   }, 300);
 
   // Helper: vẽ cây vào ndWrap ngay lập tức
@@ -6644,6 +6819,14 @@ function renderBangList(giaiId, nd) {
       };
       return `<tr style="${live?'border-left:2px solid #ea580c;background:rgba(234,88,12,.04)':done?'background:rgba(34,197,94,.025)':''}">
         <td style="padding:6px 8px;white-space:nowrap;vertical-align:middle;text-align:center">${codeBadge}</td>
+        <td style="padding:6px 4px;vertical-align:middle;text-align:center">
+          ${(()=>{const v=String(m[11]||'').trim();if(!v)return'<span style="color:var(--bdr3);font-size:10px">—</span>';
+            const iso=v.match(/T(\d{2}):(\d{2})/);let fmt;
+            if(iso){const tm=parseInt(iso[1])*60+parseInt(iso[2])+420;fmt=Math.floor(tm/60)%24+':'+String(tm%60).padStart(2,'0');}
+            else{const hm=v.match(/^(\d{1,2}):(\d{2})/);fmt=hm?parseInt(hm[1])+':'+hm[2]:v;}
+            return`<span style="font-family:var(--mo);font-size:11px;font-weight:700;color:var(--or);background:rgba(245,158,11,.1);padding:2px 5px;border-radius:5px;white-space:nowrap">${esc(fmt)}</span>`;
+          })()}
+        </td>
         <td style="padding:6px 8px;vertical-align:middle;text-align:center">${teamCell(m[4],lA)}</td>
         <td style="padding:6px 3px;text-align:center;vertical-align:middle;width:26px">${cv(sA,scA)}</td>
         <td style="padding:6px 2px;text-align:center;width:8px;color:var(--bdr3);font-size:10px;vertical-align:middle">–</td>
@@ -6666,21 +6849,23 @@ function renderBangList(giaiId, nd) {
     }).join('');
 
     return `<div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;min-width:700px">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;min-width:760px">
         <colgroup>
-          <col style="width:62px">  <!-- mã -->
+          <col style="width:56px">  <!-- mã -->
+          <col style="width:52px">  <!-- giờ -->
           <col>                      <!-- đội A -->
           <col style="width:28px">   <!-- A -->
           <col style="width:10px">   <!-- – -->
           <col style="width:28px">   <!-- B -->
           <col>                      <!-- đội B -->
           <col style="width:90px">   <!-- trạng thái -->
-          <col style="width:65px">   <!-- sân -->
-          <col style="width:80px">   <!-- trọng tài -->
-          <col style="width:72px">   <!-- sửa -->
+          <col style="width:56px">   <!-- sân -->
+          <col style="width:72px">   <!-- trọng tài -->
+          <col style="width:62px">   <!-- sửa -->
         </colgroup>
         <thead><tr style="background:var(--bg3)">
           <th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.05em;text-align:center">Mã</th>
+          <th style="padding:5px 4px;font-size:9px;font-weight:700;color:var(--or);text-align:center">⏱ Giờ</th>
           <th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--tx3);text-align:center">Đội A</th>
           <th style="padding:5px 3px;font-size:9px;font-weight:700;color:var(--tx3);text-align:center">A</th>
           <th></th>
@@ -6721,6 +6906,7 @@ function renderBangList(giaiId, nd) {
         <span style="font-size:10px;color:var(--tx3);width:24px;text-align:right">${p}%</span>
         <div onclick="event.stopPropagation()" style="display:flex;gap:2px">
           <button class="btn bsm" style="padding:2px 7px;font-size:10px;background:rgba(14,165,233,.08);color:var(--ac2);border:1px solid rgba(14,165,233,.15)" onclick="openEditBangMo('${esc(giaiId)}','${esc(nd)}','${esc(bang)}')">✏️</button>
+          <button class="btn bsm" style="padding:2px 7px;font-size:10px;background:rgba(245,158,11,.08);color:var(--or);border:1px solid rgba(245,158,11,.2)" onclick="openScheduleTimeMo('${esc(giaiId)}','${esc(nd)}','${esc(bang)}')">⏱</button>
           <button class="btn bp bsm" style="padding:2px 7px;font-size:10px" onclick="openAddBangMo('${esc(bang)}')">＋</button>
           <button class="btn bsm" style="padding:2px 7px;font-size:10px;background:rgba(239,68,68,.08);color:${RD};border:1px solid rgba(239,68,68,.15)" onclick="confirmDeleteBang('${esc(giaiId)}','${esc(nd)}','${esc(bang)}')">🗑</button>
         </div>
@@ -7177,6 +7363,17 @@ async function openEditMatchMo(giaiId, nd, bang, code) {
   // Dữ liệu hiện tại
   const curCourt = String(m[8]||'');
   const curRef   = String(m[10]||'');  // trọng tài: cột 10 (Ghi chú/referee)
+  // giờ thi đấu: parse ISO "1899-12-30T01:08:30.000Z" → "08:15" cho input type=time
+  const _parseTime=(v)=>{
+    if(!v)return'';
+    // ISO còn sót (data cũ): cộng 7h về giờ VN
+    const iso=(v+'').match(/T(\d{2}):(\d{2})/);
+    if(iso){const tm=parseInt(iso[1])*60+parseInt(iso[2])+420;const h=Math.floor(tm/60)%24,mi=tm%60;return String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0');}
+    // HH:MM thường
+    const hm=(v+'').match(/^(\d{1,2}):(\d{2})/);if(hm)return String(parseInt(hm[1])).padStart(2,'0')+':'+hm[2];
+    return '';
+  };
+  const curTime  = _parseTime(String(m[11]||''));
   // ── Đọc tỉ số trực tiếp từ Matches sheet (m[5]/m[6]) ──
   const curSA = (m[5]!==''&&m[5]!==null&&m[5]!==undefined) ? String(m[5]) : '';
   const curSB = (m[6]!==''&&m[6]!==null&&m[6]!==undefined) ? String(m[6]) : '';
@@ -7303,6 +7500,22 @@ async function openEditMatchMo(giaiId, nd, bang, code) {
       <!-- Sân & TT section -->
       <div style="background:var(--bg3);border-radius:10px;padding:14px">
         <div style="font-size:10px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">🏟 Sân & Trọng tài</div>
+        <!-- Giờ thi đấu -->
+        <div style="margin-bottom:12px">
+          <label style="font-size:10px;font-weight:700;color:var(--or);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">⏱ Giờ thi đấu</label>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <input id="em-time" type="time" value="${curTime}"
+              style="background:var(--bg2);border:1.5px solid rgba(245,158,11,.35);border-radius:8px;padding:6px 10px;font-size:14px;font-weight:700;color:var(--or);font-family:var(--mo);width:130px;outline:none;appearance:auto">
+            <button onclick="document.getElementById('em-time').value=''"
+              style="font-size:10px;color:var(--tx3);background:var(--bg2);border:1px solid var(--bdr);border-radius:5px;padding:4px 9px;cursor:pointer">✕ Xóa</button>
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
+              ${['07:00','07:30','08:00','08:30','09:00','09:30'].map(t=>
+                `<button onclick="document.getElementById('em-time').value='${t}'"
+                  style="font-size:10px;color:${curTime===t?'var(--or)':'var(--tx3)'};background:${curTime===t?'rgba(245,158,11,.12)':'var(--bg2)'};border:1px solid ${curTime===t?'rgba(245,158,11,.3)':'var(--bdr)'};border-radius:5px;padding:3px 7px;cursor:pointer;font-family:var(--mo)">${t}</button>`
+              ).join('')}
+            </div>
+          </div>
+        </div>
         <div style="margin-bottom:12px">
             <label style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:8px">🏟 Sân thi đấu</label>
             ${buildCourtPills(courts, curCourt, 'em-court')}
@@ -7357,6 +7570,7 @@ async function saveEditMatch(giaiId, nd, bang, code) {
   const tb    = (document.getElementById('em-tb')?.value||'').trim();
   const court = (document.getElementById('em-court')?.value||'').trim();
   const ref   = (document.getElementById('em-ref')?.value||'').trim(); // comma-separated multi-ref
+  const time  = (document.getElementById('em-time')?.value||'').trim(); // giờ thi đấu HH:MM
   const saRaw = document.getElementById('em-sa')?.value;
   const sbRaw = document.getElementById('em-sb')?.value;
   const done  = document.getElementById('em-done')?.checked;
@@ -7380,7 +7594,7 @@ async function saveEditMatch(giaiId, nd, bang, code) {
   if (court) newRow[8] = court;
 
   // ── TỈ SỐ: Ghi vào Matches[5]/[6] — nguồn chính ──
-  // Matches HDR: [0]Giải [1]ND [2]Bảng [3]Mã [4]ĐộiA [5]ĐiểmA [6]ĐiểmB [7]ĐộiB [8]Sân [9]VòngĐấu [10]GhiChú
+  // Matches HDR: [0]Giải [1]ND [2]Bảng [3]Mã [4]ĐộiA [5]ĐiểmA [6]ĐiểmB [7]ĐộiB [8]Sân [9]VòngĐấu [10]GhiChú [11]ThoiGian
   if (saRaw!=='' && sbRaw!=='') {
     newRow[5] = Number(saRaw);   // Điểm A → Matches col 5
     newRow[6] = Number(sbRaw);   // Điểm B → Matches col 6
@@ -7391,6 +7605,8 @@ async function saveEditMatch(giaiId, nd, bang, code) {
 
   // Trọng tài → Matches col 10 (Ghi chú / referee)
   newRow[10] = ref || note || '';
+  // Giờ thi đấu → Matches col 11
+  newRow[11] = time;
 
   toast('⏳ Đang lưu...','in');
   let d = await gPost({action:'updateMatch',adminCode:CODE,
@@ -7469,6 +7685,157 @@ async function saveEditMatch(giaiId, nd, bang, code) {
 }
 
 
+// ── Phân giờ thi đấu hàng loạt cho cả bảng ──
+async function openScheduleTimeMo(giaiId, nd, bang) {
+  const gName = String((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||'');
+  const ms = _M.filter(m=>{
+    const v=String(m[0]||'');
+    return (v===giaiId||v===gName)&&String(m[1]||'')===nd&&String(m[2]||'')===bang;
+  }).sort((a,b)=>String(a[3]||'').localeCompare(String(b[3]||''),undefined,{numeric:true,sensitivity:'base'}));
+
+  if (!ms.length) { toast('Không có trận nào trong bảng','er'); return; }
+
+  // Tìm giờ bắt đầu hiện tại (lấy từ trận đầu nếu có)
+  const firstTime = String(ms[0][11]||'') || '08:00';
+
+  const ovl = document.createElement('div');
+  ovl.id = 'sched-time-overlay';
+  ovl.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9100;display:flex;align-items:center;justify-content:center;padding:12px';
+  ovl.onclick = e=>{ if(e.target===ovl) ovl.remove(); };
+
+  // Tạo preview rows
+  const previewRows = ms.map((m,i)=>`
+    <tr id="strow_${i}">
+      <td style="padding:5px 8px;font-family:var(--mo);font-weight:800;font-size:12px;color:var(--ac)">${esc(String(m[3]||''))}</td>
+      <td style="padding:5px 8px;font-size:12px;color:var(--tx2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(String(m[4]||''))} vs ${esc(String(m[7]||''))}</td>
+      <td style="padding:5px 8px;text-align:center">
+        <input type="time" id="st_time_${i}" value="${String(m[11]||'')}"
+          style="background:var(--bg2);border:1.5px solid rgba(245,158,11,.35);border-radius:7px;padding:4px 8px;font-size:13px;font-weight:700;color:var(--or);font-family:var(--mo);width:108px;outline:none">
+      </td>
+    </tr>`).join('');
+
+  ovl.innerHTML = `
+  <div style="background:var(--bg2);border:1px solid var(--bdr2);border-radius:14px;width:min(600px,100%);
+              box-shadow:0 20px 60px rgba(0,0,0,.55);display:flex;flex-direction:column;max-height:90vh">
+    <!-- Header -->
+    <div style="padding:16px 20px;border-bottom:1px solid var(--bdr);border-radius:14px 14px 0 0;flex-shrink:0">
+      <div style="font-size:15px;font-weight:800">⏱ Phân giờ thi đấu — <span style="color:var(--ac)">${esc(bang)}</span></div>
+      <div style="font-size:11px;color:var(--tx3);margin-top:3px">${ms.length} trận · Chọn giờ bắt đầu và bước nhảy, rồi nhấn <b>Tự động phân</b></div>
+    </div>
+
+    <!-- Quick assign panel -->
+    <div style="padding:14px 20px;border-bottom:1px solid var(--bdr);background:rgba(245,158,11,.04);flex-shrink:0">
+      <div style="font-size:11px;font-weight:800;color:var(--or);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">⚡ Phân tự động</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--tx3);display:block;margin-bottom:4px">Giờ bắt đầu</label>
+          <input id="st-start" type="time" value="${firstTime}"
+            style="background:var(--bg3);border:1.5px solid rgba(245,158,11,.3);border-radius:8px;padding:6px 10px;font-size:15px;font-weight:800;color:var(--or);font-family:var(--mo);outline:none">
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--tx3);display:block;margin-bottom:4px">Bước nhảy (phút)</label>
+          <div style="display:flex;gap:4px">
+            ${[15,20,30,45,60].map(v=>
+              `<button data-slot="${v}" onclick="_stSelectSlot(this)"
+                style="padding:5px 10px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid;transition:all .12s;
+                       background:${v===15?'rgba(245,158,11,.15)':'var(--bg3)'};color:${v===15?'var(--or)':'var(--tx3)'};border-color:${v===15?'rgba(245,158,11,.4)':'var(--bdr)'};font-family:var(--mo)"
+                id="st-slot-${v}">${v}'</button>`
+            ).join('')}
+          </div>
+          <input type="hidden" id="st-slot-val" value="15">
+        </div>
+        <button onclick="_stAutoApply(${ms.length})"
+          style="margin-top:16px;padding:8px 18px;background:linear-gradient(135deg,rgba(245,158,11,.6),rgba(245,158,11,.9));color:#000;font-weight:800;font-size:13px;border:none;border-radius:8px;cursor:pointer">
+          ⚡ Tự động phân
+        </button>
+      </div>
+    </div>
+
+    <!-- Bảng chỉnh thủ công -->
+    <div style="overflow-y:auto;flex:1;padding:10px 20px">
+      <div style="font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">📋 Chỉnh thủ công từng trận</div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:var(--bg3)">
+          <th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--tx3);text-align:left">Mã</th>
+          <th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--tx3);text-align:left">Trận</th>
+          <th style="padding:5px 8px;font-size:9px;font-weight:700;color:var(--or);text-align:center">⏱ Giờ</th>
+        </tr></thead>
+        <tbody>${previewRows}</tbody>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="display:flex;gap:8px;padding:14px 20px;border-top:1px solid var(--bdr);justify-content:flex-end;border-radius:0 0 14px 14px;background:var(--bg2);flex-shrink:0">
+      <button onclick="document.getElementById('sched-time-overlay').remove()"
+        style="padding:8px 16px;background:var(--bg3);border:1px solid var(--bdr);border-radius:8px;color:var(--tx2);font-size:13px;cursor:pointer">Hủy</button>
+      <button onclick="_stSaveAll('${esc(giaiId)}','${esc(nd)}','${esc(bang)}',${ms.length})"
+        style="padding:8px 18px;background:linear-gradient(135deg,var(--ac3),var(--ac));color:#fff;font-weight:800;font-size:13px;border:none;border-radius:8px;cursor:pointer">
+        💾 Lưu tất cả giờ
+      </button>
+    </div>
+  </div>`;
+
+  document.body.appendChild(ovl);
+}
+
+function _stSelectSlot(btn) {
+  document.querySelectorAll('[id^="st-slot-"]').forEach(b=>{
+    b.style.background='var(--bg3)'; b.style.color='var(--tx3)'; b.style.borderColor='var(--bdr)';
+  });
+  btn.style.background='rgba(245,158,11,.15)'; btn.style.color='var(--or)'; btn.style.borderColor='rgba(245,158,11,.4)';
+  document.getElementById('st-slot-val').value = btn.dataset.slot;
+}
+
+function _stAutoApply(count) {
+  const start = document.getElementById('st-start')?.value;
+  const slot  = parseInt(document.getElementById('st-slot-val')?.value||'15');
+  if (!start) { toast('Chọn giờ bắt đầu','er'); return; }
+  const [hh,mm] = start.split(':').map(Number);
+  let totalMin = hh*60+mm;
+  for (let i=0; i<count; i++) {
+    const h=String(Math.floor(totalMin/60)%24).padStart(2,'0');
+    const m=String(totalMin%60).padStart(2,'0');
+    const el=document.getElementById(`st_time_${i}`);
+    if (el) el.value=`${h}:${m}`;
+    totalMin+=slot;
+  }
+}
+
+async function _stSaveAll(giaiId, nd, bang, count) {
+  const gName = String((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||'');
+  const ms = _M.filter(m=>{
+    const v=String(m[0]||'');
+    return (v===giaiId||v===gName)&&String(m[1]||'')===nd&&String(m[2]||'')===bang;
+  }).sort((a,b)=>String(a[3]||'').localeCompare(String(b[3]||''),undefined,{numeric:true,sensitivity:'base'}));
+
+  const updates = [];
+  for (let i=0; i<count; i++) {
+    const timeVal = (document.getElementById(`st_time_${i}`)?.value||'').trim();
+    const m = ms[i]; if (!m) continue;
+    const newRow = [...m];
+    newRow[11] = timeVal;
+    // Cập nhật local cache
+    const mIdx = _M.indexOf(m);
+    if (mIdx>=0) _M[mIdx] = newRow;
+    updates.push({ bang: String(m[2]||''), code: String(m[3]||''), row: newRow });
+  }
+
+  document.getElementById('sched-time-overlay')?.remove();
+  toast(`⏳ Đang lưu giờ cho ${updates.length} trận...`,'in');
+
+  try {
+    await Promise.all(updates.map(u=>
+      gPost({action:'updateMatch',adminCode:CODE,
+             giai:gName||giaiId,giaiName:gName||giaiId,
+             bang:u.bang,code:u.code,row:u.row})
+    ));
+    toast(`✅ Đã lưu giờ thi đấu cho ${updates.length} trận`,'ok');
+    renderBangList(giaiId, nd);
+  } catch(e) {
+    toast('❌ Lỗi lưu giờ: '+e.message,'er');
+  }
+}
+
 // ── Sửa bảng đấu ──
 
 // ── Shared: pill-style court selector (single) ──
@@ -7520,7 +7887,7 @@ function buildRefPills(refsList, currentRefsStr, inputId) {
     if (!name) return '';
     const sel = currentRefs.has(name);
     return `<button type="button" onclick="_toggleRef(this,'${inputId}')"
-      data-val="${name}"
+      data-val="${name}" data-sel="${sel?'1':'0'}"
       style="padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid;white-space:nowrap;transition:all .15s;
              background:${sel?'#16a34a':'var(--bg2)'};color:${sel?'#fff':'var(--tx2)'};border-color:${sel?'#16a34a':'var(--bdr)'}">
       ${sel?'✓ ':''}${name}
@@ -7533,19 +7900,21 @@ function buildRefPills(refsList, currentRefsStr, inputId) {
   <div style="font-size:10px;color:var(--tx4);margin-top:6px">Có thể chọn nhiều trọng tài • chọn lại để bỏ chọn</div>`;
 }
 function _toggleRef(btn, inputId) {
-  const sel = btn.style.background === 'rgb(22, 163, 74)' || btn.getAttribute('data-sel')==='1';
+  const sel = btn.getAttribute('data-sel') === '1';
   const newSel = !sel;
   btn.setAttribute('data-sel', newSel ? '1' : '0');
   btn.style.background = newSel ? '#16a34a' : 'var(--bg2)';
   btn.style.color = newSel ? '#fff' : 'var(--tx2)';
   btn.style.borderColor = newSel ? '#16a34a' : 'var(--bdr)';
   btn.textContent = (newSel ? '✓ ' : '') + btn.dataset.val;
-  // Rebuild hidden input value from all selected buttons
+  // Rebuild hidden input từ data-sel (không dùng background color — unreliable với CSS vars)
   const container = document.getElementById(inputId + '-pills');
+  if (!container) return;
   const selected = [...container.querySelectorAll('button[data-val]')]
-    .filter(b => b.getAttribute('data-sel')==='1' || b.style.background==='rgb(22, 163, 74)')
+    .filter(b => b.getAttribute('data-sel') === '1')
     .map(b => b.dataset.val);
-  document.getElementById(inputId).value = selected.join(',');
+  const inp = document.getElementById(inputId);
+  if (inp) inp.value = selected.join(',');
 }
 
 async function openEditBangMo(giaiId, nd, bang) {
@@ -7765,48 +8134,47 @@ async function confirmDeleteAllBangs() {
 
   if (!matches.length) { toast('Nội dung này chưa có bảng đấu nào', 'er'); return; }
 
-  if (!confirm(
-    `Xóa toàn bộ bảng đấu của nội dung "${nd}"?
+  // FIX: double-tap thay confirm() bị browser block
+  const _delNdKey = 'pb_del_nd_' + giaiId + '_' + nd;
+  if (sessionStorage.getItem(_delNdKey) !== '1') {
+    sessionStorage.setItem(_delNdKey, '1');
+    setTimeout(() => { try { sessionStorage.removeItem(_delNdKey); } catch(e){} }, 6000);
+    toast(`⚠️ Nhấn 🗑 Xóa tất cả lần nữa để xác nhận xóa ${bangs.length} bảng / ${matches.length} trận (không hoàn tác)`, 'er', 5000);
+    return;
+  }
+  sessionStorage.removeItem(_delNdKey);
 
-` +
-    `• ${bangs.length} bảng: ${bangs.join(', ')}
-` +
-    `• ${matches.length} trận đấu
-
-` +
-    `Hành động này KHÔNG THỂ hoàn tác!`
-  )) return;
-
-  showProg(`Đang xóa ${bangs.length} bảng / ${matches.length} trận...`, 'Chuẩn bị...', 1);
+  showProg(`Đang xóa ${bangs.length} bảng / ${matches.length} trận...`, 'Đang gửi 1 request...', matches.length);
 
   let totalDeleted = 0, totalFailed = 0;
 
-  // Xóa từng bảng tuần tự (tránh timeout GAS)
-  for (let bi = 0; bi < bangs.length; bi++) {
-    const bang = bangs[bi];
-    updateProg(bi, bangs.length, totalDeleted, 0, totalFailed);
-    document.getElementById('prog-sub').textContent = `Đang xóa bảng ${bang} (${bi+1}/${bangs.length})...`;
-
-    try {
-      const d = await gPost({
-        action: 'deleteBang', adminCode: CODE,
-        giai: giaiName, giaiId, nd, bang
-      });
-      if (d?.ok) {
-        totalDeleted += d.deleted || 0;
-      } else {
-        // Fallback: xóa song song từng trận
-        const bangMatches = matches.filter(m => String(m[2]||'')===bang);
-        const results = await Promise.allSettled(
-          bangMatches.map(m => gPost({ action:'deleteMatch', adminCode:CODE,
-            giai:String(m[0]||''), giaiName, nd, bang, code:String(m[3]||'') })) // FIX v3: thêm nd
-        );
-        totalDeleted += results.filter(r=>r.status==='fulfilled'&&r.value?.ok).length;
-        totalFailed  += results.filter(r=>r.status!=='fulfilled'||!r.value?.ok).length;
+  // v71 FIX: 1 request duy nhất thay vì N requests tuần tự — nhanh gấp N lần
+  try {
+    updateProg(0, matches.length, 0, 0, 0);
+    document.getElementById('prog-sub').textContent = `Đang xóa ${bangs.length} bảng / ${matches.length} trận...`;
+    const d = await gPost({
+      action: 'deleteAllBangs', adminCode: CODE,
+      giai: giaiName, giaiId, nd
+    }, 60000); // timeout 60s cho nhiều bảng lớn
+    if (d?.ok) {
+      totalDeleted = d.deleted || matches.length;
+      updateProg(matches.length, matches.length, totalDeleted, 0, 0);
+    } else {
+      // Fallback: xóa từng bảng tuần tự nếu GAS cũ
+      console.warn('[deleteAllBangs] fallback tuần tự:', d?.reason);
+      for (let bi = 0; bi < bangs.length; bi++) {
+        const bang = bangs[bi];
+        updateProg(bi, bangs.length, totalDeleted, 0, totalFailed);
+        document.getElementById('prog-sub').textContent = `Đang xóa bảng ${bang} (${bi+1}/${bangs.length})...`;
+        try {
+          const d2 = await gPost({ action:'deleteBang', adminCode:CODE, giai:giaiName, giaiId, nd, bang });
+          if (d2?.ok) totalDeleted += d2.deleted || 0; else totalFailed++;
+        } catch(e) { totalFailed++; }
       }
-    } catch(e) {
-      totalFailed++;
     }
+  } catch(e) {
+    totalFailed = bangs.length;
+    console.error('[deleteAllBangs] error:', e);
   }
 
   // Xóa khỏi _M local cache
@@ -8192,7 +8560,8 @@ async function importMultiBang(bangMap, bangOrder, courtOverride) {
 
   try {
     // Gửi TOÀN BỘ 1 request duy nhất — nhanh gấp N lần, không race condition
-    var d = await gPost({action:'addMatchesBatch', adminCode:CODE, rows:allRows});
+    // v70 FIX: upsert=true → GAS xóa từng bảng cũ trước khi tạo lại (tránh dedup skip)
+    var d = await gPost({action:'addMatchesBatch', adminCode:CODE, rows:allRows, upsert:true});
     if (d && d.ok !== false) {
       var added   = d.added   || total;
       var skipped = d.skipped || 0;
@@ -8298,12 +8667,13 @@ async function saveBang() {
   closeMo('mo-bang');
   showProg('Đang gửi ' + total + ' trận lên GSheets...', 'Đang xử lý batch...', total);
   try {
-    var d = await gPost({action:'addMatchesBatch', adminCode:CODE, rows:_bangRows});
+    // v70 FIX: upsert=true → GAS xóa bảng cũ trước khi tạo lại
+    // Tránh dedup skip khi admin thêm/đổi đội rồi tạo lại bảng
+    var d = await gPost({action:'addMatchesBatch', adminCode:CODE, rows:_bangRows, upsert:true});
     if (d && d.ok !== false) {
       updateProg(total, total, d.added||total, d.skipped||0, 0);
       doneProg(d.added||total, d.skipped||0, 0);
     } else {
-      // Fallback tuần tự nếu GAS cũ
       var added2=0, skipped2=0, failed2=0;
       for (var ri=0; ri<_bangRows.length; ri++) {
         try {
@@ -9181,6 +9551,13 @@ function _bkBuildTree(seeds, bangs, koMatches, bangDone) {
     if (ov) {
       const ovName = side === 'A' ? ov.teamA : ov.teamB;
       if (ovName) return ovName;
+      // FIX v73: seedCode lưu khi bảng chưa xong → ov.teamA rỗng.
+      // Sau khi bảng hoàn thành, re-resolve seedCode để lấy tên thực tế.
+      const sc = side === 'A' ? ov.seedCodeA : ov.seedCodeB;
+      if (sc) {
+        const r = _bkLookupSeedCode(sc);
+        if (r && r.team) return r.team;
+      }
     }
     const sheetM = koByCode[code];
     return sheetM ? String(side === 'A' ? sheetM[4]||'' : sheetM[7]||'') : '';
@@ -9219,6 +9596,10 @@ function _bkBuildTree(seeds, bangs, koMatches, bangDone) {
       // Rule BYE (mặc định): auto-advance
       if (bye.byeA && !ov.byeAOverridden) return _resolvedTeam(code, 'B') || '';
       if (bye.byeB && !ov.byeBOverridden) return _resolvedTeam(code, 'A') || '';
+      // FIX v73: BYE slot đã được gán đội thực (byeAOverridden/byeBOverridden) →
+      // đội được gán tự động advance vào vòng sau (họ không có đối thủ thực).
+      if (bye.byeA && ov.byeAOverridden) return _resolvedTeam(code, 'A') || '';
+      if (bye.byeB && ov.byeBOverridden) return _resolvedTeam(code, 'B') || '';
     }
     return '';
   };
@@ -9281,9 +9662,14 @@ function _bkBuildTree(seeds, bangs, koMatches, bangDone) {
     const nM = cap / Math.pow(2, r + 1);
     const pfx = prefix(fromFin, nM);
     const matches = [];
+    // Zero-pad index để sort alphabetically = sort numerically (tránh V321 < V3210 < V322)
+    // VD: nM=16 → 2 chữ số → V3201..V3216 (sort đúng thứ tự)
+    const padLen = nM > 9 ? String(nM).length : 0; // chỉ pad khi nM >= 10
 
     for (let i = 0; i < nM; i++) {
-      const code = nM === 1 ? pfx : pfx + (i + 1);
+      const idx = i + 1;
+      const idxStr = padLen > 0 ? String(idx).padStart(padLen, '0') : String(idx);
+      const code = nM === 1 ? pfx : pfx + idxStr;
       if (r === 0) {
         // First round — đặt seeds vào slots từ slotMap
         const slotT = i * 2 + 1, slotB = i * 2 + 2;
@@ -9317,10 +9703,13 @@ function _bkBuildTree(seeds, bangs, koMatches, bangDone) {
           if (ovByeChanged) { _bkOverrides[code] = ovBye; }
         }
       } else {
-        // Later rounds
-        const prevPfx = prefix(fromFin + 1, nM * 2);
-        const codeA = nM * 2 === 1 ? prevPfx : prevPfx + (i * 2 + 1);
-        const codeB = nM * 2 === 1 ? prevPfx : prevPfx + (i * 2 + 2);
+        // Later rounds — tham chiếu đến mã trận vòng trước (cũng cần zero-pad nếu nM*2 >= 10)
+        const prevNM = nM * 2;
+        const prevPfx = prefix(fromFin + 1, prevNM);
+        const prevPadLen = prevNM > 9 ? String(prevNM).length : 0;
+        const prevIdx = (slot) => prevPadLen > 0 ? String(slot).padStart(prevPadLen, '0') : String(slot);
+        const codeA = prevNM === 1 ? prevPfx : prevPfx + prevIdx(i * 2 + 1);
+        const codeB = prevNM === 1 ? prevPfx : prevPfx + prevIdx(i * 2 + 2);
         matches.push({
           code, fromFin,
           seedA: `Thắng ${codeA}`, seedB: `Thắng ${codeB}`,
@@ -9359,21 +9748,28 @@ function _bkApplyOverrides(tree) {
     round.matches.forEach(m => {
       const ov = _bkOverrides[m.code];
       if (!ov) return;
-      if (ov.teamA !== undefined) m.teamA = ov.teamA;
-      if (ov.teamB !== undefined) m.teamB = ov.teamB;
+      // FIX v73: Nếu seedCode có nhưng teamA rỗng (bảng chưa xong lúc lưu override),
+      // re-resolve seedCode → tên thực tế ngay bây giờ (sau khi bảng đã xong).
+      const _resSC = (sc, curTeam) => {
+        if (!sc || curTeam) return curTeam;
+        const r = _bkLookupSeedCode(sc);
+        return (r && r.team) ? r.team : curTeam;
+      };
+      if (ov.teamA !== undefined) m.teamA = _resSC(ov.seedCodeA, ov.teamA);
+      if (ov.teamB !== undefined) m.teamB = _resSC(ov.seedCodeB, ov.teamB);
       // BYE bị thay bằng đội thực → xóa flag isBye để render bình thường
       if (ov.byeAOverridden) { m.isByeA = false; }
       if (ov.byeBOverridden) { m.isByeB = false; }
       // v8: Admin chủ động gán BYE cho 1 slot → set isBye flag + cập nhật seedA label thành "BYE"
       if (ov.isByeA === true && !ov.byeAOverridden) { m.isByeA = true; m.teamA = ''; m.seedA = 'BYE'; }
       if (ov.isByeB === true && !ov.byeBOverridden) { m.isByeB = true; m.teamB = ''; m.seedB = 'BYE'; }
-      // Cập nhật seed label để pill hiển thị đúng:
-      // - Có seedCode (ví dụ "1A", "2B") → dùng mã đó
-      // - Không có seedCode nhưng có teamA (nhập tên trực tiếp) → xóa seed label (pill hiện p-num)
+      // FIX v73b: seedCode tồn tại → slot không phải BYE (kể cả khi byeAOverridden=false)
+      if (ov.seedCodeA && !ov.isByeA) { m.isByeA = false; }
+      if (ov.seedCodeB && !ov.isByeB) { m.isByeB = false; }
+      // Cập nhật seed label để pill hiển thị đúng
       if (ov.seedCodeA) {
         m.seedA = _bkSeedCodeToLabel(ov.seedCodeA) || m.seedA;
       } else if (ov.teamA !== undefined && !ov.isByeA) {
-        // Nhập tên trực tiếp → bỏ seed label gốc, pill chỉ hiện màu neutral
         m.seedA = '';
       }
       if (ov.seedCodeB) {
@@ -9404,9 +9800,10 @@ function _bkKey() {
 }
 // ── Bracket Overrides: đồng bộ qua GAS (PropertiesService) ──────────────────
 // localStorage chỉ dùng làm cache tạm để UI nhanh, GAS là source of truth
-let _bkOvSaveTimer  = null; // debounce save
-let _bkGasPollTimer = null; // auto-poll GAS bracket overrides (sync giữa các admin)
-let _bkLastVersion  = 0;    // v7: timestamp version từ GAS — chỉ fetch full khi có thay đổi
+let _bkOvSaveTimer   = null;
+let _bkGasPollTimer  = null;
+let _bkLastVersion   = 0;    // version từ GAS BracketTree — chỉ fetch khi thay đổi
+let _bkTreeSaveTimer = null; // debounce save tree lên GSheet
 let _bkDeletedAt    = 0;    // v7: timestamp khi vừa xóa cây — block mọi auto-render trong 5s
 let _bkIsEmpty      = false; // v7: true = cây đã bị xóa, bkRender hiện trống thay vì rebuild từ seeding
 
@@ -9438,28 +9835,85 @@ function _bkLoadOverrides() {
   try { return JSON.parse(localStorage.getItem(_bkKey())||'{}'); } catch(e){ return {}; }
 }
 
-async function _bkLoadOverridesFromGAS() {
-  // Load từ GAS — gọi sau khi render xong để sync
-  if (!_bkGiai || !_bkNd || !GS || !CODE) return;
+// ── GSheet BracketTree sync — v37: single source of truth ──
+
+// Load cây từ GSheet BracketTree (GET, không cần auth POST)
+async function _bkLoadTreeFromSheet() {
+  if (!_bkGiai || !_bkNd || !GS) return false;
   try {
     const giaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
-    const d = await gPost({ action:'getBracketOverrides', adminCode:CODE, giai:giaiName, nd:_bkNd });
-    if (d.ok && d.overrides) {
-      const gasOv = d.overrides;
-      // Merge: GAS là source of truth, ghi đè localStorage
-      _bkOverrides = gasOv;
-      try { localStorage.setItem(_bkKey(), JSON.stringify(_bkOverrides)); } catch(e){}
-      // v7: cập nhật version để poll nhẹ không fetch lại ngay sau khi vừa load
-      if (d.version) _bkLastVersion = d.version;
-      console.log('[BK SYNC] Loaded', Object.keys(gasOv).length, 'overrides from GAS, version:', _bkLastVersion);
+    const url = new URL(GS);
+    url.searchParams.set('action', 'bracketTree');
+    url.searchParams.set('giai', giaiName);
+    url.searchParams.set('nd', _bkNd);
+    url.searchParams.set('_t', Date.now());
+    const r = await fetch(url.toString(), { cache: 'no-store' });
+    const d = await r.json();
+    if (d.ok && d.tree && d.version) {
+      if (d.version <= _bkLastVersion) return false; // không có gì mới
+      _bkCurrentTree = d.tree;
+      _bkApplied = true; // v37: Loaded từ GSheet → cây đã Apply, khóa lại
+      if (d.tree._overrides) {
+        _bkOverrides = d.tree._overrides;
+        try { localStorage.setItem(_bkKey(), JSON.stringify(_bkOverrides)); } catch(ex){}
+      }
+      if (d.tree._byeRule) _bkByeRule = d.tree._byeRule;
+      _bkLastVersion = d.version;
+      console.log('[BK TREE] Loaded from GSheet v', d.version, '— rounds:', _bkCurrentTree?.rounds?.length, '(LOCKED)');
+      return true;
     }
-  } catch(e) { console.warn('[BK SYNC] Load failed:', e); }
+    return false;
+  } catch(e) { console.warn('[BK TREE] Load error:', e); return false; }
+}
+
+// Lưu cây lên GSheet BracketTree (POST)
+async function _bkSaveTreeToSheet() {
+  if (!_bkGiai || !_bkNd || !GS || !CODE) {
+    console.warn('[BK TREE] Skip save — missing giai/nd/GS/CODE:', {_bkGiai, _bkNd, hasGS:!!GS, hasCode:!!CODE});
+    return;
+  }
+  if (!_bkCurrentTree) {
+    console.warn('[BK TREE] Skip save — _bkCurrentTree is null/undefined');
+    return;
+  }
+  const rounds = _bkCurrentTree?.rounds;
+  if (!rounds || !rounds.length) {
+    console.warn('[BK TREE] Skip save — tree has no rounds');
+    return;
+  }
+  try {
+    const giaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
+    const treeToSave = {
+      ..._bkCurrentTree,
+      _overrides: _bkOverrides,
+      _byeRule:   _bkByeRule,
+      _savedAt:   Date.now(),
+    };
+    const totalMatches = rounds.reduce((s, r) => s + (r.matches?.length || 0), 0);
+    console.log('[BK TREE] Saving tree:', giaiName, _bkNd, '— rounds:', rounds.length, 'matches:', totalMatches);
+    const d = await gPost({ action:'saveBracketTree', adminCode:CODE, giai:giaiName, nd:_bkNd, tree:treeToSave });
+    if (d.ok) {
+      _bkLastVersion = d.version || Date.now();
+      console.log('[BK TREE] ✓ Saved to GSheet v', _bkLastVersion, '— saved matches:', d.saved);
+      toast('☁️ Cây thi đấu đã đồng bộ GSheet (' + totalMatches + ' trận)', 'ok', 2500);
+    } else {
+      console.error('[BK TREE] ✗ Save failed:', d.reason || d);
+      toast('⚠️ Chưa đồng bộ cây lên GSheet: ' + (d.reason || 'lỗi không rõ'), 'er', 4000);
+    }
+  } catch(e) {
+    console.error('[BK TREE] Save error:', e);
+    toast('⚠️ Lỗi đồng bộ cây: ' + (e.message || e), 'er', 4000);
+  }
+}
+
+// Debounce lưu overrides + push tree lên GSheet
+async function _bkLoadOverridesFromGAS() {
+  // Giờ load từ GSheet tree (đã embed overrides)
+  await _bkLoadTreeFromSheet();
 }
 
 function _bkSaveOverrides() {
-  // 1. Lưu localStorage ngay (UI instant)
   try { localStorage.setItem(_bkKey(), JSON.stringify(_bkOverrides)); } catch(e){}
-  // 2. Debounce push lên GAS (tránh spam request khi kéo thả liên tục)
   if (_bkOvSaveTimer) clearTimeout(_bkOvSaveTimer);
   _bkOvSaveTimer = setTimeout(() => _bkPushOverridesToGAS(), 800);
 }
@@ -9571,16 +10025,31 @@ function bkRender() {
     if (status) status.innerHTML = '';
     return;
   }
-  const { seeds, bangs, bangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
   const _giaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
   const allM = _M.filter(m=>String(m[0]||'')===_giaiName&&String(m[1]||'')===_bkNd);
   const koMatches = allM.filter(m=>{
     const v=String(m[9]||''); return v&&v!=='Vòng bảng'&&!v.includes('bảng');
   });
-  let tree = _bkBuildTree(seeds, bangs, koMatches, bangDone);
-  tree = _bkApplyOverrides(tree);
-  // Re-resolve winners cho vòng sau dựa trên tên đã được override + kết quả Sheet
-  tree = _bkResolveAdvancers(tree, koMatches);
+
+  // Luôn lấy seeds/bangs/bangDone để render status bar và meta info
+  const { seeds, bangs, bangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
+
+  let tree;
+  // v37: Sau Apply (_bkApplied=true) → dùng tree đã lưu, KHÔNG rebuild từ seeds
+  // Giữ nguyên vị trí đội, BYE, overrides đã chỉnh sửa
+  if (_bkApplied && _bkCurrentTree) {
+    tree = JSON.parse(JSON.stringify(_bkCurrentTree));
+    tree = _bkApplyOverrides(tree);
+    tree = _bkResolveAdvancers(tree, koMatches);
+  } else {
+    // Chưa Apply: rebuild từ seeds (chế độ preview/chỉnh sửa tự do)
+    tree = _bkBuildTree(seeds, bangs, koMatches, bangDone);
+    tree = _bkApplyOverrides(tree);
+    tree = _bkResolveAdvancers(tree, koMatches);
+  }
+
+  // Set _bkCurrentTree ngay sau build — không phụ thuộc UI elements
+  _bkCurrentTree = tree;
 
   // bangDone is now computed in _bkCalcSeeds
   const completedBangs = bangs.filter(b => bangDone?.[b]).length;
@@ -9630,14 +10099,14 @@ function bkRender() {
     return num ? num[1] : '?';
   };
 
-  const mkCard = (m, done, live, fs, roundCls, isGroup0) => {
+  const mkCard = (m, done, live, fs, roundCls, isGroup0, koM) => {
     const tA=m.teamA||'', tB=m.teamB||'';
     const winA=fs&&fs.scoreA>fs.scoreB, winB=fs&&fs.scoreB>fs.scoreA;
     const safeA=tA.replace(/'/g,"\'"),safeB=tB.replace(/'/g,"\'");
     const safeSA=(m.seedA||'').replace(/'/g,"\'"),safeSB=(m.seedB||'').replace(/'/g,"\'");
     const cardCls = 'bk-card'+(done?' c-done':'')+(live?' c-live':'')+(roundCls?' '+roundCls:'');
     const _ov2 = _bkOverrides[m.code] || {};
-    const luckyPickedA = m.isByeA && _ov2.byeAOverridden && tA; // đã chọn đội lucky
+    const luckyPickedA = m.isByeA && _ov2.byeAOverridden && tA;
     const luckyPickedB = m.isByeB && _ov2.byeBOverridden && tB;
     const isLuckyA = m.isByeA && _bkByeRule==='lucky' && !luckyPickedA;
     const isLuckyB = m.isByeB && _bkByeRule==='lucky' && !luckyPickedB;
@@ -9645,13 +10114,27 @@ function bkRender() {
     const rB = m.isByeB ? (luckyPickedB?'':isLuckyB?'r-lucky':'r-bye') : (!tB?'r-tbd':winB?'r-win':'');
     const nA = m.isByeA ? (luckyPickedA?(tA||'—'):isLuckyA?'🍀 Lucky':'BYE') : (tA||'—');
     const nB = m.isByeB ? (luckyPickedB?(tB||'—'):isLuckyB?'🍀 Lucky':'BYE') : (tB||'—');
-    // Pill: lucky chưa chọn → 🍀, lucky đã chọn → label đã lưu (3B, 4C...)
     const plA = luckyPickedA ? (_ov2.luckyLabelA || '🍀') : pillLabel(m.seedA||'');
     const plB = luckyPickedB ? (_ov2.luckyLabelB || '🍀') : pillLabel(m.seedB||'');
     const pcA=pillCls(m.seedA||''), pcB=pillCls(m.seedB||'');
-    const scA=fs?`<div class="bk-sbox${winA?' s-win':''}">${fs.scoreA}</div>`:'<div class="bk-sbox s-empty">—</div>';
-    const scB=fs?`<div class="bk-sbox${winB?' s-win':''}">${fs.scoreB}</div>`:'<div class="bk-sbox s-empty">—</div>';
-    // Hiển thị label Lucky inline khi rule=lucky
+    const scA=fs?`<div class="bk-sbox${live?' s-live':winA?' s-win':''}">${fs.scoreA}</div>`:'<div class="bk-sbox s-empty">—</div>';
+    const scB=fs?`<div class="bk-sbox${live?' s-live':winB?' s-win':''}">${fs.scoreB}</div>`:'<div class="bk-sbox s-empty">—</div>';
+    // ── Footer: sân · giờ · trọng tài từ koM ──
+    const _fmtTime=(v)=>{if(!v)return'';const iso=(v+'').match(/T(\d{2}):(\d{2})/);if(iso){const tm=parseInt(iso[1])*60+parseInt(iso[2])+420;return Math.floor(tm/60)%24+':'+String(tm%60).padStart(2,'0');}const hm=(v+'').match(/^(\d{1,2}):(\d{2})/);return hm?parseInt(hm[1])+':'+hm[2]:v;};
+    const court   = koM ? String(koM[8]||'').trim()  : '';
+    const ref     = koM ? String(koM[10]||'').trim() : '';
+    const timeRaw = koM ? String(koM[11]||'').trim() : '';
+    const timeStr = _fmtTime(timeRaw);
+    const hasFooter = court||ref||timeStr;
+    const footerHtml = hasFooter ? `<div class="bk-card-ft" onclick="event.stopPropagation();openEditMatchMo('${esc(_bkGiai)}','${esc(_bkNd)}','${esc(koM?String(koM[2]||''):'')  }','${esc(m.code)}')" title="Sửa sân · giờ · trọng tài">
+      ${timeStr?`<span class="bk-ft-chip time">⏱ ${esc(timeStr)}</span>`:''}
+      ${timeStr&&(court||ref)?'<span class="bk-ft-sep">·</span>':''}
+      ${court?`<span class="bk-ft-chip court" title="${esc(court)}">🏟 ${esc(court)}</span>`:''}
+      ${court&&ref?'<span class="bk-ft-sep">·</span>':''}
+      ${ref?`<span class="bk-ft-chip ref" title="${esc(ref)}">👤 ${esc(ref.split(',')[0])}</span>`:''}
+    </div>` : `<div class="bk-card-ft" onclick="event.stopPropagation();openEditMatchMo('${esc(_bkGiai)}','${esc(_bkNd)}','${esc(koM?String(koM[2]||''):'')  }','${esc(m.code)}')" title="Thêm sân · giờ · trọng tài" style="justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=0">
+      <span style="font-size:9px;color:var(--tx4)">+ sân / giờ / TT</span>
+    </div>`;
     const byeActA = '';
     const byeActB = '';
     return `<div class="${cardCls}"${_bkDragMode?` draggable="true" data-code="${m.code}" ondragstart="bkDragStart(event,'${m.code}')" ondragover="event.preventDefault();bkDragOver(event)" ondragleave="bkDragLeave(event)" ondrop="bkDrop(event,'${m.code}')"`:''} onclick="bkEditMatch('${m.code}','${safeA}','${safeB}','${safeSA}','${safeSB}')">
@@ -9677,6 +10160,7 @@ function bkRender() {
         <div class="bk-tname" title="${esc(nB)}">${esc(nB)}</div>
         ${scB}
       </div>
+      ${footerHtml}
     </div>`;
   };
 
@@ -9831,7 +10315,13 @@ function bkRender() {
       const koM=koMatches.find(km=>String(km[3]||'')===m.code);
       const done=koM&&isMatchDone(koM), live=koM&&_lK.has(`${_bkNd}|${koM[2]||''}|${m.code}`);
       const fs=done?getFinalScore(koM):null;
-      html += `<div class="bk-slot">${mkCard(m,done,live,fs,mc,false)}</div>`;
+      // FIX v75d: Hiển thị tỉ số LIVE trên cây thi đấu
+      const lk76=`${_bkNd}|${koM?String(koM[2]||''):''}|${m.code}`;
+      const liveFs=live&&_liveScores[lk76]?{
+        scoreA:_liveScores[lk76].scoreA,
+        scoreB:_liveScores[lk76].scoreB
+      }:null;
+      html += `<div class="bk-slot">${mkCard(m,done,live,liveFs||fs,mc,false,koM)}</div>`;
     });
     html += '</div></div>';
   });
@@ -9864,7 +10354,7 @@ function bkRender() {
     html += `<div style="margin-top:12px;overflow-x:auto"><div class="bk-bracket">
       <div class="bk-round"><div class="bk-round-label lbl-3rd">${h3Round2.name}</div>
         <div class="bk-round-slots"><div class="bk-slot">
-          ${mkCard(m3,done3,false,fs3,'c-3rd',false)}
+          ${mkCard(m3,done3,false,fs3,'c-3rd',false,koM3)}
         </div></div>
       </div></div></div>`;
   }
@@ -9989,9 +10479,10 @@ async function ndBkGenChart() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang tạo...'; }
 
   try {
-    _bkDeletedAt = 0;      // v7: user chủ động tạo → cho phép render trở lại
-    _bkSetEmpty(false);  // v7: xóa empty flag khỏi sessionStorage
-    // v8: Reset done-keys tracking để auto-advance có thể re-detect các bảng đã xong
+    _bkDeletedAt = 0;
+    _bkSetEmpty(false);
+    _bkApplied = false; // v37: Cây mới tạo — chưa Apply, cho phép preview/chỉnh sửa tự do
+    _bkCurrentTree = null; // Force rebuild từ seeds cho cây mới
     _bkLastKoDoneKeys = new Set();
     // Tính seeding từ BXH hiện tại
     const { seeds, bangs, bangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
@@ -10037,14 +10528,15 @@ async function ndBkApplyFull() {
     await _swapBkWrap('nd-bk-wrap', () => bkApplyAndSave());
     // v7: Bật lại auto-mode + cả 2 poll timer sau khi áp dụng thành công
     if (!_bkEditMode) {
-      _bkDeletedAt = 0;         // reset delete flag — cho phép auto-render trở lại
-      _bkSetEmpty(false);       // v7: xóa empty flag khỏi sessionStorage
-      // v8: Reset done-keys để auto-advance detect lại trạng thái mới nhất
+      _bkDeletedAt = 0;
+      _bkSetEmpty(false);
       _bkLastKoDoneKeys = new Set();
       _bkAutoMode = true;
-      _bkStartAutoPolling();   // auto điền khi có kết quả
-      _bkStartSyncPoll();      // sync bracket giữa các admin
-      toast('🤖 Đã tạo lịch · Chế độ tự động điền đã BẬT', 'ok', 3000);
+      _bkApplied  = true; // v37: đã set bên trong bkApplyAndSave, đảm bảo ở đây cũng set
+      _bkStartAutoPolling();
+      _bkStartSyncPoll();
+      // Tree đã được lưu GSheet bên trong bkApplyAndSave — không cần gọi lại
+      toast('🤖 Đã tạo lịch · Cây đã đồng bộ GSheet · Tự động điền BẬT', 'ok', 3000);
     }
     _ndBkUpdateToolbarUI();
     // Render bảng đấu ngay nếu đang ở tab bảng đấu
@@ -10277,35 +10769,29 @@ async function _bkAutoAdvanceIfNeeded() {
     } else {
       toast('🤖 Có kết quả mới — tự động điền vòng tiếp...', 'in');
     }
-    // Rebuild tree với winner mới
-    const { seeds: _s5, bangs: _b5, bangDone: _bd5 } = _bkCalcSeeds(_bkGiai, _bkNd);
+    // v37: Sau Apply — KHÔNG rebuild từ seeds, chỉ resolve advancers trên tree đã lưu
     const _gn5 = _resolveGiaiName(_bkGiai) || _bkGiai;
     const _allM5 = _M.filter(m => String(m[0]||'')===_gn5 && String(m[1]||'')===_bkNd);
     const _koM5  = _allM5.filter(m => { const v=String(m[9]||''); return v&&v!=='Vòng bảng'&&!v.includes('bảng'); });
-    let _tree5 = _bkBuildTree(_s5, _b5, _koM5, _bd5);
-    _tree5 = _bkApplyOverrides(_tree5);
-    _tree5 = _bkResolveAdvancers(_tree5, _koM5);
-    _bkCurrentTree = _tree5;
-    // Sync winner vào _M + GAS ngay (immediate, không debounce)
+    if (_bkCurrentTree) {
+      // Clone + resolve winners vào tree đã lưu — giữ nguyên vị trí, BYE, overrides
+      let _tree5 = JSON.parse(JSON.stringify(_bkCurrentTree));
+      _tree5 = _bkApplyOverrides(_tree5);
+      _tree5 = _bkResolveAdvancers(_tree5, _koM5);
+      _bkCurrentTree = _tree5;
+    }
+    // Sync winner vào Matches GAS
     await _bkDoSyncToSchedule();
-    await bkAutoFill();
-    // Sau khi autoFill: re-render bảng đấu nếu đang ở tab bảng đấu
+    // Lưu tree đã update lên GSheet để đồng bộ
+    if (_bkTreeSaveTimer) clearTimeout(_bkTreeSaveTimer);
+    _bkTreeSaveTimer = setTimeout(() => _bkSaveTreeToSheet(), 1500);
+    // Re-render bảng đấu
     if (_curGiaiId === _bkGiai && _curNd === _bkNd) {
       const tvNd = document.getElementById('tv-nd');
       if (tvNd && tvNd.style.display !== 'none') renderBangList(_bkGiai, _bkNd);
     }
-    // Re-render cây nếu đang ở tab cây thi đấu
-    const ndWrap = document.getElementById('nd-bk-wrap');
-    if (ndWrap && ndWrap.offsetParent !== null) {
-      _bkCurrentTree = null;
-      const realWrap = document.getElementById('bk-wrap');
-      if (realWrap) realWrap.id = '_bk_swap_hidden';
-      ndWrap.id = 'bk-wrap';
-      try { bkRender(); } finally {
-        ndWrap.id = 'nd-bk-wrap';
-        if (realWrap) realWrap.id = 'bk-wrap';
-      }
-    }
+    // Re-render cây
+    await _swapBkWrap('nd-bk-wrap', () => Promise.resolve(bkRender()));
 
   } catch(e) {
     console.warn('[bkAutoAdvance]', e.message);
@@ -10314,9 +10800,14 @@ async function _bkAutoAdvanceIfNeeded() {
 
 async function bkAutoFill() {
   if (!_bkGiai || !_bkNd) { toast('Chọn giải và nội dung trước', 'er'); return; }
-  // v8: Không tự động điền khi cây đã bị xóa — chờ admin nhấn "Tạo cây" trước
   if (_bkIsEmpty) {
-    console.log('[bkAutoFill] Blocked — tree is empty (deleted). Admin must click Tạo cây first.');
+    console.log('[bkAutoFill] Blocked — tree is empty (deleted).');
+    return;
+  }
+  // v37: Sau Apply, KHÔNG dùng bkAutoFill (sẽ rebuild seeds và ghi đè overrides)
+  // _bkResolveAdvancers trong bkRender() sẽ tự điền winner từ KQ rồi
+  if (_bkApplied) {
+    console.log('[bkAutoFill] Blocked — tree is locked after Apply. Winners auto-resolve via bkRender.');
     return;
   }
   const { seeds, bangs, bangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
@@ -10425,8 +10916,11 @@ async function bkAutoFill() {
         } else {
           const curA = String(existing[4]||''), curB = String(existing[7]||'');
           // Luôn update nếu tree có tên đội mới (tA/tB khác '' và khác hiện tại)
-          const shouldUpdateA = tA && tA !== 'TBD' && tA !== curA;
-          const shouldUpdateB = tB && tB !== 'TBD' && tB !== curB;
+          // FIX v75: Nếu slot là BYE trong cây nhưng Matches sheet còn team cũ → CLEAR
+          const shouldUpdateA = (tA && tA !== 'TBD' && tA !== curA)
+                             || (m.isByeA && curA !== '');
+          const shouldUpdateB = (tB && tB !== 'TBD' && tB !== curB)
+                             || (m.isByeB && curB !== '');
           if (shouldUpdateA || shouldUpdateB) {
             const r2 = [...existing];
             if (shouldUpdateA) r2[4] = tA;
@@ -10568,7 +11062,14 @@ function _bkLookupSeedCode(code) {
   return { team: entry.team, label: `${rank}${bangChar}` }; // v8: label ngắn 1A, 2B...
 }
 
-function bkEditMatch(code, teamA, teamB, seedA, seedB) {
+async function bkEditMatch(code, teamA, teamB, seedA, seedB) {
+  // Load danh sách trọng tài nếu chưa có
+  if (!_U.length) {
+    try {
+      const du = await gGet({ action:'getUsers', adminCode:CODE }, 8000);
+      if (du?.ok) _U = du.rows?.slice(1)||[];
+    } catch(e) {}
+  }
   const savedOv = _bkOverrides[code] || {};
   const extractSeedCode = (seedStr) => {
     if (!seedStr) return '';
@@ -10585,6 +11086,41 @@ function bkEditMatch(code, teamA, teamB, seedA, seedB) {
   const curTeamB = savedOv.teamB !== undefined ? savedOv.teamB : teamB;
   const isByeA = (seedA||'').includes('BYE') || savedOv.isByeA === true;
   const isByeB = (seedB||'').includes('BYE') || savedOv.isByeB === true;
+
+  // ── Nếu đã có đội thực vào (seedA = "Thắng VXX" hoặc teamA đã điền) → ẩn seeding ──
+  // Tránh dropdown BYE mặc định ghi đè đội thực khi lưu
+  const hasRealTeams = (curTeamA && !isByeA) || (curTeamB && !isByeB);
+  const seedIsResolved = // seedA/B dạng "1A","2B" hoặc đã override trực tiếp
+    (curSeedA && /^[1-4][A-Z]$/i.test(curSeedA)) ||
+    (curSeedB && /^[1-4][A-Z]$/i.test(curSeedB));
+  // Ẩn seeding nếu: có đội thực VÀ seed không phải dạng 1A/2B (tức là từ vòng sau)
+  const hideSeedSection = hasRealTeams && !seedIsResolved;
+
+  // ── Lấy dữ liệu sân / giờ / trọng tài từ koM ──
+  const _giaiName2 = _resolveGiaiName(_bkGiai)||_bkGiai;
+  const koM2 = _M.find(m=>{
+    const v=String(m[0]||'');
+    return (v===_bkGiai||v===_giaiName2)&&String(m[1]||'')===_bkNd&&String(m[3]||'')===code;
+  });
+  const _parseTime2=(v)=>{if(!v)return'';const iso=(v+'').match(/T(\d{2}):(\d{2})/);if(iso){const tm=parseInt(iso[1])*60+parseInt(iso[2])+420;return String(Math.floor(tm/60)%24).padStart(2,'0')+':'+String(tm%60).padStart(2,'0');}const hm=(v+'').match(/^(\d{1,2}):(\d{2})/);return hm?String(parseInt(hm[1])).padStart(2,'0')+':'+hm[2]:v;};
+  const curCourt2 = koM2 ? String(koM2[8]||'').trim()  : '';
+  const curRef2   = koM2 ? String(koM2[10]||'').trim() : '';
+  const curTime2  = _parseTime2(koM2 ? String(koM2[11]||'').trim() : '');
+  const courts2   = (_curTourn?(_curTourn[3]||''):'').split(',').map(c=>c.trim()).filter(Boolean);
+  const courtPills2 = courts2.length
+    ? courts2.map(c=>`<button type="button" onclick="_bkSelCourt(this)"
+        data-val="${c}" style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:2px solid;transition:all .15s;
+        background:${c===curCourt2?'var(--ac)':'var(--bg2)'};color:${c===curCourt2?'#fff':'var(--tx2)'};border-color:${c===curCourt2?'var(--ac)':'var(--bdr)'}">${c===curCourt2?'✓ '+c:c}</button>`).join('')
+    : `<input id="bk-court-inp" type="text" value="${esc(curCourt2)}" placeholder="Tên sân..." class="inp" style="width:100%">`;
+
+  // ── Trọng tài: dùng buildRefPills giống bảng đấu ──
+  const giaiNameForRef = _giaiName2 || _bkGiai;
+  const allValidRefs2 = (_U||[]).filter(u => {
+    const role = String(u[7]||'').trim().toLowerCase();
+    return role !== 'admin' && role !== 'manager';
+  });
+  const refsInTournMo2 = allValidRefs2.filter(u => String(u[8]||'').trim() === giaiNameForRef);
+  const refHtml2 = buildRefPills(refsInTournMo2, curRef2, 'bk-ref-val');
 
   const { seeds, bangs, bangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
   const buildOpts = (curSeed, isBye, byeOverridden) => {
@@ -10612,22 +11148,38 @@ function bkEditMatch(code, teamA, teamB, seedA, seedB) {
   el.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.65)';
   el.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--bdr2);border-radius:16px;
-      width:min(480px,97vw);box-shadow:0 20px 60px rgba(0,0,0,.45);max-height:92vh;
+      width:min(500px,97vw);box-shadow:0 20px 60px rgba(0,0,0,.45);max-height:92vh;
       display:flex;flex-direction:column;overflow:hidden">
       <div style="padding:16px 20px 14px;flex-shrink:0;border-bottom:1px solid var(--bdr)">
         <div style="display:flex;align-items:center;justify-content:space-between">
           <div style="font-size:15px;font-weight:700;color:var(--tx)">
-            ✏️ Chỉnh sửa trận <span style="color:var(--ac);font-family:var(--mo)">${code}</span>
+            ✏️ Sửa trận <span style="color:var(--ac);font-family:var(--mo)">${code}</span>
           </div>
           <button class="mc" onclick="document.getElementById('bk-edit-mo').remove()">✕</button>
         </div>
-        <div style="font-size:11px;color:var(--tx3);margin-top:5px">
-          Chọn seed từ danh sách · BYE = đội kia tự vào vòng tiếp · ✍ để nhập tên trực tiếp
+        <div style="font-size:11px;color:var(--tx3);margin-top:4px">
+          Seeding · Sân thi đấu · Trọng tài · Giờ thi đấu
         </div>
       </div>
-      <div style="flex:1;overflow-y:auto;padding:14px 20px 8px;min-height:0">
+      <div style="flex:1;overflow-y:auto;padding:14px 20px 8px;min-height:0;display:grid;gap:12px">
 
-        <div style="margin-bottom:16px;background:var(--bg3);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px">
+        <!-- Seeding: chỉ hiện khi chưa có đội thực từ vòng trước -->
+        ${hideSeedSection ? `
+        <div style="background:rgba(14,165,233,.06);border:1px solid rgba(14,165,233,.15);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">🏓</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--tx)">Đội đã xác định</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:2px">
+              <span style="color:var(--ac2);font-weight:600">${esc(curTeamA||'—')}</span>
+              <span style="color:var(--tx4);margin:0 6px">vs</span>
+              <span style="color:var(--ac2);font-weight:600">${esc(curTeamB||'—')}</span>
+            </div>
+            <div style="font-size:10px;color:var(--tx4);margin-top:3px">Seeding đã được xác định từ kết quả vòng trước</div>
+          </div>
+        </div>
+        ` : `
+        <!-- Slot A -->
+        <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px">
           <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
             ${isByeA ? '<span style="color:#fb923c">⚠ Slot A — BYE</span>' : ('Slot A ' + (seedA ? '<span style="color:var(--ac);font-family:var(--mo)">'+esc(seedA)+'</span>' : ''))}
           </div>
@@ -10643,7 +11195,8 @@ function bkEditMatch(code, teamA, teamB, seedA, seedB) {
           <div id="bk-em-team-hint-a" style="font-size:11px;margin-top:6px;color:#22c55e;font-weight:600"></div>
         </div>
 
-        <div style="margin-bottom:8px;background:var(--bg3);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px">
+        <!-- Slot B -->
+        <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px">
           <div style="font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
             ${isByeB ? '<span style="color:#fb923c">⚠ Slot B — BYE</span>' : ('Slot B ' + (seedB ? '<span style="color:var(--ac);font-family:var(--mo)">'+esc(seedB)+'</span>' : ''))}
           </div>
@@ -10658,19 +11211,53 @@ function bkEditMatch(code, teamA, teamB, seedA, seedB) {
           </div>
           <div id="bk-em-team-hint-b" style="font-size:11px;margin-top:6px;color:#22c55e;font-weight:600"></div>
         </div>
+        `}
+
+        <!-- Sân thi đấu -->
+        <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px">
+          <div style="font-size:10px;font-weight:800;color:var(--ac2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">🏟 Sân thi đấu</div>
+          <input type="hidden" id="bk-court-val" value="${esc(curCourt2)}">
+          ${courts2.length
+            ? `<div style="display:flex;flex-wrap:wrap;gap:6px">${courtPills2}</div>`
+            : `<input id="bk-court-inp" type="text" value="${esc(curCourt2)}" placeholder="Tên sân..." class="inp" style="width:100%">`}
+        </div>
+
+        <!-- Trọng tài (pill multi-select) -->
+        <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px">
+          <div style="font-size:10px;font-weight:800;color:var(--gn);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">🎯 Trọng tài</div>
+          ${refHtml2}
+        </div>
+
+        <!-- Giờ thi đấu (cuối cùng) -->
+        <div style="background:var(--bg3);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px">
+          <div style="font-size:10px;font-weight:800;color:var(--or);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">⏱ Giờ thi đấu</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <input id="bk-time-inp" type="time" value="${esc(curTime2)}"
+              style="background:var(--bg2);border:1.5px solid rgba(245,158,11,.35);border-radius:8px;padding:6px 10px;font-size:15px;font-weight:700;color:var(--or);font-family:var(--mo);outline:none;appearance:auto">
+            <button onclick="document.getElementById('bk-time-inp').value=''"
+              style="font-size:10px;color:var(--tx3);background:var(--bg2);border:1px solid var(--bdr);border-radius:5px;padding:4px 8px;cursor:pointer">✕ Xóa</button>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px">
+            ${['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30'].map(t=>
+              `<button onclick="document.getElementById('bk-time-inp').value='${t}'"
+                style="font-size:11px;color:${curTime2===t?'var(--or)':'var(--tx3)'};background:${curTime2===t?'rgba(245,158,11,.12)':'var(--bg2)'};border:1px solid ${curTime2===t?'rgba(245,158,11,.3)':'var(--bdr)'};border-radius:6px;padding:4px 8px;cursor:pointer;font-family:var(--mo);font-weight:700">${t}</button>`
+            ).join('')}
+          </div>
+        </div>
 
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:12px 20px;border-top:1px solid var(--bdr);background:var(--bg2);flex-shrink:0">
         <button class="btn bh bsm" onclick="document.getElementById('bk-edit-mo').remove()">Huỷ</button>
         <button class="btn bsm" style="background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.25)"
-          onclick="bkClearOverride('${safeCode}')">↺ Reset</button>
-        <button class="btn bp bsm" onclick="bkSaveEditNew('${safeCode}')">💾 Lưu</button>
+          onclick="bkClearOverride('${safeCode}')">↺ Reset seed</button>
+        <button class="btn bp bsm" onclick="bkSaveEditNew('${safeCode}')">💾 Lưu tất cả</button>
       </div>
     </div>`;
   document.body.appendChild(el);
+  el.dataset.seedHidden = hideSeedSection ? '1' : '0';
   bkEmSelChange('a');
   bkEmSelChange('b');
-  document.getElementById('bk-em-sel-a').focus();
+  if (!hideSeedSection) document.getElementById('bk-em-sel-a')?.focus();
 }
 
 function bkEmSelChange(slot) {
@@ -10706,34 +11293,88 @@ function bkSaveEditNew(code) {
   const selB = document.getElementById('bk-em-sel-b');
   const inpA = document.getElementById('bk-edit-a');
   const inpB = document.getElementById('bk-edit-b');
-  if (!selA || !selB) return;
-  const valA = selA.value, valB = selB.value;
   const ov = { ...(_bkOverrides[code] || {}) };
 
-  const applySlot = (val, inp, side) => {
-    if (val === 'BYE') {
-      ov[`team${side}`] = ''; ov[`seedCode${side}`] = '';
-      ov[`isBye${side}`] = true; ov[`bye${side}Overridden`] = false;
-    } else if (val === '__direct__' || val === '') {
-      const t = (inp?.value||'').trim();
-      ov[`team${side}`] = t; ov[`seedCode${side}`] = '';
-      ov[`isBye${side}`] = false; ov[`bye${side}Overridden`] = !!t;
-    } else {
-      const r = _bkLookupSeedCode(val);
-      const t = (r && r.team) ? r.team : ((inp?.value||'').trim());
-      ov[`team${side}`] = t; ov[`seedCode${side}`] = val;
-      ov[`isBye${side}`] = false; ov[`bye${side}Overridden`] = !!t;
-    }
-  };
-  applySlot(valA, inpA, 'A');
-  applySlot(valB, inpB, 'B');
+  // Chỉ xử lý seeding nếu section không bị ẩn
+  const seedHidden = document.getElementById('bk-edit-mo')?.dataset?.seedHidden === '1';
+  if (!seedHidden && selA && selB) {
+    const valA = selA.value, valB = selB.value;
+    const applySlot = (val, inp, side) => {
+      if (val === 'BYE') {
+        ov[`team${side}`] = ''; ov[`seedCode${side}`] = '';
+        ov[`isBye${side}`] = true; ov[`bye${side}Overridden`] = false;
+      } else if (val === '__direct__' || val === '') {
+        const t = (inp?.value||'').trim();
+        ov[`team${side}`] = t; ov[`seedCode${side}`] = '';
+        ov[`isBye${side}`] = false; ov[`bye${side}Overridden`] = !!t;
+      } else {
+        const r = _bkLookupSeedCode(val);
+        const t = (r && r.team) ? r.team : ((inp?.value||'').trim());
+        ov[`team${side}`] = t; ov[`seedCode${side}`] = val;
+        ov[`isBye${side}`] = false; ov[`bye${side}Overridden`] = true;
+      }
+    };
+    applySlot(valA, inpA, 'A');
+    applySlot(valB, inpB, 'B');
+    _bkOverrides[code] = ov;
+    _bkSaveOverrides();
+  }
 
-  _bkOverrides[code] = ov;
-  _bkSaveOverrides();
+  // ── Lưu sân / giờ / trọng tài xuống GAS ──
+  const courtVal = (document.getElementById('bk-court-val')?.value
+                || document.getElementById('bk-court-inp')?.value || '').trim();
+  const timeVal  = (document.getElementById('bk-time-inp')?.value||'').trim();
+  const refVal   = (document.getElementById('bk-ref-val')?.value||'').trim();
+
+  const _giaiName3 = _resolveGiaiName(_bkGiai)||_bkGiai;
+  const koM3 = _M.find(m=>{
+    const v=String(m[0]||'');
+    return (v===_bkGiai||v===_giaiName3)&&String(m[1]||'')===_bkNd&&String(m[3]||'')===code;
+  });
+
   document.getElementById('bk-edit-mo')?.remove();
   bkRender();
-  toast(`✅ Đã lưu trận ${code}`, 'ok');
+  toast(`⏳ Đang lưu trận ${code}...`, 'in');
+
+  if (koM3) {
+    const newRow = [...koM3];
+    if (courtVal !== undefined) newRow[8]  = courtVal;
+    if (refVal   !== undefined) newRow[10] = refVal;
+    if (timeVal  !== undefined) newRow[11] = timeVal;
+    const mIdx = _M.indexOf(koM3);
+    if (mIdx >= 0) _M[mIdx] = newRow;
+    gPost({action:'updateMatch', adminCode:CODE,
+           giai:_giaiName3||_bkGiai, giaiName:_giaiName3||_bkGiai,
+           bang:String(koM3[2]||''), code, row:newRow})
+      .then(d=>{
+        if(d?.ok) toast(`✅ Đã lưu trận ${code}`, 'ok');
+        else toast('❌ '+(d?.reason||'Lỗi lưu'),'er');
+        bkRender();
+      }).catch(()=>toast('❌ Lỗi kết nối','er'));
+  } else {
+    toast(`✅ Đã lưu seeding trận ${code}`, 'ok');
+  }
+
   _bkSyncOverrideToSchedule(code).catch(()=>{});
+  if (_bkTreeSaveTimer) clearTimeout(_bkTreeSaveTimer);
+  _bkTreeSaveTimer = setTimeout(() => _bkSaveTreeToSheet(), 1200);
+}
+
+// Helper: chọn sân trong bkEditMatch (pill-style)
+function _bkSelCourt(btn) {
+  const parent = btn.parentElement;
+  parent.querySelectorAll('button[data-val]').forEach(b => {
+    b.style.background = 'var(--bg2)';
+    b.style.color = 'var(--tx2)';
+    b.style.borderColor = 'var(--bdr)';
+    b.textContent = b.dataset.val;
+  });
+  btn.style.background = 'var(--ac)';
+  btn.style.color = '#fff';
+  btn.style.borderColor = 'var(--ac)';
+  btn.textContent = '✓ ' + btn.dataset.val;
+  const hiddenInp = document.getElementById('bk-court-val');
+  if (hiddenInp) hiddenInp.value = btn.dataset.val;
 }
 
 // Tra cứu seed realtime khi user gõ
@@ -11451,6 +12092,7 @@ function bkClearOverride(code) {
 // Biến lưu tree hiện tại để dùng cho Apply
 let _bkCurrentTree = null;
 let _bkAutoMode = false;  // true = tự động điền khi có KQ, false = thủ công
+let _bkApplied  = false;  // v37: true = đã Áp dụng, cây bị khóa — chỉ update team khi có KQ
 let _bkEditMode = false;  // true = đang chỉnh sửa thủ công, tạm dừng auto
 let _bkAutoModeBeforeEdit = false; // lưu trạng thái auto trước khi edit
 
@@ -11510,8 +12152,11 @@ async function _bkDoSyncToSchedule() {
 
       // Trận đã tồn tại — kiểm tra có cần update tên đội không
       const curA = String(existing[4]||''), curB = String(existing[7]||'');
-      const updateA = tA && tA !== 'TBD' && tA !== curA;
-      const updateB = tB && tB !== 'TBD' && tB !== curB;
+      // FIX v75: Nếu slot là BYE trong cây nhưng Matches sheet còn team cũ → CLEAR
+      const updateA = (tA && tA !== 'TBD' && tA !== curA)
+                   || (m.isByeA && curA !== '');
+      const updateB = (tB && tB !== 'TBD' && tB !== curB)
+                   || (m.isByeB && curB !== '');
       if (!updateA && !updateB) continue;
 
       const newRow = [...existing];
@@ -11726,15 +12371,9 @@ async function bkApplyAndSave() {
   const allDone = bangs.every(b => bangDone?.[b]);
   if (!allDone) {
     const pending = bangs.filter(b=>!bangDone?.[b]);
-    const conf = confirm(
-      `⚠️ ${pending.length} bảng chưa hoàn thành: ${pending.join(', ')}
-
-` +
-      `Tạo lịch vòng trong với kết quả hiện tại?
-` +
-      `(Đội chưa xác định sẽ để trống, cập nhật sau)`
-    );
-    if (!conf) return;
+    // v8 FIX: Không dùng confirm() — bị block bởi browser → return sớm, bỏ qua save BracketTree
+    // Thay bằng toast cảnh báo và tiếp tục luôn (admin chủ động nhấn nút)
+    toast(`⚠️ ${pending.length} bảng chưa xong: ${pending.join(', ')} — vẫn tạo lịch với kết quả hiện tại`, 'in', 4000);
   }
 
   const giaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
@@ -11747,13 +12386,46 @@ async function bkApplyAndSave() {
   const koByCode = {};
   koMatches.forEach(m=>{koByCode[String(m[3]||'')]=m;});
 
+  // FIX v75b: KHÔNG xóa KO matches cũ — chỉ xóa những trận CHƯA có kết quả
+  // và KHÔNG CÓ trong cây mới (mã trận cũ không còn dùng nữa do cap thay đổi)
+  // Trận đã có kết quả (trong _dkBangCode) → GIỮ NGUYÊN, không xóa, không ghi đè
+  const currentTreeCodes = new Set();
+  tree.rounds.forEach(r => r.matches.forEach(m => { if(m.code) currentTreeCodes.add(m.code); }));
+  const koToDelete = koMatches.filter(m => {
+    const code = String(m[3]||'');
+    // Chỉ xóa nếu: mã trận KHÔNG có trong cây mới VÀ chưa có kết quả
+    const inNewTree = currentTreeCodes.has(code);
+    const hasDone = isMatchDone(m);
+    return !inNewTree && !hasDone;
+  });
+  if (koToDelete.length > 0) {
+    toast(`🗑 Xóa ${koToDelete.length} trận KO cũ không còn dùng...`, 'in');
+    try {
+      const codesToDel = koToDelete.map(m => String(m[3]||''));
+      // Xóa từng trận riêng lẻ để tránh xóa nhầm KetQua của trận có điểm
+      await Promise.allSettled(koToDelete.map(m =>
+        gPost({ action: 'deleteMatch', adminCode: CODE,
+          giai: giaiName, nd: _bkNd,
+          bang: String(m[2]||''), code: String(m[3]||'') })
+      ));
+      codesToDel.forEach(code => {
+        const idx = _M.findIndex(m => String(m[0]||'')===giaiName && String(m[1]||'')===_bkNd && String(m[3]||'')===code);
+        if (idx >= 0) _M.splice(idx, 1);
+        delete koByCode[code];
+      });
+      console.log('[Apply] Xóa', koToDelete.length, 'KO cũ không dùng (không có điểm)');
+    } catch(e) { console.warn('[Apply] Lỗi xóa KO cũ:', e); }
+  }
+
   // Duyệt tất cả round (kể cả H3)
   let created=0, updated=0, skipped=0;
   const allRounds = tree.rounds.filter(r=>r.cls!=='bk-h3').concat(tree.rounds.filter(r=>r.cls==='bk-h3'));
 
   for (const round of allRounds) {
     for (const m of round.matches) {
-      if (m.isByeA && m.isByeB) { skipped++; continue; } // cả 2 BYE → skip
+      // v8: KHÔNG skip BYE+BYE — vẫn tạo trận để hiển thị đầy đủ trong danh sách
+      // (chỉ bỏ qua nếu match không có code)
+      if (!m.code) { skipped++; continue; }
       const existing = koByCode[m.code];
       const tA = m.isByeA ? '' : (m.teamA||'');
       const tB = m.isByeB ? '' : (m.teamB||'');
@@ -11763,9 +12435,20 @@ async function bkApplyAndSave() {
         const row = [giaiName, _bkNd, round.name, m.code, tA, '', '', tB, '', round.name, ''];
         toCreate.push({row, code:m.code, round:round.name});
       } else {
+        // FIX v75b: Trận đã có kết quả → KHÔNG ghi đè tên đội (giữ nguyên)
+        // Chỉ update teams cho trận chưa có kết quả
+        if (isMatchDone(existing)) {
+          skipped++;
+          continue;
+        }
         // Cập nhật nếu team thay đổi
         const curA = String(existing[4]||''), curB = String(existing[7]||'');
-        if (tA !== curA || tB !== curB) {
+        // FIX v75: BYE slot cần clear team cũ; non-BYE cập nhật team mới
+        const shouldUpdateA = (tA && tA !== 'TBD' && tA !== curA)
+                           || (m.isByeA && curA !== '');
+        const shouldUpdateB = (tB && tB !== 'TBD' && tB !== curB)
+                           || (m.isByeB && curB !== '');
+        if (shouldUpdateA || shouldUpdateB) {
           const updRow = [...existing];
           updRow[4]=tA; updRow[7]=tB;
           toUpdate.push({row:updRow, code:m.code, round:round.name, existing});
@@ -11778,53 +12461,77 @@ async function bkApplyAndSave() {
 
   if (!toCreate.length && !toUpdate.length) {
     toast(`✅ Lịch vòng trong đã đúng, không cần cập nhật (${skipped} trận không đổi)`, 'ok');
+    // v8 FIX: Vẫn phải save BracketTree dù không có trận mới — lần Apply đầu tiên
+    // tạo trận thành công nhưng BracketTree chưa được lưu (return sớm bỏ qua save)
+    try {
+      const giaiName2 = _resolveGiaiName(_bkGiai) || _bkGiai;
+      const { seeds: _s2, bangs: _b2, bangDone: _bd2 } = _bkCalcSeeds(_bkGiai, _bkNd);
+      const allM2 = _M.filter(m=>String(m[0]||'')===giaiName2&&String(m[1]||'')===_bkNd);
+      const koM2  = allM2.filter(m=>{const v=String(m[9]||'');return v&&v!=='Vòng bảng'&&!v.includes('bảng');});
+      if (koM2.length > 0) {
+        let treeNow = _bkBuildTree(_s2, _b2, koM2, _bd2);
+        treeNow = _bkApplyOverrides(treeNow);
+        treeNow = _bkResolveAdvancers(treeNow, koM2);
+        _bkCurrentTree = treeNow;
+        if (treeNow?.rounds?.length) {
+          const treeToSave = { ...treeNow, _overrides:_bkOverrides, _byeRule:_bkByeRule, _savedAt:Date.now() };
+          const totalM = treeNow.rounds.reduce((s,r)=>s+(r.matches?.length||0),0);
+          console.log('[BK TREE] Saving (no-change path):', giaiName2, _bkNd, totalM, 'matches');
+          const ds = await gPost({action:'saveBracketTree', adminCode:CODE, giai:giaiName2, nd:_bkNd, tree:treeToSave}, 45000);
+          if (ds.ok) {
+            _bkLastVersion = ds.version || Date.now();
+            _bkApplied = true;
+            console.log('[BK TREE] ✓ Saved (no-change path) v', _bkLastVersion);
+            toast('☁️ Cây đã đồng bộ GSheet (' + totalM + ' trận)', 'ok', 2500);
+          } else {
+            console.error('[BK TREE] ✗ Save failed (no-change path):', ds.reason);
+            toast('⚠️ Chưa đồng bộ GSheet: ' + (ds.reason||'lỗi'), 'er', 4000);
+          }
+        }
+      }
+    } catch(eSave) {
+      console.error('[BK TREE] Save error (no-change path):', eSave);
+    }
     if (btn) { btn.disabled=false; btn.textContent='⚡ Áp dụng & Tạo lịch vòng trong'; }
     return;
   }
 
   try {
     let ok = 0;
-    // Tạo mới theo batch 3 — fallback updateMatch nếu GAS báo đã tồn tại
-    const chunks = [];
-    for(let i=0;i<toCreate.length;i+=3) chunks.push(toCreate.slice(i,i+3));
-    for (const ch of chunks) {
-      await Promise.all(ch.map(async ({row,code}) => {
-        try {
-          const d = await gPost({action:'addMatchAdmin',adminCode:CODE,row});
-          if (d.ok) {
-            ok++;
-            _M.push(normalizeMatchRow(row));
-          } else {
-            // GAS báo đã tồn tại (mã trùng từ nội dung khác) → thử updateMatch
-            const isExist = (d.reason||'').includes('tồn tại') || (d.reason||'').includes('exist') || (d.reason||'').includes('duplicate');
-            if (isExist) {
-              const d2 = await gPost({action:'updateMatch',adminCode:CODE,
-                giai:giaiName,giaiName,bang:String(row[2]||''),code,row});
-              if (d2?.ok) {
-                ok++;
-                const idx = _M.findIndex(r=>String(r[0]||'')===giaiName&&String(r[1]||'')===_bkNd&&String(r[3]||'')===code);
-                if (idx>=0) _M[idx]=normalizeMatchRow(row); else _M.push(normalizeMatchRow(row));
-              } else {
-                toast(`⚠️ ${code}: ${d2?.reason||d.reason||'Lỗi'}`, 'er');
-              }
-            } else {
-              toast(`⚠️ ${code}: ${d.reason||'Lỗi'}`, 'er');
-            }
+
+    // ── v8 FIX: Dùng addMatchesBatch — 1 request duy nhất thay vì N requests song song ──
+    // Tránh GAS timeout và "lỗi mạng" khi tạo 16-32 trận cùng lúc
+    if (toCreate.length > 0) {
+      const batchRows = toCreate.map(({row}) => row);
+      try {
+        const batchResult = await gPost({
+          action: 'addMatchesBatch',
+          adminCode: CODE,
+          rows: batchRows
+        }, 45000); // Tăng timeout 45s cho batch lớn
+        if (batchResult.ok) {
+          ok += batchResult.added || 0;
+          // Thêm vào _M local
+          toCreate.forEach(({row}) => _M.push(normalizeMatchRow(row)));
+          if (batchResult.skipped > 0) {
+            console.log('[Apply] Batch skip', batchResult.skipped, 'trận đã tồn tại');
           }
-        } catch(e) { toast(`⚠️ ${code}: lỗi mạng`,'er'); }
-      }));
+        } else {
+          toast(`⚠️ Lỗi tạo lịch: ${batchResult.reason || 'Không rõ'}`, 'er');
+        }
+      } catch(e) {
+        toast(`❌ Lỗi mạng khi tạo lịch hàng loạt: ${e.message}`, 'er');
+      }
     }
-    // Cập nhật
+
+    // Cập nhật các trận đã tồn tại (thường rất ít)
     for (const {row, code, existing, isNew} of toUpdate) {
       try {
         if (isNew) {
-          // Trường hợp mã trùng nội dung khác → thử add trước, fallback update
           const dAdd = await gPost({action:'addMatchAdmin', adminCode:CODE, row});
           if (dAdd?.ok) {
-            ok++;
-            _M.push(normalizeMatchRow(row)); dedupM();
+            ok++; _M.push(normalizeMatchRow(row)); dedupM();
           } else {
-            // GAS báo tồn tại → update
             const dUpd = await gPost({action:'updateMatch', adminCode:CODE,
               giai:giaiName, giaiName, bang:String(row[2]||''), code, row});
             if (dUpd?.ok) {
@@ -11834,22 +12541,73 @@ async function bkApplyAndSave() {
             }
           }
         } else {
-          const d = await gPost({action:'updateMatch',adminCode:CODE,
-            giai:giaiName,giaiName,bang:String(existing[2]||''),code,row});
+          const d = await gPost({action:'updateMatch', adminCode:CODE,
+            giai:giaiName, giaiName, bang:String(existing[2]||''), code, row});
           if (d.ok) {
-            const idx=_M.findIndex(r=>r[0]===giaiName&&r[1]===_bkNd&&r[3]===code);
-            if(idx>=0) _M[idx]=normalizeMatchRow(row);
+            const idx = _M.findIndex(r=>r[0]===giaiName&&r[1]===_bkNd&&r[3]===code);
+            if (idx>=0) _M[idx]=normalizeMatchRow(row);
             ok++;
           }
         }
-      } catch(e) {}
+      } catch(e) { console.warn('[Apply] Update error:', code, e); }
     }
 
     dedupM();
     toast(`✅ Đã tạo ${toCreate.length} trận · Cập nhật ${toUpdate.length} trận · Bỏ qua ${skipped}`, 'ok');
-    // Push overrides lên GAS để đồng bộ với admin khác
     await _bkPushOverridesToGAS();
-    bkRender();
+
+    // v37 FIX: Build tree và lưu snapshot TRƯỚC khi bkRender/ndBkRender có thể reset _bkCurrentTree
+    // Luồng: bkApplyAndSave chạy bên trong _swapBkWrap → sau đó _swapBkWrap gọi _ndBkRender
+    // _ndBkRender có thể reset _bkCurrentTree = null → _bkSaveTreeToSheet bỏ qua
+    // Giải pháp: build tree thủ công ngay tại đây, lưu GSheet trước khi return
+    {
+      const giaiName2 = _resolveGiaiName(_bkGiai) || _bkGiai;
+      const { seeds: _s, bangs: _b, bangDone: _bd } = _bkCalcSeeds(_bkGiai, _bkNd);
+      const allM2 = _M.filter(m=>String(m[0]||'')===giaiName2&&String(m[1]||'')===_bkNd);
+      const koM2  = allM2.filter(m=>{const v=String(m[9]||'');return v&&v!=='Vòng bảng'&&!v.includes('bảng');});
+      let treeNow = _bkBuildTree(_s, _b, koM2, _bd);
+      treeNow = _bkApplyOverrides(treeNow);
+      treeNow = _bkResolveAdvancers(treeNow, koM2);
+      _bkCurrentTree = treeNow; // Set ngay, không chờ bkRender
+
+      // Lưu lên GSheet ngay — không debounce, không chờ
+      if (treeNow?.rounds?.length) {
+        try {
+          const treeToSave = {
+            ...treeNow,
+            _overrides: _bkOverrides,
+            _byeRule:   _bkByeRule,
+            _savedAt:   Date.now(),
+          };
+          const totalM = treeNow.rounds.reduce((s,r)=>s+(r.matches?.length||0),0);
+          console.log('[BK TREE] Saving from bkApplyAndSave:', giaiName2, _bkNd, totalM, 'matches');
+          console.log('[BK TREE] POST payload — action:saveBracketTree giai:', giaiName2, 'nd:', _bkNd, 'rounds:', treeToSave.rounds?.length, 'CODE:', CODE?'ok':'MISSING');
+          const ds = await gPost({action:'saveBracketTree', adminCode:CODE, giai:giaiName2, nd:_bkNd, tree:treeToSave}, 45000);
+          console.log('[BK TREE] GAS response RAW:', JSON.stringify(ds));
+          if (ds.ok && ds.saved !== undefined) {
+            _bkLastVersion = ds.version || Date.now();
+            _bkApplied = true; // Khóa cây
+            console.log('[BK TREE] ✓ Saved from bkApplyAndSave v', _bkLastVersion, 'saved:', ds.saved);
+            toast('☁️ Cây đã đồng bộ GSheet (' + totalM + ' trận)', 'ok', 2500);
+          } else if (ds.ok && ds.error) {
+            // GAS cũ trả về {ok:true, error:'Unknown action'} — chưa deploy đúng
+            console.error('[BK TREE] ✗ GAS chưa deploy đúng — Unknown action:', ds.error);
+            toast('⚠️ GAS chưa deploy: ' + ds.error, 'er', 5000);
+          } else if (!ds.ok) {
+            console.error('[BK TREE] ✗ Save failed:', ds.reason, ds);
+            toast('⚠️ Chưa đồng bộ GSheet: ' + (ds.reason||'lỗi'), 'er', 4000);
+          } else {
+            console.warn('[BK TREE] Response không rõ:', ds);
+            toast('⚠️ Phản hồi GAS không rõ — xem Console', 'er', 4000);
+          }
+        } catch(eSave) {
+          console.error('[BK TREE] Save error:', eSave);
+          toast('⚠️ Lỗi đồng bộ cây: ' + eSave.message, 'er', 4000);
+        }
+      } else {
+        console.warn('[BK TREE] Tree empty after build — not saving');
+      }
+    }
   } catch(e) {
     toast('❌ Lỗi: '+e.message,'er');
   } finally {
@@ -11867,6 +12625,118 @@ function normalizeMatchRow(r) {
 
 
 // ── Save all (push KO matches to GSheets) ────────────────────────
+// ── Xuất hình ảnh cây thi đấu ────────────────────────────────────
+async function bkExportImage() {
+  const btn = document.getElementById('nd-btn-export-img');
+  const wrap = document.getElementById('nd-bk-wrap');
+  if (!wrap) { toast('Chưa có cây thi đấu để xuất', 'er'); return; }
+  const inner = wrap.querySelector('.bk-rounds') || wrap.querySelector('.bk-outer') || wrap.firstElementChild;
+  if (!inner || inner.classList.contains('empty')) { toast('Chưa có cây thi đấu để xuất', 'er'); return; }
+
+  // Kiểm tra html2canvas đã load chưa
+  if (typeof html2canvas === 'undefined') {
+    toast('⏳ Đang tải thư viện xuất ảnh...', 'in');
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    }).catch(() => { toast('❌ Không tải được thư viện — kiểm tra kết nối mạng', 'er'); return; });
+    if (typeof html2canvas === 'undefined') return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang xuất...'; }
+  toast('🖼 Đang tạo hình ảnh...', 'in');
+
+  try {
+    // Tên giải + nội dung để đặt tên file và header
+    const giaiName = _bkGiaiName || _resolveGiaiName(_bkGiai) || _bkGiai || 'Giải đấu';
+    const ndName   = _bkNd || '';
+    const now      = new Date();
+    const dateStr  = `${now.getDate().toString().padStart(2,'0')}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()}`;
+
+    // Wrap tạm thời để thêm header + footer vào ảnh
+    const exportWrap = document.createElement('div');
+    exportWrap.style.cssText = [
+      'position:fixed', 'left:-99999px', 'top:0',
+      'background:#0f1117',       // dark bg
+      'padding:24px 28px 28px',
+      'border-radius:0',
+      'min-width:' + (inner.scrollWidth + 56) + 'px',
+      'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+    ].join(';');
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.1)';
+    header.innerHTML = `
+      <div>
+        <div style="font-size:22px;font-weight:800;color:#f8fafc;letter-spacing:-.3px">🏆 ${esc(giaiName)}</div>
+        <div style="font-size:13px;color:#94a3b8;margin-top:3px;font-weight:600">${esc(ndName)} &nbsp;·&nbsp; Cây thi đấu</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:#64748b">${dateStr}</div>
+        <div style="font-size:10px;color:#334155;margin-top:2px">Pickleball Manager</div>
+      </div>`;
+
+    // Clone bracket nội dung
+    const bracketClone = inner.cloneNode(true);
+    bracketClone.style.cssText = (bracketClone.style.cssText || '') +
+      ';overflow:visible!important;max-height:none!important;transform:none!important';
+    // Xóa các nút sửa/drag trong clone (không cần trong ảnh)
+    bracketClone.querySelectorAll('button,.mc,[onclick]').forEach(el => {
+      if (el.tagName === 'BUTTON' || el.classList.contains('mc')) {
+        el.style.display = 'none';
+      }
+    });
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.style.cssText = 'margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;gap:8px';
+    footer.innerHTML = `<span style="font-size:10px;color:#334155">🏸 Được tạo bởi Pickleball Manager</span>`;
+
+    exportWrap.appendChild(header);
+    exportWrap.appendChild(bracketClone);
+    exportWrap.appendChild(footer);
+    document.body.appendChild(exportWrap);
+
+    // Chờ render xong
+    await new Promise(r => setTimeout(r, 120));
+
+    const canvas = await html2canvas(exportWrap, {
+      backgroundColor: '#0f1117',
+      scale: 2,                    // 2x resolution để sắc nét
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      width:  exportWrap.scrollWidth,
+      height: exportWrap.scrollHeight,
+      windowWidth:  exportWrap.scrollWidth,
+      windowHeight: exportWrap.scrollHeight,
+    });
+
+    document.body.removeChild(exportWrap);
+
+    // Download
+    const fileName = `cay-thi-dau_${(ndName||giaiName).replace(/\s+/g,'-').replace(/[^a-zA-Z0-9\-_]/g,'')}_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}.png`;
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
+      a.href = url; a.download = fileName;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast(`✅ Đã xuất ảnh: ${fileName}`, 'ok', 4000);
+    }, 'image/png');
+
+  } catch(e) {
+    console.error('[bkExportImage]', e);
+    toast('❌ Lỗi xuất ảnh: ' + (e.message || e), 'er');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🖼 Xuất ảnh'; }
+  }
+}
+
 async function bkSave() {
   if (!_bkGiai || !_bkNd) { toast('Chọn giải và nội dung trước', 'er'); return; }
   const { seeds, bangs, bangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
@@ -12360,13 +13230,17 @@ async function bkDeleteTree() {
 
   if (!koMatches.length) { toast('Cây thi đấu đang trống, không có gì để xóa', 'in'); return; }
 
-  const confirmed = confirm(
-    '🗑 Xóa cây thi đấu?\n\n' +
-    'Sẽ xóa ' + koMatches.length + ' trận KO.\n' +
-    '⚠️ Xóa cả kết quả KO và vị trí đội trong cây.\n\n' +
-    'Hành động này không thể hoàn tác!'
-  );
-  if (!confirmed) return;
+  // FIX: Không dùng confirm() — bị browser block → return sớm, không xóa
+  // Thay bằng custom toast confirm với timeout 5s
+  const _delKey = 'pb_bk_del_confirm_' + _bkGiai + _bkNd;
+  const _alreadyConfirmed = sessionStorage.getItem(_delKey) === '1';
+  if (!_alreadyConfirmed) {
+    sessionStorage.setItem(_delKey, '1');
+    setTimeout(() => { try { sessionStorage.removeItem(_delKey); } catch(e){} }, 6000);
+    toast('⚠️ Nhấn 🗑 Xóa cây lần nữa để xác nhận xóa ' + koMatches.length + ' trận KO (không hoàn tác được)', 'er', 5000);
+    return;
+  }
+  sessionStorage.removeItem(_delKey);
 
   // Tìm nút để disable (cả 2 vị trí: nd-view và page-bracket)
   const btn = document.querySelector('[onclick*="bkDeleteTree"],[onclick*="ndBkDelete"]');
@@ -12384,11 +13258,11 @@ async function bkDeleteTree() {
     if (d?.ok) {
       // 1. Dừng auto-polling NGAY — tránh timer 8s reload _M và rebuild cây
       _bkAutoMode = false;
+      _bkApplied  = false; // v37: Reset — cho phép rebuild từ seeds khi Tạo cây mới
       _bkStopAutoPolling();
       _bkStopSyncPoll();
-      _bkDeletedAt = Date.now(); // v7: flag block mọi auto-render trong 5s
-      _bkSetEmpty(true);  // v7: persist qua reload — bkRender hiện trống thay vì rebuild từ seeding
-      // v8: Xóa done-keys tracking để auto-advance không dùng data cũ sau khi tạo lại cây
+      _bkDeletedAt = Date.now();
+      _bkSetEmpty(true);
       _bkLastKoDoneKeys = new Set();
 
       // 2. Xóa cache tree + overrides trong memory
@@ -12992,9 +13866,11 @@ function _bktRenderBracket(n) {
         const prevPfx=fromFin===1?'BK':fromFin===2?'TK':fromFin===3?'V16':fromFin===4?'V32':'R';
         const curPfx=fromFin===0?'CK':fromFin===1?'BK':fromFin===2?'TK':fromFin===3?'V16':fromFin===4?'V32':'R';
         const prevNM=nSlots*2;
-        const cA=prevNM===1?prevPfx:prevPfx+(s*2+1);
-        const cB=prevNM===1?prevPfx:prevPfx+(s*2+2);
-        const cur=nSlots===1?curPfx:curPfx+(s+1);
+        // Zero-pad: nếu prevNM>=10 thì pad để sort alphabetically = sort numerically
+        const _zp=(n,total)=>total>9?String(n).padStart(String(total).length,'0'):String(n);
+        const cA=prevNM===1?prevPfx:prevPfx+_zp(s*2+1,prevNM);
+        const cB=prevNM===1?prevPfx:prevPfx+_zp(s*2+2,prevNM);
+        const cur=nSlots===1?curPfx:curPfx+_zp(s+1,nSlots);
         h += `<div class="${cardCls}">
           <div class="bk-card-hd"><span>${cur}</span></div>
           <div class="bk-row r-tbd">
