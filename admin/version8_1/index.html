@@ -4,7 +4,7 @@
 <!-- Pickleball v67 2026-06-03: v6 FIX NGUỒN DUY NHẤT — buildDkFromResults/isMatchDone/getFinalScore/_syncResultCache/_buildLiveFromRows đều dùng key 4 trường "TênGiải|NộiDung|Bảng|MãTrận"; bỏ fallback Matches col[5/6] trong getFinalScore; bỏ giaiId duplicate trong _dK; bỏ fallback giaiId trong isMatchDone — badge Hoàn thành/Chưa đấu/Đang đấu giờ chính xác 100% từ KetQua | v66 2026-06-03: FIX v32 referee bugs — assignCourtToRef/assignRef/atrAssignDirect không xóa noidung cũ; _matchAllowed normalize dấu; renderMatchGrid hiển thị khi có trận phân tên | v65 2026-06-01: FIX bracket overflow + nút tràn màn hình PC | v25 | FIX: Login detailed errors, Test GAS button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) GAS dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên GSheets | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (GSheets renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) GAS v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Admin v7.41 — Referee Pickleball / DA NANG ®</title>
+<title>Admin v8.1 — Referee Pickleball / DA NANG ®</title>
 <style>
 /* ═══════════════════════════════════════════════════════
    Pickleball Admin — Mobile-First Professional UI
@@ -991,7 +991,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .bxh-scroll::-webkit-scrollbar-thumb { background:var(--bdr2,rgba(255,255,255,.15));border-radius:3px; }
 </style>
 
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script></head>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
 <body>
 
 <!-- ══════════ LOGIN ══════════ -->
@@ -1010,7 +1012,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
       </div>
       
       <!-- GAS URL ẩn — đã hardcode DEFAULT_GAS_URL -->
-      <input type="hidden" id="gs-url" value="https://script.google.com/macros/s/AKfycbw1HiQCcbGXgGzXj77oDrETKRTyn4WjUGjyNaPBpS5oapnwyBSvJWFf_Y_Ob-sUqj8QoQ/exec">
+      <input type="hidden" id="gs-url" value="https://script.google.com/macros/s/AKfycbwbvIU-ASx6rFPOKJysMxBi_DDzLegpJuLcfw68xNozQy3BaRuk-N3fCAYegbTtkgqeGA/exec">
       <label class="lbl">🔑 Mã đăng nhập</label>
       <input class="fi" type="text" id="adm-code" placeholder="ADMIN001 hoặc MGR001" maxlength="20" autocomplete="off"
         oninput="localStorage.setItem('pb_adm_code',this.value.trim())"
@@ -1396,6 +1398,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
               <!-- Xóa cây -->
               <button class="btn bsm" style="background:rgba(239,68,68,.12);color:var(--rd);border:1px solid rgba(239,68,68,.3)"
                 onclick="ndBkDelete()">🗑 Xóa cây</button>
+              <!-- Xuất hình ảnh -->
+              <button id="nd-btn-export-img"
+                onclick="bkExportImage()"
+                style="background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.35);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s"
+                title="Xuất cây thi đấu ra file hình ảnh PNG">
+                🖼 Xuất ảnh
+              </button>
             </div>
           </div>
           <!-- Edit mode banner -->
@@ -2405,7 +2414,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 // ════════════════════════════════════════════════════════════════
 //  DEFAULT GAS URL — thay đổi ở đây nếu deploy lại GAS
 // ════════════════════════════════════════════════════════════════
-const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbw1HiQCcbGXgGzXj77oDrETKRTyn4WjUGjyNaPBpS5oapnwyBSvJWFf_Y_Ob-sUqj8QoQ/exec';
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwbvIU-ASx6rFPOKJysMxBi_DDzLegpJuLcfw68xNozQy3BaRuk-N3fCAYegbTtkgqeGA/exec';
 
 // ════════════════════════════════════════════════════════════════
 //  STATE
@@ -11877,6 +11886,118 @@ function normalizeMatchRow(r) {
 
 
 // ── Save all (push KO matches to GSheets) ────────────────────────
+// ── Xuất hình ảnh cây thi đấu ────────────────────────────────────
+async function bkExportImage() {
+  const btn = document.getElementById('nd-btn-export-img');
+  const wrap = document.getElementById('nd-bk-wrap');
+  if (!wrap) { toast('Chưa có cây thi đấu để xuất', 'er'); return; }
+  const inner = wrap.querySelector('.bk-rounds') || wrap.querySelector('.bk-outer') || wrap.firstElementChild;
+  if (!inner || inner.classList.contains('empty')) { toast('Chưa có cây thi đấu để xuất', 'er'); return; }
+
+  // Kiểm tra html2canvas đã load chưa
+  if (typeof html2canvas === 'undefined') {
+    toast('⏳ Đang tải thư viện xuất ảnh...', 'in');
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    }).catch(() => { toast('❌ Không tải được thư viện — kiểm tra kết nối mạng', 'er'); return; });
+    if (typeof html2canvas === 'undefined') return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang xuất...'; }
+  toast('🖼 Đang tạo hình ảnh...', 'in');
+
+  try {
+    // Tên giải + nội dung để đặt tên file và header
+    const giaiName = _bkGiaiName || _resolveGiaiName(_bkGiai) || _bkGiai || 'Giải đấu';
+    const ndName   = _bkNd || '';
+    const now      = new Date();
+    const dateStr  = `${now.getDate().toString().padStart(2,'0')}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()}`;
+
+    // Wrap tạm thời để thêm header + footer vào ảnh
+    const exportWrap = document.createElement('div');
+    exportWrap.style.cssText = [
+      'position:fixed', 'left:-99999px', 'top:0',
+      'background:#0f1117',       // dark bg
+      'padding:24px 28px 28px',
+      'border-radius:0',
+      'min-width:' + (inner.scrollWidth + 56) + 'px',
+      'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+    ].join(';');
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.1)';
+    header.innerHTML = `
+      <div>
+        <div style="font-size:22px;font-weight:800;color:#f8fafc;letter-spacing:-.3px">🏆 ${esc(giaiName)}</div>
+        <div style="font-size:13px;color:#94a3b8;margin-top:3px;font-weight:600">${esc(ndName)} &nbsp;·&nbsp; Cây thi đấu</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:#64748b">${dateStr}</div>
+        <div style="font-size:10px;color:#334155;margin-top:2px">Pickleball Manager</div>
+      </div>`;
+
+    // Clone bracket nội dung
+    const bracketClone = inner.cloneNode(true);
+    bracketClone.style.cssText = (bracketClone.style.cssText || '') +
+      ';overflow:visible!important;max-height:none!important;transform:none!important';
+    // Xóa các nút sửa/drag trong clone (không cần trong ảnh)
+    bracketClone.querySelectorAll('button,.mc,[onclick]').forEach(el => {
+      if (el.tagName === 'BUTTON' || el.classList.contains('mc')) {
+        el.style.display = 'none';
+      }
+    });
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.style.cssText = 'margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;gap:8px';
+    footer.innerHTML = `<span style="font-size:10px;color:#334155">🏸 Được tạo bởi Pickleball Manager</span>`;
+
+    exportWrap.appendChild(header);
+    exportWrap.appendChild(bracketClone);
+    exportWrap.appendChild(footer);
+    document.body.appendChild(exportWrap);
+
+    // Chờ render xong
+    await new Promise(r => setTimeout(r, 120));
+
+    const canvas = await html2canvas(exportWrap, {
+      backgroundColor: '#0f1117',
+      scale: 2,                    // 2x resolution để sắc nét
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      width:  exportWrap.scrollWidth,
+      height: exportWrap.scrollHeight,
+      windowWidth:  exportWrap.scrollWidth,
+      windowHeight: exportWrap.scrollHeight,
+    });
+
+    document.body.removeChild(exportWrap);
+
+    // Download
+    const fileName = `cay-thi-dau_${(ndName||giaiName).replace(/\s+/g,'-').replace(/[^a-zA-Z0-9\-_]/g,'')}_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}.png`;
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
+      a.href = url; a.download = fileName;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast(`✅ Đã xuất ảnh: ${fileName}`, 'ok', 4000);
+    }, 'image/png');
+
+  } catch(e) {
+    console.error('[bkExportImage]', e);
+    toast('❌ Lỗi xuất ảnh: ' + (e.message || e), 'er');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🖼 Xuất ảnh'; }
+  }
+}
+
 async function bkSave() {
   if (!_bkGiai || !_bkNd) { toast('Chọn giải và nội dung trước', 'er'); return; }
   const { seeds, bangs, bangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
