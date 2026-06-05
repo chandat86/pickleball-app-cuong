@@ -778,21 +778,33 @@ async function loadAll(){
     const td=await gGet({action:'tournaments', code:USER_CODE});
     if(td.rows?.length>1){
       const trows=td.rows.slice(1);
-      // GAS đã filter đúng giải → lấy giải đầu tiên match USER_GIAI, hoặc giải đầu tiên
       const gUp=(USER_GIAI||'').trim().toUpperCase();
-      let found = gUp
-        ? trows.find(r=>String(r[0]||'').trim().toUpperCase()===gUp||String(r[1]||'').trim().toUpperCase()===gUp)
-        : null;
-      if(!found&&trows.length) found=trows[0]; // fallback: giải đầu tiên GAS cho phép
+      let found=null;
+      if(gUp){
+        // Tìm theo ID hoặc tên chính xác
+        found=trows.find(r=>
+          String(r[0]||'').trim().toUpperCase()===gUp ||
+          String(r[1]||'').trim().toUpperCase()===gUp
+        );
+        // Partial match (đề phòng GAS lưu tên có dấu/không dấu lệch nhau)
+        if(!found) found=trows.find(r=>
+          String(r[1]||'').trim().toUpperCase().includes(gUp)||
+          gUp.includes(String(r[1]||'').trim().toUpperCase())
+        );
+      }
+      // Nếu USER_GIAI rỗng hoặc không match → lấy giải đầu tiên GAS cho phép
+      if(!found && trows.length) found=trows[0];
       if(found){
         _T=found;
         _giaiName=String(found[1]||'').trim();
-        // Nếu USER_GIAI lệch → đồng bộ lại
-        if(gUp && _giaiName && _giaiName.toUpperCase()!==gUp){
+        // Đồng bộ USER_GIAI theo tên giải thực từ GAS
+        if(_giaiName && _giaiName.toUpperCase()!==gUp){
           USER_GIAI=_giaiName;
           localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
         }
-        console.log('[LOAD] Tournament:', _giaiName);
+        console.log('[LOAD] Tournament:', _giaiName,'| USER_GIAI:',USER_GIAI);
+      } else {
+        console.warn('[LOAD] Không có giải nào được phân cho user này');
       }
     }
   }catch(e){console.warn('tournaments fetch:',e);}
