@@ -2528,6 +2528,7 @@ let _rrRows=[], _csvM=[], _csvP=[];                // batch data
 let _dtimer=null, _rtimer=null, _dbt=null;         // timers
 let _liveTimer2=null;                              // secondary live polling timer
 let _gasConnected=true, _failCount=0, _prefetchFailed=false; // connection state
+let _importInProgress=false; // v73: flag chặn prefetchAll xóa _M khi đang import bảng
 let _curTourn=null;                                // giải đang xem (khai báo sớm để dùng trong polling)
 
 // ── buildLiveFromRows: build _lK + _liveScores từ LiveScore rows ──
@@ -3642,17 +3643,36 @@ async function prefetchAll() {
         if ((merged[6]===''||merged[6]===null||merged[6]===undefined) && local[6]!==''&&local[6]!==null&&local[6]!==undefined) merged[6]=local[6];
         return merged;
       });
-      _M = mergedAll;
+
+      // v73 FIX: Chống race condition sau import
+      // Nếu GAS trả về ÍT HƠN _M hiện tại (GSheets chưa flush xong) → KHÔNG replace
+      // mà merge thêm: giữ lại các row local chưa có trong GAS response
+      if (_importInProgress || allRows.length < _M.length * 0.85) {
+        // GAS chưa có đủ data (đang import hoặc flush chưa xong) → chỉ thêm, không xóa
+        const gasKeySet = new Set(allRows.map(r =>
+          `${String(r[0]||'')}|${String(r[1]||'')}|${String(r[2]||'')}|${String(r[3]||'')}`
+        ));
+        const localOnly = _M.filter(m => {
+          const k = `${String(m[0]||'')}|${String(m[1]||'')}|${String(m[2]||'')}|${String(m[3]||'')}`;
+          return !gasKeySet.has(k);
+        });
+        _M = [...mergedAll, ...localOnly];
+        console.warn('[prefetch] GAS < local ('+allRows.length+'<'+_M.length+') → giữ '+localOnly.length+' row local');
+      } else {
+        // GAS có đủ data → replace bình thường
+        _M = mergedAll;
+      }
+
       // Cache per giaiName
-      const giaiNames = [...new Set(mergedAll.map(r => String(r[0]||'')).filter(Boolean))];
+      const giaiNames = [...new Set(_M.map(r => String(r[0]||'')).filter(Boolean))];
       giaiNames.forEach(gn => {
-        cacheSet('matches_' + gn, mergedAll.filter(r => String(r[0]||'') === gn));
+        cacheSet('matches_' + gn, _M.filter(r => String(r[0]||'') === gn));
       });
-      if (giaiParam) cacheSet('matches_' + giaiParam, mergedAll);
+      if (giaiParam) cacheSet('matches_' + giaiParam, _M);
       // Cập nhật localStorage
       try {
         const _lsMKeyNow = 'pb_adm_M_' + CODE;
-        localStorage.setItem(_lsMKeyNow, JSON.stringify(mergedAll));
+        localStorage.setItem(_lsMKeyNow, JSON.stringify(_M));
       } catch(e) {}
     }
     if (rRes.rows?.length > 1) {
@@ -6497,18 +6517,24 @@ async function confirmGenerateSchedule() {
 
   toast(`⏳ Đang tạo ${toSend.length} trận${skippedCount ? ` (bỏ qua ${skippedCount} trận đã có)` : ''}...`, 'in');
   try {
-    const d = await gPost({action:'addMatchesBatch', adminCode:CODE, rows: toSend});
+    // v73 FIX: thêm upsert:true (trước đây thiếu) + _importInProgress flag
+    _importInProgress = true;
+    const d = await gPost({action:'addMatchesBatch', adminCode:CODE, rows: toSend, upsert:true});
     if (d?.ok) {
       const totalSkipped = skippedCount + (d.skipped || 0);
       toast(`✅ Đã tạo ${d.added || toSend.length} trận!${totalSkipped ? ` Bỏ qua ${totalSkipped} trận đã có.` : ''} Chuyển sang Bảng đấu...`, 'ok');
-      // Invalidate cache + force reload từ GAS để lấy data mới nhất
+      // Chờ GSheets flush xong rồi forceRefresh
+      await new Promise(r => setTimeout(r, 2000));
+      _importInProgress = false;
       _invalidateMatchCache(giaiId);
-      await loadMatchesCache(giaiId, true);
+      await loadMatchesCache(giaiId, true); // forceRefresh=true
       switchNdTab('bangs');
     } else {
+      _importInProgress = false;
       toast('❌ '+(d?.reason||'Lỗi tạo lịch'), 'er');
     }
   } catch(e) {
+    _importInProgress = false;
     toast('❌ Lỗi kết nối: '+e.message, 'er');
   }
   // Dọn pending sau khi xử lý xong
@@ -8558,6 +8584,9 @@ async function importMultiBang(bangMap, bangOrder, courtOverride) {
   closeMo('mo-bang');
   showProg('Đang gửi ' + total + ' trận lên GSheets...', 'Đang xử lý batch...', total);
 
+  // v73 FIX: Bật flag chống prefetchAll xóa _M trong lúc import
+  _importInProgress = true;
+
   try {
     // Gửi TOÀN BỘ 1 request duy nhất — nhanh gấp N lần, không race condition
     // v70 FIX: upsert=true → GAS xóa từng bảng cũ trước khi tạo lại (tránh dedup skip)
@@ -8583,8 +8612,15 @@ async function importMultiBang(bangMap, bangOrder, courtOverride) {
   } catch(e) {
     toast('❌ Lỗi kết nối GAS: ' + e.message, 'er');
     document.getElementById('prog-overlay').style.display = 'none';
+    _importInProgress = false;
+    return;
   }
-  await loadMatchesCache(giaiId);
+
+  // v73 FIX: Chờ GSheets flush xong (GAS đã flush() trước return, nhưng propagation ~1-2s)
+  // Sau đó forceRefresh=true để lấy data mới nhất từ GAS, không dùng cache cũ
+  await new Promise(r => setTimeout(r, 2000));
+  _importInProgress = false;
+  await loadMatchesCache(giaiId, true); // forceRefresh=true
   renderBangList(giaiId, _curNd);
 }
 
@@ -8666,6 +8702,10 @@ async function saveBang() {
   var total = _bangRows.length;
   closeMo('mo-bang');
   showProg('Đang gửi ' + total + ' trận lên GSheets...', 'Đang xử lý batch...', total);
+
+  // v73 FIX: Bật flag chống prefetchAll xóa _M trong lúc import
+  _importInProgress = true;
+
   try {
     // v70 FIX: upsert=true → GAS xóa bảng cũ trước khi tạo lại
     // Tránh dedup skip khi admin thêm/đổi đội rồi tạo lại bảng
@@ -8687,9 +8727,16 @@ async function saveBang() {
   } catch(e) {
     toast('❌ Lỗi: ' + e.message, 'er');
     document.getElementById('prog-overlay').style.display = 'none';
+    _importInProgress = false;
+    btn.disabled=false; btn.textContent='💾 Tạo bảng + lịch đấu';
+    return;
   }
+
   btn.disabled=false; btn.textContent='💾 Tạo bảng + lịch đấu';
-  await loadMatchesCache(giaiId);
+  // v73 FIX: Chờ GSheets flush xong rồi forceRefresh để lấy data mới nhất
+  await new Promise(r => setTimeout(r, 2000));
+  _importInProgress = false;
+  await loadMatchesCache(giaiId, true); // forceRefresh=true
   renderBangList(giaiId, _curNd);
 }
 
