@@ -7639,9 +7639,9 @@ async function saveEditMatch(giaiId, nd, bang, code) {
 
   toast('⏳ Đang lưu...','in');
   let d = await gPost({action:'updateMatch',adminCode:CODE,
-    giai:gName||giaiId,giaiName:gName||giaiId,bang,code,row:newRow});
+    giai:gName||giaiId,giaiName:gName||giaiId,nd,bang,code,row:newRow});
   if (d&&!d.ok&&gName&&gName!==giaiId) {
-    d = await gPost({action:'updateMatch',adminCode:CODE,giai:giaiId,giaiName:gName,bang,code,row:newRow});
+    d = await gPost({action:'updateMatch',adminCode:CODE,giai:giaiId,giaiName:gName,nd,bang,code,row:newRow});
   }
   if (d?.ok) {
     // ── Cập nhật local cache _M ngay lập tức ──
@@ -7702,7 +7702,7 @@ async function saveEditMatch(giaiId, nd, bang, code) {
       Promise.allSettled(extraUpdates.map(u =>
         gPost({action:'updateMatch', adminCode:CODE,
                giai:gName||giaiId, giaiName:gName||giaiId,
-               bang:u.bang, code:u.code, row:u.row})
+               nd, bang:u.bang, code:u.code, row:u.row})
       )).then(results => {
         const failed = results.filter(r=>r.status==='rejected'||!r.value?.ok).length;
         if (failed) toast(`⚠️ ${failed} trận chưa đồng bộ tên mới lên sheet`, 'in');
@@ -7856,7 +7856,7 @@ async function _stSaveAll(giaiId, nd, bang, count) {
     await Promise.all(updates.map(u=>
       gPost({action:'updateMatch',adminCode:CODE,
              giai:gName||giaiId,giaiName:gName||giaiId,
-             bang:u.bang,code:u.code,row:u.row})
+             nd,bang:u.bang,code:u.code,row:u.row})
     ));
     toast(`✅ Đã lưu giờ thi đấu cho ${updates.length} trận`,'ok');
     renderBangList(giaiId, nd);
@@ -8042,7 +8042,7 @@ async function applyEditBang(giaiId, nd, oldBang) {
       if (newRef)   newRow[10] = newRef;
       if (newRow[0] === giaiId) newRow[0] = giaiNameEB;
       try {
-        const d=await gPost({action:'updateMatch',adminCode:CODE,giai:giaiNameEB,giaiName:giaiNameEB,bang:String(m[2]||''),code:String(m[3]||''),row:newRow});
+        const d=await gPost({action:'updateMatch',adminCode:CODE,giai:giaiNameEB,giaiName:giaiNameEB,nd,bang:String(m[2]||''),code:String(m[3]||''),row:newRow});
         d.ok?ok++:fail++;
       } catch(e){fail++;}
     }
@@ -11402,6 +11402,7 @@ function bkSaveEditNew(code) {
     if (mIdx >= 0) _M[mIdx] = newRow;
     gPost({action:'updateMatch', adminCode:CODE,
            giai:_giaiName3||_bkGiai, giaiName:_giaiName3||_bkGiai,
+           nd:_bkNd,
            bang:String(koM3[2]||''), code, row:newRow})
       .then(d=>{
         if(d?.ok) toast(`✅ Đã lưu trận ${code}`, 'ok');
@@ -12085,6 +12086,7 @@ async function _bkSyncOverrideToSchedule(code) {
     try {
       const d = await gPost({ action:'updateMatch', adminCode:CODE,
               giai:giaiName, giaiName,
+              nd:_bkNd,
               bang: String(existing[2]||''), code, row: newRow });
       if (!d?.ok) toast(`⚠️ Lỗi sync ${code}: ${d?.reason||'lỗi GAS'}`, 'in');
     } catch(e) { toast(`⚠️ Lỗi mạng khi sync ${code}`, 'in'); }
@@ -12101,7 +12103,7 @@ async function _bkSyncOverrideToSchedule(code) {
       if (!d?.ok) {
         // Fallback: thử updateMatch nếu addMatch lỗi (row có thể đã tồn tại trên GAS)
         await gPost({ action:'updateMatch', adminCode:CODE,
-          giai:giaiName, giaiName, bang:roundName, code, row:newRow }).catch(()=>{});
+          giai:giaiName, giaiName, nd:_bkNd, bang:roundName, code, row:newRow }).catch(()=>{});
       }
     } catch(e) {}
   }
@@ -12250,11 +12252,11 @@ async function _bkDoSyncToSchedule() {
             .catch(() =>
               // Fallback: nếu đã tồn tại trên GAS → updateMatch
               gPost({ action:'updateMatch', adminCode:CODE,
-                giai:giaiName, giaiName, bang:String(row[2]||''), code, row })
+                giai:giaiName, giaiName, nd:_bkNd, bang:String(row[2]||''), code, row })
             );
         } else {
           return gPost({ action:'updateMatch', adminCode:CODE,
-            giai:giaiName, giaiName, bang:String(row[2]||''), code, row });
+            giai:giaiName, giaiName, nd:_bkNd, bang:String(row[2]||''), code, row });
         }
       })
     );
@@ -12590,7 +12592,7 @@ async function bkApplyAndSave() {
             ok++; _M.push(normalizeMatchRow(row)); dedupM();
           } else {
             const dUpd = await gPost({action:'updateMatch', adminCode:CODE,
-              giai:giaiName, giaiName, bang:String(row[2]||''), code, row});
+              giai:giaiName, giaiName, nd:_bkNd, bang:String(row[2]||''), code, row});
             if (dUpd?.ok) {
               ok++;
               const idx = _M.findIndex(r=>r[0]===giaiName&&r[1]===_bkNd&&r[3]===code);
@@ -12599,7 +12601,7 @@ async function bkApplyAndSave() {
           }
         } else {
           const d = await gPost({action:'updateMatch', adminCode:CODE,
-            giai:giaiName, giaiName, bang:String(existing[2]||''), code, row});
+            giai:giaiName, giaiName, nd:_bkNd, bang:String(existing[2]||''), code, row});
           if (d.ok) {
             const idx = _M.findIndex(r=>r[0]===giaiName&&r[1]===_bkNd&&r[3]===code);
             if (idx>=0) _M[idx]=normalizeMatchRow(row);
@@ -12850,6 +12852,7 @@ async function bkSave() {
       newRow[4]=m.teamA; newRow[7]=m.teamB;
       const d = await gPost({action:'updateMatch', adminCode:CODE,
         giai:String(existing[0]||''), giaiName:String(existing[0]||''),
+        nd:_bkNd,
         bang:String(existing[2]||''), code:String(existing[3]||''), row:newRow});
       d.ok ? ok++ : fail++;
     } catch(e) { fail++; }
@@ -14856,7 +14859,7 @@ async function saveMatch() {
   toast(`✅ ${_editM?'Cập nhật':'Thêm'} trận ${code}...`,'ok');
   try {
     const payload = _editM
-      ? { action:'updateMatch', adminCode:CODE, giai:giaiName, giaiName, bang, code, row }
+      ? { action:'updateMatch', adminCode:CODE, giai:giaiName, giaiName, nd, bang, code, row }
       : { action:'addMatchAdmin', adminCode:CODE, row };
     const d = await gPost(payload);
     if (!d.ok) toast('Lỗi: '+d.reason,'er');
@@ -14911,7 +14914,7 @@ async function saveScore() {
     if (idx >= 0) _M[idx][5] = sA; // đảm bảo _M đồng bộ trước khi gửi
     if (idx >= 0) _M[idx][6] = sB;
     const row = idx >= 0 ? _M[idx] : [giaiNameSC,nd,bg,code,'',sA,sB,'','','',''];
-    await gPost({ action:'updateMatch', adminCode:CODE, giai:giaiNameSC, giaiName:giaiNameSC, bang:bg, code, row });
+    await gPost({ action:'updateMatch', adminCode:CODE, giai:giaiNameSC, giaiName:giaiNameSC, nd, bang:bg, code, row });
   } catch(e) {}
 }
 
