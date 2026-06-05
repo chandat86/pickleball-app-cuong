@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pickleball v3.38— Xem Giải Đấu</title>
+<title>Pickleball v3.22— Xem Giải Đấu</title>
 <style>
 /* system font - no import needed */
 :root{
@@ -631,8 +631,30 @@ function doLogout(){
 async function startApp(){
   $('login-screen').style.display='none';
   $('app').style.display='block';
-  _touchActive(); // FIX v3.29: Ghi nhận thời điểm login/start
+  _touchActive();
   _M=[];_R=[];_L=[];_T=null;_giaiName='';_curNd='';_allNds=[];
+
+  // ── Luôn fetch phân quyền mới nhất từ GAS trước khi load data ──
+  // Đảm bảo USER_GIAI/USER_ND luôn đúng, kể cả khi admin vừa đổi phân quyền
+  if(GS&&USER_CODE){
+    try{
+      const r=await fetch(GS+'?action=validate&device=player-web&_t='+Date.now()+'&code='+encodeURIComponent(USER_CODE),{cache:'no-store'});
+      if(r.ok){
+        const d=await r.json();
+        if(d.valid){
+          USER_NAME = d.name||USER_NAME;
+          USER_GIAI = (d.giai||'').trim();
+          USER_ND   = (d.noidung||'').trim();
+          localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
+          console.log('[startApp] Phân quyền từ GAS — GIAI:',USER_GIAI,'| ND:',USER_ND);
+        } else {
+          // Tài khoản bị thu hồi quyền → đăng xuất
+          doLogout(); return;
+        }
+      }
+    }catch(e){ console.warn('[startApp] Không thể fetch phân quyền, dùng cache:', e); }
+  }
+
   try{await loadAll();}catch(e){console.error('loadAll:',e);}
   _restoreUiFromSession();
   if(_curNd&&!_allNds.includes(_curNd)) _curNd=_allNds[0]||'';
