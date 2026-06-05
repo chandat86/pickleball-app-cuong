@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pickleball v3.333— Xem Giải Đấu</title>
+<title>Pickleball v3.38— Xem Giải Đấu</title>
 <style>
 /* system font - no import needed */
 :root{
@@ -567,16 +567,14 @@ function loadSaved(){
     if(!s)return false;
     const j=JSON.parse(s);
     if(!j.u||!j.c)return false;
-    // FIX v3.29: Kiểm tra session expired (không hoạt động > INACTIVITY_MIN phút)
-    // → xóa cache, hiện màn hình đăng nhập, không auto-login
     if(_isSessionExpired()){
       localStorage.removeItem('pb_player_v6');
       localStorage.removeItem(_LAST_ACTIVE_KEY);
-      console.log('[AUTH] Session expired — require re-login');
-      return false; // hiện màn hình đăng nhập
+      return false;
     }
-    GS=j.u;USER_CODE=j.c;
-    USER_NAME='';USER_GIAI='';USER_ND='';
+    GS=j.u; USER_CODE=j.c;
+    // KHÔNG lấy USER_GIAI/USER_ND từ cache — luôn lấy từ GAS khi validate
+    USER_NAME=''; USER_GIAI=''; USER_ND='';
     return true;
   }catch(e){return false;}
 }
@@ -2054,9 +2052,14 @@ function _applyPlayerInitData(d){
 }
 window.addEventListener('load',async()=>{
   $('gs-url').value=GAS_URL;
+
+  // ── Xóa data cache mỗi lần load trang — chỉ giữ login session ──
+  // Đảm bảo không bao giờ hiện data cũ từ bộ nhớ RAM
+  _M=[];_R=[];_L=[];_T=null;_giaiName='';_curNd='';_allNds=[];
+  _bkTreeCache={};_bkTreeVersion=0;
+  try{sessionStorage.removeItem('pb_pdata_ver');}catch(e){}
+
   if(loadSaved()&&GS&&USER_CODE){
-    // FIX v3.30: Có session hợp lệ → hiện loading, không hiện login form
-    // Tránh login screen nháy trong khi đang validate với GAS
     $('login-screen').style.display='none';
     const loadingEl=document.createElement('div');
     loadingEl.id='boot-loading';
