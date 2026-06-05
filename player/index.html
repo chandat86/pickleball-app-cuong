@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pickleball v3.22— Xem Giải Đấu</title>
+<title>Pickleball v3.38— Xem Giải Đấu</title>
 <style>
 /* system font - no import needed */
 :root{
@@ -633,28 +633,8 @@ async function startApp(){
   $('app').style.display='block';
   _touchActive();
   _M=[];_R=[];_L=[];_T=null;_giaiName='';_curNd='';_allNds=[];
-
-  // ── Luôn fetch phân quyền mới nhất từ GAS trước khi load data ──
-  // Đảm bảo USER_GIAI/USER_ND luôn đúng, kể cả khi admin vừa đổi phân quyền
-  if(GS&&USER_CODE){
-    try{
-      const r=await fetch(GS+'?action=validate&device=player-web&_t='+Date.now()+'&code='+encodeURIComponent(USER_CODE),{cache:'no-store'});
-      if(r.ok){
-        const d=await r.json();
-        if(d.valid){
-          USER_NAME = d.name||USER_NAME;
-          USER_GIAI = (d.giai||'').trim();
-          USER_ND   = (d.noidung||'').trim();
-          localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
-          console.log('[startApp] Phân quyền từ GAS — GIAI:',USER_GIAI,'| ND:',USER_ND);
-        } else {
-          // Tài khoản bị thu hồi quyền → đăng xuất
-          doLogout(); return;
-        }
-      }
-    }catch(e){ console.warn('[startApp] Không thể fetch phân quyền, dùng cache:', e); }
-  }
-
+  // USER_GIAI/USER_ND đã được set đúng từ autoLoginFromCache() hoặc doLogin()
+  // loadAll() sẽ truyền code → GAS filter đúng giải
   try{await loadAll();}catch(e){console.error('loadAll:',e);}
   _restoreUiFromSession();
   if(_curNd&&!_allNds.includes(_curNd)) _curNd=_allNds[0]||'';
@@ -793,22 +773,27 @@ async function refreshAll(){
 
 // ══ LOAD DATA ══
 async function loadAll(){
-  // Step 1: Resolve giai name from tournaments list
+  // Step 1: Fetch tournaments — truyền code để GAS chỉ trả giải được phân cho player này
   try{
-    const td=await gGet({action:'tournaments'});
+    const td=await gGet({action:'tournaments', code:USER_CODE});
     if(td.rows?.length>1){
       const trows=td.rows.slice(1);
+      // GAS đã filter đúng giải → lấy giải đầu tiên match USER_GIAI, hoặc giải đầu tiên
       const gUp=(USER_GIAI||'').trim().toUpperCase();
-      let found=null;
-      if(gUp){
-        // Tìm match chính xác trước
-        found=trows.find(r=>String(r[0]||'').trim().toUpperCase()===gUp||String(r[1]||'').trim().toUpperCase()===gUp);
-        // Nếu không match chính xác, thử contains (partial match)
-        if(!found)found=trows.find(r=>String(r[1]||'').trim().toUpperCase().includes(gUp)||gUp.includes(String(r[1]||'').trim().toUpperCase()));
+      let found = gUp
+        ? trows.find(r=>String(r[0]||'').trim().toUpperCase()===gUp||String(r[1]||'').trim().toUpperCase()===gUp)
+        : null;
+      if(!found&&trows.length) found=trows[0]; // fallback: giải đầu tiên GAS cho phép
+      if(found){
+        _T=found;
+        _giaiName=String(found[1]||'').trim();
+        // Nếu USER_GIAI lệch → đồng bộ lại
+        if(gUp && _giaiName && _giaiName.toUpperCase()!==gUp){
+          USER_GIAI=_giaiName;
+          localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
+        }
+        console.log('[LOAD] Tournament:', _giaiName);
       }
-      if(found){_T=found;_giaiName=String(found[1]||'').trim();
-        console.log('[LOAD] Matched tournament:', _giaiName);}
-      else if(gUp){console.warn('[LOAD] No tournament match for USER_GIAI:', USER_GIAI,'| Available:', trows.map(r=>r[1]).join(' / '));}
     }
   }catch(e){console.warn('tournaments fetch:',e);}
 
