@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pickleball v3.12— Xem Giải Đấu</title>
+<title>Pickleball v333— Xem Giải Đấu</title>
 <style>
 /* system font - no import needed */
 :root{
@@ -590,22 +590,48 @@ async function doLogin(){
     const phone=id.replace(/\D/g,'');
     const isPhone=phone.length>=8&&phone.length<=12&&/^\d+$/.test(phone);
     const param=isPhone?`&phone=${encodeURIComponent(phone)}`:`&code=${encodeURIComponent(id.toUpperCase())}`;
-    const r=await fetch(`${GS}?action=playerInit&device=player-web&_t=${Date.now()}${param}`,{cache:'no-store'});
-    if(!r.ok){showErr('Lỗi kết nối HTTP '+r.status);btn.disabled=false;btn.textContent='Đăng nhập →';return;}
-    const d=await r.json();
+
+    // Thử playerInit trước (GAS mới) — nếu không có thì fallback validate (GAS cũ)
+    let d=null;
+    let usePlayerInit=false;
+    try{
+      const r1=await fetch(`${GS}?action=playerInit&device=player-web&_t=${Date.now()}${param}`,{cache:'no-store'});
+      if(r1.ok){
+        const j=await r1.json();
+        // playerInit hợp lệ nếu trả valid hoặc reason rõ ràng (không phải "unknown action")
+        if(j.valid!==undefined && j.reason!=='unknown_action'){
+          d=j; usePlayerInit=true;
+        }
+      }
+    }catch(e1){}
+
+    // Fallback: GAS cũ dùng validate
+    if(!d){
+      const r2=await fetch(`${GS}?action=validate&device=player-web&_t=${Date.now()}${param}`,{cache:'no-store'});
+      if(!r2.ok){showErr('Lỗi kết nối HTTP '+r2.status);btn.disabled=false;btn.textContent='Đăng nhập →';return;}
+      d=await r2.json();
+    }
+
     if(!d.valid){showErr(d.reason||'Số điện thoại hoặc mã không đúng');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
     const st=(d.statusRaw||'').toLowerCase();
     if(st==='khóa'||st==='disabled'){showErr('Tài khoản bị khóa');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
-    if(d.noGiai){showErr('⚠️ Tài khoản chưa được phân giải đấu. Vui lòng liên hệ admin.');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
+    if(d.noGiai||!d.giai?.trim()){showErr('⚠️ Tài khoản chưa được phân giải đấu. Vui lòng liên hệ admin.');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
+
     USER_NAME=d.name||'';
     USER_CODE=d.code||'';
     USER_GIAI=d.giai||'';
     USER_ND=d.noidung||'';
     localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
-    _applyPlayerInitData(d); // nạp data trực tiếp từ response
-    startApp(true);
+
+    if(usePlayerInit && d.matches){
+      _applyPlayerInitData(d); // GAS mới: data có sẵn trong response
+      startApp(true);
+    } else {
+      // GAS cũ: gọi loadAll bình thường
+      _clearDataCache();
+      startApp(false);
+    }
   }catch(e){showErr('Lỗi: '+e.message);btn.disabled=false;btn.textContent='Đăng nhập →';}
-}
 }
 function showErr(m){const e=$('login-err');e.textContent=m;e.style.display='block';}
 function hideErr(){$('login-err').style.display='none';}
@@ -1958,59 +1984,44 @@ function selectBkNd(nd){
   renderBracketTab();
 }
 
-// ══ BOOT — playerInit: 1 call GAS lấy validate + toàn bộ data ══
+// ══ BOOT ══
 async function autoLoginFromCache(){
   try{
-    const url=`${GS}?action=playerInit&device=player-web&_t=${Date.now()}&code=${encodeURIComponent(USER_CODE)}`;
-    const r=await fetch(url,{cache:'no-store'});
-    if(!r.ok)return false;
-    const d=await r.json();
+    // Thử playerInit (GAS mới) — fallback validate (GAS cũ)
+    let d=null, hasData=false;
+    try{
+      const r1=await fetch(`${GS}?action=playerInit&device=player-web&_t=${Date.now()}&code=${encodeURIComponent(USER_CODE)}`,{cache:'no-store'});
+      if(r1.ok){const j=await r1.json();if(j.valid!==undefined&&j.reason!=='unknown_action'){d=j;hasData=!!(j.matches);}}
+    }catch(e1){}
+    if(!d){
+      const r2=await fetch(`${GS}?action=validate&device=player-web&_t=${Date.now()}&code=${encodeURIComponent(USER_CODE)}`,{cache:'no-store'});
+      if(!r2.ok)return false;
+      d=await r2.json();
+    }
     if(!d.valid)return false;
     const st=(d.statusRaw||'').toLowerCase();
     if(st==='khóa'||st==='disabled')return false;
-    if(d.noGiai){
-      // Tài khoản hợp lệ nhưng chưa được phân giải
-      alert('⚠️ Tài khoản chưa được phân giải đấu. Vui lòng liên hệ admin.');
-      return false;
-    }
-    // Cập nhật thông tin từ GAS — không dùng cache localStorage cũ
-    USER_NAME = d.name||'';
-    USER_CODE = d.code||'';
-    USER_GIAI = d.giai||'';
-    USER_ND   = d.noidung||'';
+    USER_NAME=d.name||''; USER_CODE=d.code||USER_CODE;
+    USER_GIAI=d.giai||''; USER_ND=d.noidung||'';
+    if(!USER_GIAI.trim())return false;
     localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
-    // Nạp data trực tiếp từ response — không cần gọi thêm bất kỳ API nào
-    _applyPlayerInitData(d);
+    if(hasData){_applyPlayerInitData(d);return 'withData';}
+    _clearDataCache();
     return true;
-  }catch(e){
-    console.warn('[playerInit] Lỗi, fallback loadAll:',e);
-    return false;
-  }
+  }catch(e){return false;}
 }
 
-// Áp dụng data từ playerInit response vào bộ nhớ
+// Áp dụng data từ playerInit vào bộ nhớ
 function _applyPlayerInitData(d){
   _clearDataCache();
-  // Tournaments
-  if(d.tournaments?.rows?.length>1){
-    const trows=d.tournaments.rows.slice(1);
-    _T=trows[0]||null;
-    _giaiName=_T?String(_T[1]||'').trim():'';
-  }
-  // Matches
-  if(d.matches?.rows?.length>1) _M=d.matches.rows.slice(1);
-  // Results
-  if(d.results?.rows?.length>1) _R=d.results.rows.slice(1);
-  // Live
-  if(d.live?.rows?.length>1)
-    _L=d.live.rows.slice(1).filter(r=>String(r[9]||'').toLowerCase()!=='finished');
+  if(d.tournaments?.rows?.length>1){const trows=d.tournaments.rows.slice(1);_T=trows[0]||null;_giaiName=_T?String(_T[1]||'').trim():'';}
+  if(d.matches?.rows?.length>1)_M=d.matches.rows.slice(1);
+  if(d.results?.rows?.length>1)_R=d.results.rows.slice(1);
+  if(d.live?.rows?.length>1)_L=d.live.rows.slice(1).filter(r=>String(r[9]||'').toLowerCase()!=='finished');
   else _L=[];
-  buildNdList();
-  renderTopBar();
-  renderNdFilter();
-  setUpdateTime();
+  buildNdList();renderTopBar();renderNdFilter();setUpdateTime();
   const lb=$('tb-live');if(lb)lb.style.display=_L.length?'flex':'none';
-  console.log('[playerInit] Loaded — giai:',_giaiName,'matches:',_M.length,'live:',_L.length);
+  console.log('[playerInit]',_giaiName,'M:',_M.length,'L:',_L.length);
 }
 window.addEventListener('load',async()=>{
   $('gs-url').value=GAS_URL;
@@ -2026,7 +2037,7 @@ window.addEventListener('load',async()=>{
     const ok=await autoLoginFromCache();
     loadingEl.remove();
     if(ok){
-      startApp(true); // data đã load từ playerInit — không cần gọi loadAll lại
+      startApp(ok==='withData'); // withData=true → skip loadAll; true → cần loadAll
     }else{
       // validate thất bại hoặc chưa có phân quyền → xóa cache, hiện login
       localStorage.removeItem('pb_player_v6');
