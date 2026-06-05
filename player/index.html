@@ -589,29 +589,23 @@ async function doLogin(){
   try{
     const phone=id.replace(/\D/g,'');
     const isPhone=phone.length>=8&&phone.length<=12&&/^\d+$/.test(phone);
-    const param=isPhone?'&phone='+encodeURIComponent(phone):'&code='+encodeURIComponent(id.toUpperCase());
-    const r=await fetch(GS+'?action=validate&device=player-web&_t='+Date.now()+param,{cache:'no-store'});
+    const param=isPhone?`&phone=${encodeURIComponent(phone)}`:`&code=${encodeURIComponent(id.toUpperCase())}`;
+    const r=await fetch(`${GS}?action=playerInit&device=player-web&_t=${Date.now()}${param}`,{cache:'no-store'});
     if(!r.ok){showErr('Lỗi kết nối HTTP '+r.status);btn.disabled=false;btn.textContent='Đăng nhập →';return;}
     const d=await r.json();
-    console.log('[LOGIN] GAS response:', JSON.stringify(d));
     if(!d.valid){showErr(d.reason||'Số điện thoại hoặc mã không đúng');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
     const st=(d.statusRaw||'').toLowerCase();
     if(st==='khóa'||st==='disabled'){showErr('Tài khoản bị khóa');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
+    if(d.noGiai){showErr('⚠️ Tài khoản chưa được phân giải đấu. Vui lòng liên hệ admin.');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
     USER_NAME=d.name||'';
     USER_CODE=d.code||'';
     USER_GIAI=d.giai||'';
     USER_ND=d.noidung||'';
-    console.log('[LOGIN] USER_GIAI:', USER_GIAI, '| USER_ND:', USER_ND);
-    // Nếu chưa được cấp quyền xem giải nào → báo rõ
-    if(!USER_GIAI.trim()){
-      showErr('⚠️ Tài khoản chưa được cấp quyền xem giải đấu. Vui lòng liên hệ admin.');
-      btn.disabled=false;btn.textContent='Đăng nhập →';return;
-    }
     localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
-    // v3: Clear mọi cache dữ liệu khi đăng nhập mới — đảm bảo không dùng data cũ
-    _clearDataCache();
-    startApp();
+    _applyPlayerInitData(d); // nạp data trực tiếp từ response
+    startApp(true);
   }catch(e){showErr('Lỗi: '+e.message);btn.disabled=false;btn.textContent='Đăng nhập →';}
+}
 }
 function showErr(m){const e=$('login-err');e.textContent=m;e.style.display='block';}
 function hideErr(){$('login-err').style.display='none';}
@@ -628,14 +622,15 @@ function doLogout(){
 }
 
 // ══ APP ══
-async function startApp(){
+async function startApp(dataAlreadyLoaded){
   $('login-screen').style.display='none';
   $('app').style.display='block';
   _touchActive();
-  _M=[];_R=[];_L=[];_T=null;_giaiName='';_curNd='';_allNds=[];
-  // USER_GIAI/USER_ND đã được set đúng từ autoLoginFromCache() hoặc doLogin()
-  // loadAll() sẽ truyền code → GAS filter đúng giải
-  try{await loadAll();}catch(e){console.error('loadAll:',e);}
+  // Nếu data chưa có (login mới qua doLogin) → gọi playerInit lại
+  if(!dataAlreadyLoaded){
+    _M=[];_R=[];_L=[];_T=null;_giaiName='';_curNd='';_allNds=[];
+    try{await loadAll();}catch(e){console.error('loadAll:',e);}
+  }
   _restoreUiFromSession();
   if(_curNd&&!_allNds.includes(_curNd)) _curNd=_allNds[0]||'';
   document.querySelectorAll('.ntab').forEach(b=>b.classList.toggle('on',b.dataset.tab===_curTab));
@@ -738,7 +733,8 @@ async function silentRefresh(){
 async function checkPermission(){
   if(!GS||!USER_CODE)return;
   try{
-    const r=await fetch(GS+'?action=validate&device=player-web&_t='+Date.now()+'&code='+encodeURIComponent(USER_CODE),{cache:'no-store'});
+    const url=`${GS}?action=playerInit&device=player-web&_t=${Date.now()}&code=${encodeURIComponent(USER_CODE)}`;
+    const r=await fetch(url,{cache:'no-store'});
     if(!r.ok)return;
     const d=await r.json();
     if(!d.valid)return;
@@ -746,14 +742,12 @@ async function checkPermission(){
     const newNd=(d.noidung||'').trim();
     const oldGiai=(USER_GIAI||'').trim();
     const oldNd=(USER_ND||'').trim();
-    // v3: Luôn cập nhật tên nếu thay đổi
-    if(d.name)USER_NAME=d.name;
-    // Nếu phân quyền thay đổi HOẶC lần đầu chưa có giải → clear cache + reload
+    if(d.name) USER_NAME=d.name;
+    // Nếu phân quyền thay đổi → cập nhật và re-render
     if(newGiai!==oldGiai||newNd!==oldNd||!oldGiai){
-      USER_GIAI=newGiai;USER_ND=newNd;
+      USER_GIAI=newGiai; USER_ND=newNd;
       localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
-      _clearDataCache();
-      await loadAll();
+      _applyPlayerInitData(d);
       renderCurrentTab();
       toast('🔄 Giải đấu đã được cập nhật!',3000);
     }
@@ -2007,27 +2001,59 @@ function selectBkNd(nd){
   renderBracketTab();
 }
 
-// ══ BOOT ══
+// ══ BOOT — playerInit: 1 call GAS lấy validate + toàn bộ data ══
 async function autoLoginFromCache(){
-  // Re-validate với server để lấy phân quyền mới nhất, không tin cache cũ
   try{
-    const r=await fetch(GS+'?action=validate&device=player-web&_t='+Date.now()+'&code='+encodeURIComponent(USER_CODE),{cache:'no-store'});
+    const url=`${GS}?action=playerInit&device=player-web&_t=${Date.now()}&code=${encodeURIComponent(USER_CODE)}`;
+    const r=await fetch(url,{cache:'no-store'});
     if(!r.ok)return false;
     const d=await r.json();
     if(!d.valid)return false;
     const st=(d.statusRaw||'').toLowerCase();
     if(st==='khóa'||st==='disabled')return false;
-    // Cập nhật phân quyền mới từ server (không dùng cache cũ)
-    USER_NAME=d.name||'';USER_CODE=d.code||'';
-    USER_GIAI=d.giai||'';
-    USER_ND=d.noidung||'';
-    console.log('[AUTO-LOGIN] USER_GIAI:', USER_GIAI);
-    if(!USER_GIAI.trim())return false; // Chưa có phân quyền → yêu cầu đăng nhập lại
+    if(d.noGiai){
+      // Tài khoản hợp lệ nhưng chưa được phân giải
+      alert('⚠️ Tài khoản chưa được phân giải đấu. Vui lòng liên hệ admin.');
+      return false;
+    }
+    // Cập nhật thông tin từ GAS — không dùng cache localStorage cũ
+    USER_NAME = d.name||'';
+    USER_CODE = d.code||'';
+    USER_GIAI = d.giai||'';
+    USER_ND   = d.noidung||'';
     localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
-    // v3: Clear data cache sau khi re-validate để luôn fetch fresh
-    _clearDataCache();
+    // Nạp data trực tiếp từ response — không cần gọi thêm bất kỳ API nào
+    _applyPlayerInitData(d);
     return true;
-  }catch(e){return false;}
+  }catch(e){
+    console.warn('[playerInit] Lỗi, fallback loadAll:',e);
+    return false;
+  }
+}
+
+// Áp dụng data từ playerInit response vào bộ nhớ
+function _applyPlayerInitData(d){
+  _clearDataCache();
+  // Tournaments
+  if(d.tournaments?.rows?.length>1){
+    const trows=d.tournaments.rows.slice(1);
+    _T=trows[0]||null;
+    _giaiName=_T?String(_T[1]||'').trim():'';
+  }
+  // Matches
+  if(d.matches?.rows?.length>1) _M=d.matches.rows.slice(1);
+  // Results
+  if(d.results?.rows?.length>1) _R=d.results.rows.slice(1);
+  // Live
+  if(d.live?.rows?.length>1)
+    _L=d.live.rows.slice(1).filter(r=>String(r[9]||'').toLowerCase()!=='finished');
+  else _L=[];
+  buildNdList();
+  renderTopBar();
+  renderNdFilter();
+  setUpdateTime();
+  const lb=$('tb-live');if(lb)lb.style.display=_L.length?'flex':'none';
+  console.log('[playerInit] Loaded — giai:',_giaiName,'matches:',_M.length,'live:',_L.length);
 }
 window.addEventListener('load',async()=>{
   $('gs-url').value=GAS_URL;
@@ -2043,7 +2069,7 @@ window.addEventListener('load',async()=>{
     const ok=await autoLoginFromCache();
     loadingEl.remove();
     if(ok){
-      startApp();
+      startApp(true); // data đã load từ playerInit — không cần gọi loadAll lại
     }else{
       // validate thất bại hoặc chưa có phân quyền → xóa cache, hiện login
       localStorage.removeItem('pb_player_v6');
