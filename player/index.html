@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pickleball v333— Xem Giải Đấu</title>
+<title>Pickleball v3.333— Xem Giải Đấu</title>
 <style>
 /* system font - no import needed */
 :root{
@@ -791,22 +791,51 @@ async function refreshAll(){
   finally{btn.disabled=false;btn.textContent='↻ Làm mới';}
 }
 
-// ══ LOAD DATA — dùng playerInit để luôn lấy đúng giải từ GAS ══
+// ══ LOAD DATA ══
 async function loadAll(){
   if(!GS||!USER_CODE)return;
   try{
-    const url=`${GS}?action=playerInit&device=player-web&_t=${Date.now()}&code=${encodeURIComponent(USER_CODE)}`;
-    const r=await fetch(url,{cache:'no-store'});
-    if(!r.ok)return;
-    const d=await r.json();
-    if(!d.valid)return;
-    // Cập nhật giải nếu admin vừa đổi
-    if(d.giai && d.giai !== USER_GIAI){
-      USER_GIAI=d.giai; USER_ND=d.noidung||'';
-      localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
+    // Thử playerInit (GAS mới)
+    let d=null, hasData=false;
+    try{
+      const r1=await fetch(`${GS}?action=playerInit&device=player-web&_t=${Date.now()}&code=${encodeURIComponent(USER_CODE)}`,{cache:'no-store'});
+      if(r1.ok){const j=await r1.json();if(j.valid!==undefined&&j.reason!=='unknown_action'){d=j;hasData=!!(j.matches);}}
+    }catch(e1){}
+
+    if(d&&d.valid&&hasData){
+      // GAS mới: dùng data từ playerInit
+      if(d.giai&&d.giai!==USER_GIAI){
+        USER_GIAI=d.giai;USER_ND=d.noidung||'';
+        localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
+      }
+      _applyPlayerInitData(d);
+      return;
     }
-    _applyPlayerInitData(d);
-  }catch(e){console.warn('[loadAll] lỗi:',e);}
+
+    // Fallback GAS cũ: gọi riêng từng API
+    const gName=_giaiName||USER_GIAI||'';
+    const[td,md,rd,ld]=await Promise.all([
+      fetch(`${GS}?action=tournaments&_t=${Date.now()}`,{cache:'no-store'}).then(r=>r.json()).catch(()=>({})),
+      fetch(`${GS}?action=matches&giai=${encodeURIComponent(gName)}&_t=${Date.now()}`,{cache:'no-store'}).then(r=>r.json()).catch(()=>({})),
+      fetch(`${GS}?action=results&giai=${encodeURIComponent(gName)}&_t=${Date.now()}`,{cache:'no-store'}).then(r=>r.json()).catch(()=>({})),
+      fetch(`${GS}?action=live&code=all&giai=${encodeURIComponent(gName)}&_t=${Date.now()}`,{cache:'no-store'}).then(r=>r.json()).catch(()=>({})),
+    ]);
+    // Resolve tournament
+    if(td.rows?.length>1){
+      const trows=td.rows.slice(1);
+      const gUp=(USER_GIAI||'').trim().toUpperCase();
+      let found=gUp?trows.find(r=>String(r[0]||'').trim().toUpperCase()===gUp||String(r[1]||'').trim().toUpperCase()===gUp):null;
+      if(!found&&trows.length)found=trows[0];
+      if(found){_T=found;_giaiName=String(found[1]||'').trim();}
+    }
+    if(md.rows?.length>1)_M=md.rows.slice(1);
+    if(rd.rows?.length>1)_R=rd.rows.slice(1);
+    if(ld.rows?.length>1)_L=ld.rows.slice(1).filter(r=>String(r[9]||'').toLowerCase()!=='finished');
+    else _L=[];
+    buildNdList();renderTopBar();renderNdFilter();setUpdateTime();
+    const lb=$('tb-live');if(lb)lb.style.display=_L.length?'flex':'none';
+    console.log('[loadAll fallback]',_giaiName,'M:',_M.length);
+  }catch(e){console.warn('[loadAll]',e);}
 }
 
 function buildNdList(){
