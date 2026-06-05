@@ -4309,6 +4309,7 @@ async function loadDash() {
     if (mRes?.rows?.length > 1) {
       const newRows = normalizeMatchRows(mRes.rows.slice(1));
       // Smart merge: giữ tên đội local BK/CK chưa sync GAS
+      // FIX v74: thêm check nd khớp để tránh merge nhầm KTS↔NN (cùng giải, khác nội dung)
       const _lkDash = {};
       _M.filter(m => String(m[0]||'') === giaiName)
         .forEach(m => {
@@ -4319,6 +4320,8 @@ async function loadDash() {
         const k = `${String(nr[1]||'')}|${String(nr[2]||'')}|${String(nr[3]||'')}`;
         const loc = _lkDash[k];
         if (!loc) return nr;
+        // Chỉ merge nếu đúng nội dung — tránh merge nhầm KTS↔NN
+        if (String(loc[1]||'') !== String(nr[1]||'')) return nr;
         const mg = [...nr];
         if (!mg[4] && loc[4]) mg[4] = loc[4];
         if (!mg[7] && loc[7]) mg[7] = loc[7];
@@ -8781,6 +8784,8 @@ async function loadMatchesCache(giaiId='', forceRefresh=false) {
   const cached = forceRefresh ? null : cacheGet(cKey);
   if (cached) {
     // Smart merge với cache (giống GAS merge — giữ tên đội local nếu cache thiếu)
+    // FIX v74: key phải gồm nd|bang|code (4 trường khi đã filter giaiName)
+    // Key 3 trường bang|code gây merge nhầm giữa các nội dung cùng giải (KTS vs NN)
     const localByKey2 = {};
     _M.filter(m => String(m[0]||'') === giaiName)
       .forEach(m => {
@@ -8791,6 +8796,8 @@ async function loadMatchesCache(giaiId='', forceRefresh=false) {
       const k = `${String(nr[1]||'')}|${String(nr[2]||'')}|${String(nr[3]||'')}`;
       const local = localByKey2[k];
       if (!local) return nr;
+      // Chỉ merge nếu đúng nội dung (nd khớp) — tránh merge nhầm KTS↔NN
+      if (String(local[1]||'') !== String(nr[1]||'')) return nr;
       const merged = [...nr];
       if (!merged[4] && local[4]) merged[4] = local[4];
       if (!merged[7] && local[7]) merged[7] = local[7];
@@ -8816,6 +8823,7 @@ async function loadMatchesCache(giaiId='', forceRefresh=false) {
       const newRows = normalizeMatchRows(md.rows.slice(1));
       // SMART MERGE: GAS là nguồn chính nhưng giữ tên đội local nếu GAS chưa sync
       // Trường hợp: _bkAutoSyncToSchedule đã điền BK/CK local nhưng chưa push GAS xong
+      // FIX v74: thêm check nd khớp để tránh merge nhầm KTS↔NN (cùng giải, khác nội dung)
       const localByKey = {};
       _M.filter(m => String(m[0]||'') === giaiName)
         .forEach(m => {
@@ -8827,6 +8835,8 @@ async function loadMatchesCache(giaiId='', forceRefresh=false) {
         const k = `${String(nr[1]||'')}|${String(nr[2]||'')}|${String(nr[3]||'')}`;
         const local = localByKey[k];
         if (!local) return nr;
+        // Chỉ merge nếu đúng nội dung — tránh merge nhầm KTS↔NN
+        if (String(local[1]||'') !== String(nr[1]||'')) return nr;
         const merged = [...nr];
         // Giữ tên đội local nếu GAS trả về rỗng (chưa sync)
         if (!merged[4] && local[4]) merged[4] = local[4]; // teamA
@@ -14671,6 +14681,7 @@ async function loadMatches() {
       const newRows = normalizeMatchRows(md.rows.slice(1));
       if (giaiName) {
         // Smart merge: giữ tên đội local BK/CK chưa sync GAS
+        // FIX v74: thêm check nd khớp để tránh merge nhầm KTS↔NN (cùng giải, khác nội dung)
       const _lk13 = {};
       _M.filter(m => String(m[0]||'') === giaiName)
         .forEach(m => {
@@ -14681,6 +14692,8 @@ async function loadMatches() {
         const k = `${String(nr[1]||'')}|${String(nr[2]||'')}|${String(nr[3]||'')}`;
         const loc = _lk13[k];
         if (!loc) return nr;
+        // Chỉ merge nếu đúng nội dung — tránh merge nhầm KTS↔NN
+        if (String(loc[1]||'') !== String(nr[1]||'')) return nr;
         const mg = [...nr];
         if (!mg[4] && loc[4]) mg[4] = loc[4];
         if (!mg[7] && loc[7]) mg[7] = loc[7];
