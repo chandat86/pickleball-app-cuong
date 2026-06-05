@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<!-- Luôn fetch HTML mới — tránh browser cache file cũ -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Pickleball v3.38— Xem Giải Đấu</title>
 <style>
 /* system font - no import needed */
@@ -501,7 +505,7 @@ let _permTimer=null;
 let _hardReloadTimer=null; // v3: Hard reload toàn bộ cache mỗi N phút
 const REFRESH_SEC=8;          // Cập nhật live/kết quả mỗi 8s
 const PERM_CHECK_SEC=20;      // Kiểm tra phân quyền mỗi 20s
-const HARD_RELOAD_MIN=30;     // FIX v3.3: Tăng lên 30 phút — 3 phút gây full reload nháy màn hình
+const HARD_RELOAD_MIN=5;      // Reload toàn bộ data mỗi 5 phút (phát hiện giải/bảng mới)
 const INACTIVITY_MIN=240;     // Tự động đăng xuất sau 4 giờ không hoạt động (240 phút)
 const _LAST_ACTIVE_KEY='pb_player_last_active';
 
@@ -522,6 +526,7 @@ function _isSessionExpired(){
   document.addEventListener(ev, _touchActive, {passive:true});
 });
 const DATA_VER_KEY='pb_pdata_ver'; // v3: version key để detect admin change
+const APP_VER_KEY ='pb_app_ver';   // version token từ GAS — detect cấu trúc giải thay đổi
 
 // ══ UTILS ══
 const $=id=>document.getElementById(id);
@@ -549,7 +554,9 @@ async function gGet(params,timeout=12000){
   try{
     const r=await fetch(url.toString(),{signal:ctrl.signal,cache:'no-store'});
     clearTimeout(t);
-    return await r.json();
+    const d=await r.json();
+    _checkAppVersion(d); // detect GAS version change → tự reload data
+    return d;
   }catch(e){clearTimeout(t);return {};}
 }
 
@@ -660,10 +667,38 @@ function _clearDataCache(){
   console.log('[v3] Data cache cleared (incl bracket snapshot)');
 }
 
+// ── App version check: GAS trả appVersion trong mọi response ──
+// Nếu version thay đổi (admin deploy GAS mới) → clear data cache + reload
+let _appVerChecked = false;
+function _checkAppVersion(data) {
+  if (!data?.appVersion) return;
+  try {
+    const saved = localStorage.getItem(APP_VER_KEY);
+    if (!saved) {
+      // Lần đầu — lưu lại, không reload
+      localStorage.setItem(APP_VER_KEY, data.appVersion);
+      return;
+    }
+    if (saved !== data.appVersion) {
+      console.log('[ver] App version changed:', saved, '→', data.appVersion);
+      localStorage.setItem(APP_VER_KEY, data.appVersion);
+      if (!_appVerChecked) {
+        _appVerChecked = true; // tránh reload loop
+        _clearDataCache();
+        loadAll().then(() => {
+          renderCurrentTab();
+          console.log('[ver] Reloaded data after version change');
+        }).catch(e => console.warn('[ver] Reload error:', e));
+      }
+    }
+  } catch(e) {}
+}
+
 // v3: Hard reload định kỳ — fetch lại toàn bộ từ server, cập nhật cây thi đấu & VĐV
 async function _hardReload(){
   if(!GS||!USER_CODE)return;
   console.log('[v3] Hard reload triggered');
+  _appVerChecked = false; // reset để sẵn sàng detect version change tiếp theo
   _clearDataCache();
   try{
     await loadAll();
@@ -1047,17 +1082,18 @@ function renderSchedule(){
       const tA=String(m[4]||'').trim()||'TBD',tB=String(m[7]||'').trim()||'TBD';
       const court=String(m[8]||''),round=String(m[9]||'');
       const matchTimeRaw=String(m[11]||'').trim(); // giờ thi đấu col[11]
-      // Format: HH:MM hoặc ISO datetime từ GAS (UTC, lệch -7h so VN) → "8:15"
+      // Format: GAS trả về HH:MM string đúng (đã fix ở GAS v40)
+      // Fallback: nếu vẫn còn ISO (data cũ) → parse UTC rồi cộng +7h (UTC+7)
       const fmtMatchTime=(v)=>{
         if(!v)return'';
-        // ISO: "1899-12-30T01:08:30.000Z" → cộng 7h để về giờ VN (UTC+7)
+        // ISO còn sót: "1899-12-30T01:08:30.000Z" → +7h về VN
         const iso=v.match(/T(\d{2}):(\d{2})/);
         if(iso){
-          const totalMin=parseInt(iso[1],10)*60+parseInt(iso[2],10)+7*60; // +7h
-          const h=Math.floor(totalMin/60)%24, mi=totalMin%60;
+          const totalMin=parseInt(iso[1],10)*60+parseInt(iso[2],10)+420;
+          const h=Math.floor(totalMin/60)%24,mi=totalMin%60;
           return h+':'+String(mi).padStart(2,'0');
         }
-        // HH:MM bình thường → bỏ số 0 đầu giờ: "08:15" → "8:15"
+        // HH:MM bình thường → bỏ số 0 đầu: "08:15" → "8:15"
         const hm=v.match(/^(\d{1,2}):(\d{2})/);
         if(hm)return parseInt(hm[1],10)+':'+hm[2];
         return v;
