@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pickleball v3.38— Xem Giải Đấu</title>
+<title>Pickleball v3.12— Xem Giải Đấu</title>
 <style>
 /* system font - no import needed */
 :root{
@@ -765,65 +765,22 @@ async function refreshAll(){
   finally{btn.disabled=false;btn.textContent='↻ Làm mới';}
 }
 
-// ══ LOAD DATA ══
+// ══ LOAD DATA — dùng playerInit để luôn lấy đúng giải từ GAS ══
 async function loadAll(){
-  // Step 1: Fetch tournaments — truyền code để GAS chỉ trả giải được phân cho player này
+  if(!GS||!USER_CODE)return;
   try{
-    const td=await gGet({action:'tournaments', code:USER_CODE});
-    if(td.rows?.length>1){
-      const trows=td.rows.slice(1);
-      const gUp=(USER_GIAI||'').trim().toUpperCase();
-      let found=null;
-      if(gUp){
-        // Tìm theo ID hoặc tên chính xác
-        found=trows.find(r=>
-          String(r[0]||'').trim().toUpperCase()===gUp ||
-          String(r[1]||'').trim().toUpperCase()===gUp
-        );
-        // Partial match (đề phòng GAS lưu tên có dấu/không dấu lệch nhau)
-        if(!found) found=trows.find(r=>
-          String(r[1]||'').trim().toUpperCase().includes(gUp)||
-          gUp.includes(String(r[1]||'').trim().toUpperCase())
-        );
-      }
-      // Nếu USER_GIAI rỗng hoặc không match → lấy giải đầu tiên GAS cho phép
-      if(!found && trows.length) found=trows[0];
-      if(found){
-        _T=found;
-        _giaiName=String(found[1]||'').trim();
-        // Đồng bộ USER_GIAI theo tên giải thực từ GAS
-        if(_giaiName && _giaiName.toUpperCase()!==gUp){
-          USER_GIAI=_giaiName;
-          localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
-        }
-        console.log('[LOAD] Tournament:', _giaiName,'| USER_GIAI:',USER_GIAI);
-      } else {
-        console.warn('[LOAD] Không có giải nào được phân cho user này');
-      }
+    const url=`${GS}?action=playerInit&device=player-web&_t=${Date.now()}&code=${encodeURIComponent(USER_CODE)}`;
+    const r=await fetch(url,{cache:'no-store'});
+    if(!r.ok)return;
+    const d=await r.json();
+    if(!d.valid)return;
+    // Cập nhật giải nếu admin vừa đổi
+    if(d.giai && d.giai !== USER_GIAI){
+      USER_GIAI=d.giai; USER_ND=d.noidung||'';
+      localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
     }
-  }catch(e){console.warn('tournaments fetch:',e);}
-
-  // Step 2: Fetch with giai NAME (GAS filters by name not ID)
-  const gName=_giaiName||USER_GIAI||'';
-  try{
-    const[md,rd,ld]=await Promise.all([
-      gGet({action:'matches',giai:gName}).catch(()=>({})),
-      gGet({action:'results',giai:gName}).catch(()=>({})),
-      gGet({action:'live',code:'all',giai:gName}).catch(()=>({}) ),
-    ]);
-    if(md.rows?.length>1)_M=md.rows.slice(1);
-    if(rd.rows?.length>1)_R=rd.rows.slice(1);
-    // HDR_LIVE: [Key, Giải đấu, Đội A, Điểm A, Điểm B, Đội B, Giao bóng, Game, Cập nhật, Trạng thái]
-    if(ld.rows?.length>1)_L=ld.rows.slice(1).filter(r=>String(r[9]||'').toLowerCase()!=='finished');
-    else _L=[];
-  }catch(e){console.warn('data fetch:',e);}
-
-  buildNdList();
-  renderTopBar();
-  renderNdFilter();
-  setUpdateTime();
-  $('tb-live').style.display=_L.length?'flex':'none';
-  showDebug();
+    _applyPlayerInitData(d);
+  }catch(e){console.warn('[loadAll] lỗi:',e);}
 }
 
 function buildNdList(){
