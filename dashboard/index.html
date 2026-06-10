@@ -198,6 +198,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 .login-logo h3{font-size:13px;font-weight:800;color:var(--tx);letter-spacing:2px;text-transform:uppercase;margin-top:1px}
 .login-logo p{font-size:10px;color:var(--tx3);margin-top:3px}
 .login-label{font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.login-input-hint{font-size:10px;color:var(--tx3);text-align:center;margin-top:5px;opacity:.7}
 .login-input{width:100%;background:var(--bg3);border:1.5px solid var(--bdr2);border-radius:10px;padding:14px 16px;font-size:18px;color:var(--tx);outline:none;font-family:var(--font-body);text-align:center;letter-spacing:1px}
 .login-input:focus{border-color:var(--green)}
 .login-btn{background:var(--green2);color:#fff;border:none;border-radius:10px;padding:14px 24px;font-family:var(--font-display);font-size:18px;font-weight:800;letter-spacing:1px;cursor:pointer;transition:background .15s}
@@ -288,8 +289,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
       </div>
     </div>
     <div>
-      <div class="login-label">Số điện thoại đăng nhập</div>
-      <input class="login-input" id="login-phone" placeholder="0901234567" inputmode="tel" autocomplete="off">
+      <div class="login-label">Số điện thoại hoặc mã đăng nhập</div>
+      <input class="login-input" id="login-phone" placeholder="0901234567 hoặc TV001" inputmode="text" autocomplete="off">
+      <div class="login-input-hint">Nhập SĐT đã đăng ký, hoặc mã Admin cấp (vd: TV001)</div>
     </div>
     <div class="login-err" id="login-err"></div>
     <button class="login-btn" id="login-btn" onclick="doLogin()">Đăng nhập →</button>
@@ -426,16 +428,20 @@ const SESS_KEY='tv_display_sess_v1';
 
 // ── LOGIN ──
 async function doLogin(){
-  const phoneRaw=(document.getElementById('login-phone').value||'').trim();
-  const phone=phoneRaw.replace(/\D/g,'');
-  if(!phone||phone.length<8){showLoginErr('Vui lòng nhập số điện thoại hợp lệ');return;}
+  const raw=(document.getElementById('login-phone').value||'').trim();
+  if(!raw){showLoginErr('Vui lòng nhập số điện thoại hoặc mã');return;}
+  const digitsOnly=raw.replace(/[\s\-\.]/g,'');
+  const isPhone=/^\d{8,}$/.test(digitsOnly);
+  const phone=isPhone?digitsOnly:'';
+  const code=!isPhone?raw.toUpperCase():'';
   const btn=document.getElementById('login-btn');
   btn.disabled=true;btn.textContent='Đang đăng nhập...';
   hideLoginErr();
   try{
-    const r=await fetch(`${GAS_URL}?action=validate&device=tv-display&_t=${Date.now()}&phone=${encodeURIComponent(phone)}`,{cache:'no-store'});
+    const param=phone?`phone=${encodeURIComponent(phone)}`:`code=${encodeURIComponent(code)}`;
+    const r=await fetch(`${GAS_URL}?action=validate&device=tv-display&_t=${Date.now()}&${param}`,{cache:'no-store'});
     const d=await r.json();
-    if(!d.valid){showLoginErr(d.reason||'Số điện thoại không đúng hoặc chưa được phân quyền');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
+    if(!d.valid){showLoginErr(d.reason||'Thông tin không đúng hoặc chưa được phân quyền');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
     const st=(d.statusRaw||'').toLowerCase();
     if(st==='khóa'||st==='disabled'){showLoginErr('Tài khoản bị khóa');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
     if(!d.giai||!d.giai.trim()){showLoginErr('⚠️ Tài khoản chưa được phân giải đấu. Vui lòng liên hệ Admin.');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
@@ -444,7 +450,8 @@ async function doLogin(){
     SESS_GIAI=d.giai.split(',').map(s=>s.trim()).filter(Boolean);
     SESS_ND=(d.noidung||'').split(',').map(s=>s.trim()).filter(Boolean);
 
-    try{localStorage.setItem(SESS_KEY,JSON.stringify({phone,name:SESS_NAME,giai:SESS_GIAI,nd:SESS_ND}));}catch(e){}
+    const sessId=phone||code;
+    try{localStorage.setItem(SESS_KEY,JSON.stringify({phone:sessId,name:SESS_NAME,giai:SESS_GIAI,nd:SESS_ND}));}catch(e){}
 
     enterDisplay();
   }catch(e){showLoginErr('Lỗi kết nối: '+e.message);btn.disabled=false;btn.textContent='Đăng nhập →';}
@@ -458,7 +465,7 @@ function doLogout(){
   clearInterval(_pollTimer);clearInterval(_rotateTimer);
   document.getElementById('screen').style.display='none';
   document.getElementById('login-screen').style.display='flex';
-  document.getElementById('login-phone').value='';
+  document.getElementById('login-phone').value=''; // clear cả phone lẫn mã
   document.getElementById('login-btn').disabled=false;
   document.getElementById('login-btn').textContent='Đăng nhập →';
 }
