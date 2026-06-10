@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<!-- Pickleball Admin v56 2026-06-09: FIX CRITICAL _syncResultCache nhận newRow[5/6] stale từ _M khi chỉ đổi rule → trận pending bị gán điểm cũ thành Hoàn thành — giờ truyền score tường minh từ saRaw/sbRaw | v55 2026-06-09: FIX saveEditMatch — hasAnyInput thêm rule, dùng ruleVal tránh đọc DOM 2 lần — cho phép lưu khi chỉ đổi quy tắc điểm trận | v54 2026-06-09: (1) FIX rule không đẩy xuống TT — normalizeMatchRow giờ đủ 13 cột, openEditMatchMo chỉ hiện điểm khi done; (2) FIX A3/A4 tự điền điểm — openEditMatchMo+renderBangList không đọc _dkScores khi pending | v51 2026-06-09: FIX TRIỆT ĐỂ popup Sửa bảng+trận — bỏ async/await getUsers khỏi openEditMatchMo+openEditBangMo (block 8s → modal không xuất hiện); load _U ngầm sau khi modal đã mở | v50 2026-06-09: FIX (1) popup Sửa bảng+trận không mở — xóa code lỗi matches[0] bị chèn nhầm vào openEditMatchMo; (2) FIX tỉ số hiển thị sai khi reload — chỉ tra _dkScores khi isMatchDone=true, pending→null | v49 2026-06-09: ADD Quy tắc điểm vào modal Sửa bảng (vòng bảng + KO) — openEditBangMo hiện select Chạm 11/15/21/24/25; applyEditBang lưu rule→col[12]→GAS+local _M | v48 2026-06-09: FIX tab nội dung — openNdDetail giữ tab đang active khi chuyển nội dung (Danh sách/Bảng đấu/Cây thi đấu); _getActiveNdTab() helper | v47 2026-06-09: FIX "Đang đấu" stale TRIỆT ĐỂ — REST poll /liveScores 2s song song SDK: detect node bị DELETE mà SDK WebSocket miss; rest-cleanup source tránh ghi đè điểm SDK fresh <3s; guard keep-fresh-key cho rest-cleanup | v46 2026-06-09: FIX Firebase liveScores listener lọc status≠playing; _onLiveData trigger loadDash khi rows=0 | v108 — v57 2026-06-09: Quy tắc điểm từ Admin — (1) Admin chọn rule khi tạo bảng (bang-rule); (2) Rule lưu vào Matches col[12]; (3) Modal Sửa trận có select rule; (4) Referee tự động load rule từ match → TT không cần chọn | v107 — v56 2026-06-09: (1) _bkCrossSeededSlots v2 — random shuffle fair-play, phân nhánh chẵn/lẻ, BYE ưu tiên Nhất>Nhì, TL ưu tiên Nhất vs Nhì, xen kẽ BYE-TL; (2) bỏ REST liveScores poll + gas-safety poll (race condition); (3) fix render sig bao gồm live score | v105 — FIX RACE CONDITION 2026-06-08: v53 — (1) _buildLiveFromRows MERGE THEO TIMESTAMP — không cho GAS stale overwrite Firebase fresh; (2) Source tracking: firebase/rest > gas; (3) GAS safety poll chỉ chạy khi REST/SDK đã silent > 8s; (4) Force re-render every 2s while Firebase active để đảm bảo DOM sync với _liveScores | v104 v52 REST POLL: ADD Firebase REST poll 2s SONG SONG với SDK listener — bypass SDK disconnect silent;  v103 FIX renderBangList giaiId 2026-06-08: v50 REALTIME ALL FLOWS — (1) Firebase /results onValue → _dkScores cập nhật &lt;1s khi TT Lưu; (2) Firebase /matches onValue → sân/TT cập nhật &lt;1s; (3) _onLiveData patch DOM trực tiếp không gọi loadDash(); (4) _syncFinishedMatches dùng Firebase data thay vì poll GAS |  FIX pill — đã có đội thật → tra BXH lấy rank+bảng (1E,2G); chưa có → mã trận (V162,TK1) | v90 2026-06-07: FIX pill label KO — "Thắng V162"→"V162", "Thắng TK1"→"TK1" thay vì W chung chung | v89 2026-06-07: FIX cây thi đấu gọn — card width 200px cố định; tên đôi tách 2 dòng (VĐV1/VĐV2); tên dài viết tắt họ; row/pill/sbox nhỏ hơn | v88 2026-06-07: FIX bkEditMatch — TK1 đã có tên VĐV hiển thị tên thật (card A/B); chờ vòng trước hiện "Thắng VXX"; phân biệt 3 case rõ ràng | v87 2026-06-07: Ẩn hoàn toàn scrollbar native của nd-bk-wrap — chỉ dùng nd-bk-scrollbar-wrap fixed | v86 2026-06-07: FIX TRIỆT ĐỂ scroll — nd-bk-wrap (scroll container) không bao giờ bị swap innerHTML; chỉ swap nd-bk-content (con bên trong) → scrollLeft tự nhiên giữ nguyên vĩnh viễn; drag chuột+touch đơn giản sạch | v85 2026-06-07: FIX TRIỆT ĐỂ scroll cây thi đấu — flag _bkRestoring block scroll event khi restore (không bị reset về 0); drag chuột+touch dùng clientX thay pageX; MutationObserver chỉ update width, không restore; restore 3 lần delay tăng dần | v84 2026-06-07: FIX đăng nhập lỗi 10M ô — hiển thị hướng dẫn xóa EventLog/LoginLog/LiveScore thay vì "Mã không hợp lệ"; Máy chủ không tạo sheet mới khi login | v83 2026-06-07: FIX scroll cây thi đấu — dùng biến global _bkScrollX/Y thay DOM (DOM reset về 0 sau render); MutationObserver restore scroll sau mỗi DOM change; drag chuột+touch đa chiều ngang+dọc; guard flag tránh sync loop | v82 2026-06-07: FIX (1) card cây thi đấu hiện "Thắng VXX" khi chưa có tên đội; (2) scroll ngang giữ nguyên vị trí sau render, bỏ loop sync; (3) drag-to-scroll chuột trên nd-bk-wrap | v81 2026-06-07: FIX cây thi đấu — bkEditMatch ẩn dropdown BYE khi trận đang chờ winner ("Thắng VXX"); bkSaveEditNew không ghi đè TBD khi chỉ lưu sân/giờ/TT; tạo mới Matches nếu chưa tồn tại | v80 2026-06-07: FIX saveEditMatch cho phép lưu khi chưa có tên đội — phân sân/giờ/TT trước, tên đội cập nhật sau; giữ nguyên tên đội cũ nếu field để trống | v79 2026-06-07: FIX bkApplyAndSave bỏ upsert:true (nguy hiểm — xóa toàn bộ trận KO kể cả đã có điểm); thêm scoreCleared:false khi update tên đội KO | v78 2026-06-07: FIX mất kết quả khi sửa tên VĐV — (1) openEditMatchMo đọc curSA/curSB từ getFinalScore(KetQua) thay vì Matches col[5/6]; (2) flag scoreCleared phân biệt "trống chưa có điểm" vs "chủ động xóa"; (3) chỉ gửi empty score lên Máy chủ khi scoreCleared=true | v77 2026-06-07: FIX data integrity — bkApplyAndSave+saveRR thêm upsert:true; importCSV toast cảnh báo skip; v76 2026-06-07: FIX nút Sửa tràn khỏi bảng — dùng table-layout:auto, bỏ min-width cứng, giảm padding td, bỏ white-space:nowrap cột Sân → nút Sửa luôn nằm trong khung | v75 2026-06-07: FIX _buildLiveFromRows — index cả key 4 phần (giai|nd|bang|code) lẫn key 3 phần (nd|bang|code) vào _lK và _liveScores; admin render dùng key 3 phần nên bị miss khi Máy chủ ghi key 4 phần | v73 2026-06-07: FIX — _lK hỗ trợ key mới 4 phần "giai|nd|bang|code" từ Máy chủ v40; _buildLiveMatchData dùng key mới; cold-start _lK thêm cả key 3 phần để backward-compat | v72 2026-06-04: FIX Xóa tất cả bảng dùng 1 request deleteAllBangs thay vì N requests tuần tự — nhanh gấp 15x; bỏ confirm() dùng double-tap | v71 2026-06-04: FIX saveBang+importMultiBang gửi upsert=true → Máy chủ xóa bảng cũ trước khi tạo lại, tránh dedup skip trận | v70 2026-06-04: FIX bkDeleteTree dùng double-tap thay confirm() bị browser block; Máy chủ v37 fix giaiName undefined trong deleteBracketTree | v69 2026-06-04: FIX confirm() trong bkApplyAndSave bị browser block → return sớm không save BracketTree; thay bằng toast cảnh báo tiếp tục luôn | v68 2026-06-04: FIX saveBracketTree bị bỏ qua khi Apply lần 2 (toCreate=0, toUpdate=0 → return sớm trước khi save SRV) | v67 2026-06-03: v6 FIX NGUỒN DUY NHẤT — buildDkFromResults/isMatchDone/getFinalScore/_syncResultCache/_buildLiveFromRows đều dùng key 4 trường "TênGiải|NộiDung|Bảng|MãTrận"; bỏ fallback Matches col[5/6] trong getFinalScore; bỏ giaiId duplicate trong _dK; bỏ fallback giaiId trong isMatchDone — badge Hoàn thành/Chưa đấu/Đang đấu giờ chính xác 100% từ KetQua | v66 2026-06-03: FIX v32 referee bugs — assignCourtToRef/assignRef/atrAssignDirect không xóa noidung cũ; _matchAllowed normalize dấu; renderMatchGrid hiển thị khi có trận phân tên | v65 2026-06-01: FIX bracket overflow + nút tràn màn hình PC | v25 | FIX: Login detailed errors, Test Máy chủ button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) Máy chủ dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên SRV | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (SRV renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) Máy chủ v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang -->
+<!-- Pickleball Admin v57 2026-06-09: Redesign form Thêm TT — vai trò lên đầu, active=SĐT, manager/player=mã, nội dung hiện dạng chip sau khi chọn giải | v56 2026-06-09: FIX CRITICAL _syncResultCache nhận newRow[5/6] stale từ _M khi chỉ đổi rule → trận pending bị gán điểm cũ thành Hoàn thành — giờ truyền score tường minh từ saRaw/sbRaw | v55 2026-06-09: FIX saveEditMatch — hasAnyInput thêm rule, dùng ruleVal tránh đọc DOM 2 lần — cho phép lưu khi chỉ đổi quy tắc điểm trận | v54 2026-06-09: (1) FIX rule không đẩy xuống TT — normalizeMatchRow giờ đủ 13 cột, openEditMatchMo chỉ hiện điểm khi done; (2) FIX A3/A4 tự điền điểm — openEditMatchMo+renderBangList không đọc _dkScores khi pending | v51 2026-06-09: FIX TRIỆT ĐỂ popup Sửa bảng+trận — bỏ async/await getUsers khỏi openEditMatchMo+openEditBangMo (block 8s → modal không xuất hiện); load _U ngầm sau khi modal đã mở | v50 2026-06-09: FIX (1) popup Sửa bảng+trận không mở — xóa code lỗi matches[0] bị chèn nhầm vào openEditMatchMo; (2) FIX tỉ số hiển thị sai khi reload — chỉ tra _dkScores khi isMatchDone=true, pending→null | v49 2026-06-09: ADD Quy tắc điểm vào modal Sửa bảng (vòng bảng + KO) — openEditBangMo hiện select Chạm 11/15/21/24/25; applyEditBang lưu rule→col[12]→GAS+local _M | v48 2026-06-09: FIX tab nội dung — openNdDetail giữ tab đang active khi chuyển nội dung (Danh sách/Bảng đấu/Cây thi đấu); _getActiveNdTab() helper | v47 2026-06-09: FIX "Đang đấu" stale TRIỆT ĐỂ — REST poll /liveScores 2s song song SDK: detect node bị DELETE mà SDK WebSocket miss; rest-cleanup source tránh ghi đè điểm SDK fresh <3s; guard keep-fresh-key cho rest-cleanup | v46 2026-06-09: FIX Firebase liveScores listener lọc status≠playing; _onLiveData trigger loadDash khi rows=0 | v108 — v57 2026-06-09: Quy tắc điểm từ Admin — (1) Admin chọn rule khi tạo bảng (bang-rule); (2) Rule lưu vào Matches col[12]; (3) Modal Sửa trận có select rule; (4) Referee tự động load rule từ match → TT không cần chọn | v107 — v56 2026-06-09: (1) _bkCrossSeededSlots v2 — random shuffle fair-play, phân nhánh chẵn/lẻ, BYE ưu tiên Nhất>Nhì, TL ưu tiên Nhất vs Nhì, xen kẽ BYE-TL; (2) bỏ REST liveScores poll + gas-safety poll (race condition); (3) fix render sig bao gồm live score | v105 — FIX RACE CONDITION 2026-06-08: v53 — (1) _buildLiveFromRows MERGE THEO TIMESTAMP — không cho GAS stale overwrite Firebase fresh; (2) Source tracking: firebase/rest > gas; (3) GAS safety poll chỉ chạy khi REST/SDK đã silent > 8s; (4) Force re-render every 2s while Firebase active để đảm bảo DOM sync với _liveScores | v104 v52 REST POLL: ADD Firebase REST poll 2s SONG SONG với SDK listener — bypass SDK disconnect silent;  v103 FIX renderBangList giaiId 2026-06-08: v50 REALTIME ALL FLOWS — (1) Firebase /results onValue → _dkScores cập nhật &lt;1s khi TT Lưu; (2) Firebase /matches onValue → sân/TT cập nhật &lt;1s; (3) _onLiveData patch DOM trực tiếp không gọi loadDash(); (4) _syncFinishedMatches dùng Firebase data thay vì poll GAS |  FIX pill — đã có đội thật → tra BXH lấy rank+bảng (1E,2G); chưa có → mã trận (V162,TK1) | v90 2026-06-07: FIX pill label KO — "Thắng V162"→"V162", "Thắng TK1"→"TK1" thay vì W chung chung | v89 2026-06-07: FIX cây thi đấu gọn — card width 200px cố định; tên đôi tách 2 dòng (VĐV1/VĐV2); tên dài viết tắt họ; row/pill/sbox nhỏ hơn | v88 2026-06-07: FIX bkEditMatch — TK1 đã có tên VĐV hiển thị tên thật (card A/B); chờ vòng trước hiện "Thắng VXX"; phân biệt 3 case rõ ràng | v87 2026-06-07: Ẩn hoàn toàn scrollbar native của nd-bk-wrap — chỉ dùng nd-bk-scrollbar-wrap fixed | v86 2026-06-07: FIX TRIỆT ĐỂ scroll — nd-bk-wrap (scroll container) không bao giờ bị swap innerHTML; chỉ swap nd-bk-content (con bên trong) → scrollLeft tự nhiên giữ nguyên vĩnh viễn; drag chuột+touch đơn giản sạch | v85 2026-06-07: FIX TRIỆT ĐỂ scroll cây thi đấu — flag _bkRestoring block scroll event khi restore (không bị reset về 0); drag chuột+touch dùng clientX thay pageX; MutationObserver chỉ update width, không restore; restore 3 lần delay tăng dần | v84 2026-06-07: FIX đăng nhập lỗi 10M ô — hiển thị hướng dẫn xóa EventLog/LoginLog/LiveScore thay vì "Mã không hợp lệ"; Máy chủ không tạo sheet mới khi login | v83 2026-06-07: FIX scroll cây thi đấu — dùng biến global _bkScrollX/Y thay DOM (DOM reset về 0 sau render); MutationObserver restore scroll sau mỗi DOM change; drag chuột+touch đa chiều ngang+dọc; guard flag tránh sync loop | v82 2026-06-07: FIX (1) card cây thi đấu hiện "Thắng VXX" khi chưa có tên đội; (2) scroll ngang giữ nguyên vị trí sau render, bỏ loop sync; (3) drag-to-scroll chuột trên nd-bk-wrap | v81 2026-06-07: FIX cây thi đấu — bkEditMatch ẩn dropdown BYE khi trận đang chờ winner ("Thắng VXX"); bkSaveEditNew không ghi đè TBD khi chỉ lưu sân/giờ/TT; tạo mới Matches nếu chưa tồn tại | v80 2026-06-07: FIX saveEditMatch cho phép lưu khi chưa có tên đội — phân sân/giờ/TT trước, tên đội cập nhật sau; giữ nguyên tên đội cũ nếu field để trống | v79 2026-06-07: FIX bkApplyAndSave bỏ upsert:true (nguy hiểm — xóa toàn bộ trận KO kể cả đã có điểm); thêm scoreCleared:false khi update tên đội KO | v78 2026-06-07: FIX mất kết quả khi sửa tên VĐV — (1) openEditMatchMo đọc curSA/curSB từ getFinalScore(KetQua) thay vì Matches col[5/6]; (2) flag scoreCleared phân biệt "trống chưa có điểm" vs "chủ động xóa"; (3) chỉ gửi empty score lên Máy chủ khi scoreCleared=true | v77 2026-06-07: FIX data integrity — bkApplyAndSave+saveRR thêm upsert:true; importCSV toast cảnh báo skip; v76 2026-06-07: FIX nút Sửa tràn khỏi bảng — dùng table-layout:auto, bỏ min-width cứng, giảm padding td, bỏ white-space:nowrap cột Sân → nút Sửa luôn nằm trong khung | v75 2026-06-07: FIX _buildLiveFromRows — index cả key 4 phần (giai|nd|bang|code) lẫn key 3 phần (nd|bang|code) vào _lK và _liveScores; admin render dùng key 3 phần nên bị miss khi Máy chủ ghi key 4 phần | v73 2026-06-07: FIX — _lK hỗ trợ key mới 4 phần "giai|nd|bang|code" từ Máy chủ v40; _buildLiveMatchData dùng key mới; cold-start _lK thêm cả key 3 phần để backward-compat | v72 2026-06-04: FIX Xóa tất cả bảng dùng 1 request deleteAllBangs thay vì N requests tuần tự — nhanh gấp 15x; bỏ confirm() dùng double-tap | v71 2026-06-04: FIX saveBang+importMultiBang gửi upsert=true → Máy chủ xóa bảng cũ trước khi tạo lại, tránh dedup skip trận | v70 2026-06-04: FIX bkDeleteTree dùng double-tap thay confirm() bị browser block; Máy chủ v37 fix giaiName undefined trong deleteBracketTree | v69 2026-06-04: FIX confirm() trong bkApplyAndSave bị browser block → return sớm không save BracketTree; thay bằng toast cảnh báo tiếp tục luôn | v68 2026-06-04: FIX saveBracketTree bị bỏ qua khi Apply lần 2 (toCreate=0, toUpdate=0 → return sớm trước khi save SRV) | v67 2026-06-03: v6 FIX NGUỒN DUY NHẤT — buildDkFromResults/isMatchDone/getFinalScore/_syncResultCache/_buildLiveFromRows đều dùng key 4 trường "TênGiải|NộiDung|Bảng|MãTrận"; bỏ fallback Matches col[5/6] trong getFinalScore; bỏ giaiId duplicate trong _dK; bỏ fallback giaiId trong isMatchDone — badge Hoàn thành/Chưa đấu/Đang đấu giờ chính xác 100% từ KetQua | v66 2026-06-03: FIX v32 referee bugs — assignCourtToRef/assignRef/atrAssignDirect không xóa noidung cũ; _matchAllowed normalize dấu; renderMatchGrid hiển thị khi có trận phân tên | v65 2026-06-01: FIX bracket overflow + nút tràn màn hình PC | v25 | FIX: Login detailed errors, Test Máy chủ button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) Máy chủ dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên SRV | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (SRV renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) Máy chủ v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang -->
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -1992,29 +1992,40 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
   <div class="mh"><div class="mtt" id="user-tt">Thêm Trọng tài</div><button class="mc" onclick="closeMo('mo-user')">✕</button></div>
   <div class="mb">
   <div class="fgrid">
-    <div class="fg"><label>📞 Điện thoại <span style="color:var(--rd)">*</span></label>
-      <input type="tel" id="u-phone" placeholder="0901234567" oninput="this.value=this.value.replace(/[^0-9+]/g,'')">
-      <span class="hint" style="color:var(--tx3)">Bắt buộc và phải là số duy nhất — dùng để đăng nhập.</span></div>
-    <div class="fg"><label>Họ tên <span style="color:var(--rd)">*</span></label><input type="text" id="u-name" placeholder="Nguyễn Văn An"></div>
-    <!-- Mã đăng nhập — ẩn, tự sinh hoặc để trống -->
-    <div class="fg" style="display:none"><label>Mã đăng nhập</label>
-      <input type="text" id="u-code" placeholder="ref001" style="font-family:var(--mo)">
-      <span class="hint">Không bắt buộc. Để trống hệ thống sẽ dùng SĐT làm mã.</span></div>
-    <div class="fg"><label>Vai trò</label>
-      <select id="u-status">
+    <!-- ① VAI TRÒ — lên đầu -->
+    <div class="fg full"><label>Vai trò <span style="color:var(--rd)">*</span></label>
+      <select id="u-status" onchange="_updateUserRoleFields()">
         <option value="active">🟢 Trọng tài (active)</option>
         <option value="player">👁 Player viewer</option>
         <option value="manager">🔵 Manager giải</option>
         <option value="admin">👑 Admin</option>
         <option value="khóa">🔒 Khóa tài khoản</option>
       </select></div>
-    <div class="fg"><label>Hết hạn *</label>
+
+    <!-- ② SĐT — chỉ active -->
+    <div class="fg" id="fg-phone" style="display:none">
+      <label>📞 Số điện thoại <span style="color:var(--rd)">*</span></label>
+      <input type="tel" id="u-phone" placeholder="0901234567" oninput="this.value=this.value.replace(/[^0-9+]/g,'')">
+      <span class="hint">Dùng để đăng nhập. Phải là số duy nhất.</span></div>
+
+    <!-- ③ MÃ — manager, player, admin -->
+    <div class="fg" id="fg-code" style="display:none">
+      <label>🔑 Mã đăng nhập <span style="color:var(--rd)">*</span></label>
+      <input type="text" id="u-code" placeholder="MGR001 hoặc pl001" style="font-family:var(--mo)" autocomplete="off">
+      <span class="hint">Dùng để đăng nhập. Nên đặt dễ nhớ.</span></div>
+
+    <!-- ④ TÊN -->
+    <div class="fg"><label>Họ tên <span style="color:var(--rd)">*</span></label>
+      <input type="text" id="u-name" placeholder="Nguyễn Văn An"></div>
+
+    <!-- ⑤ HẾT HẠN -->
+    <div class="fg"><label>Hết hạn</label>
       <input type="date" id="u-exp">
-      <span class="hint">Bắt buộc. Để trống = tài khoản hết hạn ngay.</span></div>
+      <span class="hint">Để trống = không hết hạn.</span></div>
+
+    <!-- ⑥ GIẢI — manager: multi-picker -->
     <div class="fg full" id="fg-giai-manager" style="display:none">
-      <label>🏆 Giải đấu được phép quản lý <span style="color:var(--rd)">*</span>
-        <span style="font-size:10px;color:var(--tx3);font-weight:400;margin-left:4px">(Manager thấy đúng các giải được tích)</span>
-      </label>
+      <label>🏆 Giải đấu được phép quản lý <span style="color:var(--rd)">*</span></label>
       <div id="u-giai-pills" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg3);border:1.5px solid var(--bdr2);border-radius:var(--r);min-height:44px;cursor:pointer" onclick="document.getElementById('u-giai-dropdown').classList.toggle('open')">
         <span id="u-giai-placeholder" style="color:var(--tx4);font-size:12px;align-self:center">— Chọn giải —</span>
       </div>
@@ -2023,14 +2034,26 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
       </div>
       <input type="hidden" id="u-giai">
     </div>
-    <div class="fg" id="fg-giai-ref" style="display:none">
-      <label>Giải đấu phân công</label>
-      <select id="u-giai-ref-sel"><option value="">— Chọn giải —</option></select>
+
+    <!-- ⑦ GIẢI — active/player: dropdown đơn, khi chọn hiện nội dung -->
+    <div class="fg full" id="fg-giai-ref" style="display:none">
+      <label id="u-giai-ref-label">Giải đấu <span style="color:var(--rd)">*</span></label>
+      <select id="u-giai-ref-sel" onchange="_onUGiaiRefChange()">
+        <option value="">— Chọn giải —</option>
+      </select>
     </div>
-    <input type="hidden" id="u-nd" value="">
+
+    <!-- ⑧ NỘI DUNG — hiện ra khi chọn giải (active & player) -->
+    <div class="fg full" id="fg-nd-ref" style="display:none">
+      <label>Nội dung thi đấu <span style="font-size:10px;color:var(--tx3);font-weight:400">(để trống = tất cả)</span></label>
+      <div id="u-nd-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;min-height:32px;padding:6px 0"></div>
+      <input type="hidden" id="u-nd" value="">
+    </div>
+
     <input type="hidden" id="u-courts" value="">
     <input type="hidden" id="u-rounds" value="">
-    <div class="fg full"><label>Ghi chú</label><input type="text" id="u-note" placeholder=""></div>
+    <!-- Ghi chú ẩn (không hiện cho active) — lưu nội bộ -->
+    <input type="hidden" id="u-note" value="">
   </div>
   </div><!-- /mb -->
   <div class="mf">
@@ -3025,15 +3048,18 @@ window.onload = () => {
   if (s) {
     try {
       const j = JSON.parse(s);
-      // Nếu session lưu URL khác với URL của trang này → clear toàn bộ, về màn đăng nhập
+      // v57 FIX: so sánh URL session với DEFAULT_GAS_URL (hardcode trong file)
+      // Khi deploy file mới với URL mới → session cũ bị clear tự động, không cần f12
       const sessionUrl = (j.u||'').replace(/\/+$/,'').toLowerCase();
       const pageUrl    = DEFAULT_GAS_URL.replace(/\/+$/,'').toLowerCase();
-      if (sessionUrl && pageUrl && sessionUrl !== pageUrl) {
-        localStorage.removeItem('pb_adm3');
-        localStorage.removeItem('pb_gs_url');
-        localStorage.removeItem('pb_adm_code');
+      const urlMismatch = sessionUrl && pageUrl && sessionUrl !== pageUrl;
+      if (urlMismatch) {
+        // URL đã đổi → clear session cũ hoàn toàn
+        ['pb_adm3','pb_gs_url','pb_adm_code'].forEach(k=>localStorage.removeItem(k));
+        // Xóa luôn toàn bộ cache data cũ (trận, kết quả...) để tránh hiện nhầm data
+        Object.keys(localStorage).filter(k=>k.startsWith('pb_')).forEach(k=>localStorage.removeItem(k));
         if (urlEl) urlEl.value = DEFAULT_GAS_URL;
-        return; // về màn đăng nhập với URL mới
+        return; // về màn đăng nhập sạch
       }
       GS=j.u; CODE=j.c; NAME=j.n; ROLE=j.r||'admin'; MY_GIAI=j.g||'';
       MY_GIAI_LIST = MY_GIAI ? MY_GIAI.split(',').map(g=>g.trim()).filter(Boolean) : [];
@@ -16397,34 +16423,101 @@ function renderUsers(rows) {
 }
 function _updateUserRoleFields() {
   const status = document.getElementById('u-status').value;
+  const isActive  = status === 'active';
   const isManager = status === 'manager';
   const isPlayer  = status === 'player';
-  const isRef = status === 'active' || isPlayer;
-  // Manager: hiện picker chọn nhiều giải; Trọng tài/Player: hiện dropdown giải đơn
-  document.getElementById('fg-giai-manager').style.display = isManager ? 'block' : 'none';
-  document.getElementById('fg-giai-ref').style.display    = isRef     ? 'block' : 'none';
-  // Cập nhật label giải theo role
-  const giaiLabel = document.querySelector('#fg-giai-ref label');
-  if (giaiLabel) giaiLabel.textContent = isPlayer ? '🏆 Giải được xem *' : 'Giải đấu phân công';
-  // Reset hidden fields (sân/vòng/nội dung đã bỏ khỏi UI)
+  const isAdmin   = status === 'admin';
+
+  // ① SĐT: chỉ hiện cho trọng tài active
+  const fgPhone = document.getElementById('fg-phone');
+  if (fgPhone) fgPhone.style.display = isActive ? 'block' : 'none';
+
+  // ② Mã: hiện cho manager, player, admin (không cần cho active — dùng SĐT)
+  const fgCode = document.getElementById('fg-code');
+  if (fgCode) fgCode.style.display = (!isActive) ? 'block' : 'none';
+  // Mã ẩn vẫn cần tồn tại cho active (dùng SĐT làm mã) → giữ element, chỉ ẩn UI
+
+  // ③ Giải đấu: manager dùng multi-picker, active/player dùng dropdown đơn
+  const fgMgr = document.getElementById('fg-giai-manager');
+  const fgRef = document.getElementById('fg-giai-ref');
+  if (fgMgr) fgMgr.style.display = isManager ? 'block' : 'none';
+  if (fgRef) fgRef.style.display = (isActive || isPlayer) ? 'block' : 'none';
+
+  // Label giải theo role
+  const lbl = document.getElementById('u-giai-ref-label');
+  if (lbl) lbl.innerHTML = isPlayer
+    ? '🏆 Giải được xem <span style="color:var(--rd)">*</span>'
+    : 'Giải đấu phân công <span style="color:var(--rd)">*</span>';
+
+  // ④ Nội dung: ẩn khi chưa có giải (hiện qua _onUGiaiRefChange)
+  const fgNd = document.getElementById('fg-nd-ref');
+  const refSel = document.getElementById('u-giai-ref-sel');
+  if (fgNd) fgNd.style.display = (isActive || isPlayer) && refSel?.value ? 'block' : 'none';
+
+  // Reset nội dung khi đổi role
+  const nd = document.getElementById('u-nd');
+  const ndChips = document.getElementById('u-nd-chips');
+  if (nd) nd.value = '';
+  if (ndChips) ndChips.innerHTML = '';
   const courts = document.getElementById('u-courts');
   const rounds = document.getElementById('u-rounds');
-  const nd = document.getElementById('u-nd');
   if (courts) courts.value = '';
   if (rounds) rounds.value = '';
-  if (nd) nd.value = '';
-  // Khi chuyển từ active → manager: tự động pre-select giải đang có vào manager picker
+
+  // Khi chuyển sang manager: pre-select giải đang có
   if (isManager) {
-    const refSel = document.getElementById('u-giai-ref-sel');
-    const currentGiai = refSel ? refSel.value : '';
+    const currentGiai = refSel?.value || '';
     if (currentGiai) {
-      // Tìm giaiId tương ứng với tên giải
       const t = _T.find(t => String(t[1]||t[0]||'') === currentGiai || String(t[0]||'') === currentGiai);
       const giaiId = t ? String(t[0]||'') : currentGiai;
       _buildManagerGiaiPicker([giaiId]);
       document.getElementById('u-giai').value = giaiId;
     }
   }
+}
+
+// Khi chọn giải trong dropdown (active/player) → hiện chip nội dung
+function _onUGiaiRefChange() {
+  const giaiName = document.getElementById('u-giai-ref-sel').value;
+  const fgNd = document.getElementById('fg-nd-ref');
+  const ndChips = document.getElementById('u-nd-chips');
+  const ndInput = document.getElementById('u-nd');
+  if (!fgNd || !ndChips) return;
+  if (!giaiName) { fgNd.style.display = 'none'; ndInput.value = ''; ndChips.innerHTML = ''; return; }
+  // Tìm nội dung của giải từ _T (col 7 = noidung list)
+  const t = _T.find(t => String(t[1]||t[0]||'') === giaiName);
+  const nds = t ? String(t[7]||'').split(',').map(s=>s.trim()).filter(Boolean) : [];
+  if (!nds.length) { fgNd.style.display = 'none'; ndInput.value = ''; return; }
+  fgNd.style.display = 'block';
+  // Reset selection
+  ndInput.value = '';
+  _renderUNdChips(nds, []);
+}
+
+function _renderUNdChips(nds, selected) {
+  const chipsWrap = document.getElementById('u-nd-chips');
+  const ndInput = document.getElementById('u-nd');
+  if (!chipsWrap) return;
+  chipsWrap.innerHTML = nds.map(nd => {
+    const on = selected.includes(nd);
+    return `<button type="button" onclick="_toggleUNd('${esc(nd)}')"
+      style="padding:5px 14px;font-size:12px;font-weight:700;border-radius:20px;cursor:pointer;transition:all .12s;
+      border:1.5px solid ${on?'var(--ac)':'var(--bdr2)'};
+      background:${on?'rgba(14,165,233,.15)':'transparent'};
+      color:${on?'var(--ac)':'var(--tx3)'}">${esc(nd)}</button>`;
+  }).join('');
+}
+
+function _toggleUNd(nd) {
+  const ndInput = document.getElementById('u-nd');
+  const giaiName = document.getElementById('u-giai-ref-sel').value;
+  const t = _T.find(t => String(t[1]||t[0]||'') === giaiName);
+  const nds = t ? String(t[7]||'').split(',').map(s=>s.trim()).filter(Boolean) : [];
+  let cur = (ndInput.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if (cur.includes(nd)) cur = cur.filter(x => x !== nd);
+  else cur.push(nd);
+  ndInput.value = cur.join(', ');
+  _renderUNdChips(nds, cur);
 }
 function _buildManagerGiaiPicker(selectedList) {
   // selectedList: array of giai IDs
@@ -16745,6 +16838,20 @@ function openUserMo(pre=null) {
 
   _updateUserRoleFields();
   document.getElementById('u-status').onchange = _updateUserRoleFields;
+
+  // Nếu đang sửa và đã có giải + nội dung → render chips
+  const curGiai = document.getElementById('u-giai-ref-sel')?.value;
+  if (curGiai && (pre?.status === 'active' || pre?.status === 'player')) {
+    const t = _T.find(t => String(t[1]||t[0]||'') === curGiai);
+    const nds = t ? String(t[7]||'').split(',').map(s=>s.trim()).filter(Boolean) : [];
+    if (nds.length) {
+      const cur = (pre?.noidung||'').split(',').map(s=>s.trim()).filter(Boolean);
+      document.getElementById('fg-nd-ref').style.display = 'block';
+      _renderUNdChips(nds, cur);
+      document.getElementById('u-nd').value = pre?.noidung || '';
+    }
+  }
+
   document.getElementById('u-save').disabled=false;
   openMo('mo-user');
 }
@@ -16758,12 +16865,19 @@ async function saveUser() {
   const name=document.getElementById('u-name').value.trim();
   const phone=document.getElementById('u-phone').value.trim();
   // Mã không bắt buộc — nếu trống thì dùng SĐT làm mã
-  const codeRaw=document.getElementById('u-code').value.trim();
-  const code = codeRaw || phone; // fallback: SĐT làm mã
+  const status = document.getElementById('u-status').value;
+  const isActiveRole = status === 'active';
+  const codeRaw = document.getElementById('u-code').value.trim().toUpperCase(); // luôn uppercase
+  const code = codeRaw || phone;
   if(!name){toast('Vui lòng nhập họ tên','er');return;}
-  if(!phone){
+  // Validate theo role: active → bắt buộc SĐT; còn lại → bắt buộc mã
+  if(isActiveRole && !phone){
     document.getElementById('u-phone').focus();
-    toast('⚠️ Số điện thoại là bắt buộc!','er');return;
+    toast('⚠️ Số điện thoại là bắt buộc cho Trọng tài!','er');return;
+  }
+  if(!isActiveRole && !codeRaw){
+    document.getElementById('u-code').focus();
+    toast('⚠️ Mã đăng nhập là bắt buộc!','er');return;
   }
   // Đảm bảo _U đã load — nếu rỗng fetch từ Máy chủ trước khi check unique
   if (!_U.length) {
@@ -16772,32 +16886,38 @@ async function saveUser() {
       if (du?.ok && du.rows?.length > 1) _U = du.rows.slice(1);
     } catch(e) {}
   }
-  // Kiểm tra SĐT unique phía client (bỏ qua chính user đang sửa)
+  // Kiểm tra SĐT unique phía client — chỉ khi có nhập SĐT (không cần cho manager/player)
   const cleanPhone = phone.replace(/\D/g,'');
   const selfCode = _editU ? String(_editU.code||'').trim().toUpperCase() : null;
-  const dupUser = (_U||[]).find(u => {
-    const uPhone = String(u[10]||'').trim().replace(/\D/g,'');
-    const uCode  = String(u[0]||'').trim().toUpperCase();
-    const isSelf = selfCode && uCode === selfCode;
-    return !isSelf && uPhone && uPhone === cleanPhone;
-  });
-  if (dupUser) {
-    document.getElementById('u-phone').focus();
-    toast(`⚠️ SĐT ${phone} đã thuộc TT: ${String(dupUser[1]||'(không tên)')}`, 'er');
-    return;
+  if (cleanPhone) {
+    const dupUser = (_U||[]).find(u => {
+      const uPhone = String(u[10]||'').trim().replace(/\D/g,'');
+      const uCode  = String(u[0]||'').trim().toUpperCase();
+      const isSelf = selfCode && uCode === selfCode;
+      return !isSelf && uPhone && uPhone === cleanPhone;
+    });
+    if (dupUser) {
+      document.getElementById('u-phone').focus();
+      toast(`⚠️ SĐT ${phone} đã thuộc TK: ${String(dupUser[1]||'(không tên)')}`, 'er');
+      return;
+    }
   }
   btn.disabled=true;
   const originalCode = (document.getElementById('u-code').dataset.originalCode||'').trim();
   // Khi sửa: giữ nguyên mã cũ (originalCode). Khi thêm mới: dùng SĐT làm mã nếu không có mã
-  const effectiveCode = _editU ? (originalCode || code) : (code || phone);
+  const effectiveCode = (_editU ? (originalCode || code) : (code || phone)).toUpperCase();
   // origPhone: SĐT gốc của user đang sửa — để Máy chủ tìm đúng row theo SĐT
   const origPhone = _editU ? String(_editU.phone||'').trim().replace(/\D/g,'') : '';
+  const nd = document.getElementById('u-nd')?.value?.trim() || '';
+  // FIX: originalCode phải là string (không dùng undefined — bị JSON.stringify bỏ qua → GAS không nhận được)
+  const origCodeVal = _editU ? (originalCode || effectiveCode) : '';
   const user={code: effectiveCode, name, expire:document.getElementById('u-exp').value,
-    originalCode: undefined,
+    originalCode: origCodeVal,
     origPhone: origPhone, // SĐT cũ để Máy chủ tìm row chính xác
     courts:document.getElementById('u-courts').value.trim(),
     rounds:document.getElementById('u-rounds').value.trim(),
-    note:document.getElementById('u-note').value.trim(),
+    note:'',  // ghi chú ẩn
+    noidung: nd,
     status:document.getElementById('u-status').value,
     giai: (['active','player'].includes(document.getElementById('u-status').value))
       ? document.getElementById('u-giai-ref-sel').value
