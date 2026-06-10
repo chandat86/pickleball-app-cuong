@@ -4023,20 +4023,28 @@ function _showGasError(msg) {
   console.warn('[Máy chủ]', _failCount, 'lần thất bại:', msg);
 }
 
-let _reconnectToastShown = false; // chống spam toast reconnect
+let _reconnectToastShown = false;
+let _showOkTimer = null; // debounce nhiều call cùng lúc
 function _showGasOk() {
-  if (!_gasConnected || _failCount > 0) {
-    const bar = document.getElementById('gas-status-bar');
-    if (bar) bar.style.display = 'none';
-    // Chỉ hiện toast 1 lần khi thực sự reconnect sau khi mất kết nối hẳn
-    if (_failCount >= 2 && !_reconnectToastShown) {
-      toast('✅ Đã kết nối lại Máy chủ', 'in');
-      _reconnectToastShown = true;
-    }
-  }
+  const wasDisconnected = !_gasConnected || _failCount > 0;
+  const failSnapshot = _failCount;
   _gasConnected = true;
   _failCount    = 0;
   _prefetchFailed = false;
+  if (wasDisconnected) {
+    const bar = document.getElementById('gas-status-bar');
+    if (bar) bar.style.display = 'none';
+  }
+  // Debounce: chờ 200ms để các call song song settle, chỉ toast 1 lần
+  if (wasDisconnected && failSnapshot >= 2 && !_reconnectToastShown) {
+    clearTimeout(_showOkTimer);
+    _showOkTimer = setTimeout(() => {
+      if (!_reconnectToastShown) {
+        toast('✅ Đã kết nối lại Máy chủ', 'in');
+        _reconnectToastShown = true;
+      }
+    }, 200);
+  }
 }
 
 function _showUrlUpdate() {
@@ -4461,7 +4469,13 @@ async function gPost(b, timeout=20000) {
 // ════════════════════════════════════════════════════════════════
 //  UI HELPERS
 // ════════════════════════════════════════════════════════════════
+const _toastRecent = new Map(); // dedup: msg → timestamp
 function toast(msg, t='in') {
+  const now = Date.now();
+  // Bỏ qua nếu cùng msg đã hiện trong vòng 4s
+  if (_toastRecent.has(msg) && now - _toastRecent.get(msg) < 4000) return;
+  _toastRecent.set(msg, now);
+  setTimeout(() => _toastRecent.delete(msg), 4200);
   const w = document.getElementById('toast');
   const el = document.createElement('div');
   el.className = `ti ${t==='ok'?'ok':t==='er'?'er':'in'}`;
