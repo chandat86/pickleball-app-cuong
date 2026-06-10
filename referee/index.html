@@ -1,11 +1,15 @@
 <!DOCTYPE html>
+<!-- FIX v11 2026-06-07: pushMatchToGS gửi row đủ cấu trúc [giai,nd,bang,code,teamA,'','',teamB] — trước đây thiếu giai ở index 0 làm Máy chủ lưu sai cột -->
 <html lang="vi">
 <head>
-<!-- Pickleball v8.11 2026-06-04: FIX CRITICAL — thêm </div> đóng sb-teams-row; sb-action-bar không còn nằm trong grid 2-cột → 2 card cân đối 50/50 | v8.10 2026-06-04: FIX sb-action-bar căn giữa tỉ số (3-col grid + ex-side groups); hai card cân đối | v8.9 2026-06-04: FIX loadAllFromGS — REPLACE thay vì MERGE S.results từ GAS (source of truth); xóa bảng+tạo lại không còn bị stale "Hoàn thành" trên màn hình trọng tài | v8.8 2026-06-03: FIX swapPlayersDisplay — chấm cam giữ nguyên ô vật lý khi swap tên VĐV | v8.7; player-slot fixed height 44px; serve-balls min-width giữ chỗ | v8.6: auto-cleanup kết quả (TTL 1 ngày, cap 100) + nhật ký (TTL 12h, cap 300) | v8.5: FIX v34 — auto-hide polling-driven (CK có điểm từ GAS → ẩn ngay); | v8.4 FIX v33 — auto-hide nội dung/giải khi CK hoàn thành; sort trận (live→chưa đấu→hoàn thành); nút ẩn/hiện trận HT; | v8.2 FIX v32 — _removeDiacritics normalize tên TT; renderMatchGrid hiển thị khi có trận phân tên dù courts=[]; | v8.1 FIX: Park priority in renderMatchCard — tỉ số tím đúng khi switch trận | 2026-05-23 -->
+<!-- Pickleball v8.29 — v21 2026-06-09: FIX TRIỆT ĐỂ rule realtime — (1) hasChange trong pollMatches+loadAllFromGS thêm so sánh rule; (2) áp setRule(freshM.rule) NGAY trong poll khi rule trận đang chấm thay đổi, không chờ TT bấm vào trận | v8.28 — v20 2026-06-09: FIX rule không áp TT — setRule(m.rule) gọi ở tất cả Cases 3/4/5 loadMatch, luôn dùng rule mới nhất từ Admin thắng snapshot localStorage; thêm thanh rule-inline-bar luôn hiển thị | v8.27 — v19 2026-06-09: (1) Ẩn phần chọn Quy tắc điểm khỏi UI TT; (2) FIX BUG CRITICAL: winRule không được lưu/restore từ localStorage → sau refresh/reload rule về default '11' → deuce rule bị bỏ qua → 11-10 báo thắng thay vì tiếp tục đến 12-10 | v8.24 — REALTIME ROBUST 2026-06-08: v52 — (1) _writeLiveToFirebase check response status + log lỗi (auth 401/403 detect); (2) keepalive:true cho tất cả Firebase REST writes — survive page navigation; (3) Log mỗi lần ghi điểm để debug | v8.23 — 1 luồng Firebase 2026-06-08: v51 FIX TRIỆT ĐỂ — (1) _writeLiveToFirebase dùng fetch() REST API thay SDK — không cần auth, không bị block bởi Security Rules; (2) GAS debounce 400ms→200ms; (3) admin _liveSig bao gồm điểm số+debounce 150ms |  FIX _handleNewAssignment — load Máy chủ trước khi tìm trận; xử lý type=assignedToGiai; không cần loadAllFromGS 2 lần | v8.17 2026-06-07: FIX assignment key — dùng SĐT (phone) thay mã code, tránh trùng tên TT | v8.16 2026-06-07: FIX live score — inp-referee tự động điền từ m.referee khi loadMatch (Case4+Case5); liveScores local thêm referee+status | v8.15 2026-06-07: ADD Firebase Realtime Database — onValue WebSocket < 1s; fallback poll Máy chủ CacheService | v8.14 2026-06-07: ADD auto-assignment poll — Máy chủ CacheService checkAssignment; banner thông báo + beep; tự động loadMatch khi rảnh, hiện nút khi đang chấm | v8.13 2026-06-07: FIX LOAD TRẬN — referee field trong liveScores (init+poll); renderMatchGrid sau validate ngầm; _applyPerm trước renderMatchGrid đầu tiên | v8.12 2026-06-07: FIX CRITICAL — liveKey đổi sang "giai|nd|bang|code" (4 phần) để không trùng giữa các nội dung; clearLiveGS/finishLiveGS/replayMatchGS gửi key mới; m.key dùng giai khi available | v8.11 2026-06-04: FIX CRITICAL — thêm </div> đóng sb-teams-row; sb-action-bar không còn nằm trong grid 2-cột → 2 card cân đối 50/50 | v8.10 2026-06-04: FIX sb-action-bar căn giữa tỉ số (3-col grid + ex-side groups); hai card cân đối | v8.9 2026-06-04: FIX loadAllFromGS — REPLACE thay vì MERGE S.results từ Máy chủ (source of truth); xóa bảng+tạo lại không còn bị stale "Hoàn thành" trên màn hình trọng tài | v8.8 2026-06-03: FIX swapPlayersDisplay — chấm cam giữ nguyên ô vật lý khi swap tên VĐV | v8.7; player-slot fixed height 44px; serve-balls min-width giữ chỗ | v8.6: auto-cleanup kết quả (TTL 1 ngày, cap 100) + nhật ký (TTL 12h, cap 300) | v8.5: FIX v34 — auto-hide polling-driven (CK có điểm từ Máy chủ → ẩn ngay); | v8.4 FIX v33 — auto-hide nội dung/giải khi CK hoàn thành; sort trận (live→chưa đấu→hoàn thành); nút ẩn/hiện trận HT; | v8.2 FIX v32 — _removeDiacritics normalize tên TT; renderMatchGrid hiển thị khi có trận phân tên dù courts=[]; | v8.1 FIX: Park priority in renderMatchCard — tỉ số tím đúng khi switch trận | 2026-05-23 -->
 <meta charset="UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>v3 - Da Nang Referee v17 – Pickleball</title>
+  <!-- Firebase SDK v9 (compat mode — không cần npm/bundler) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<title>Referee v21 — Pickleball / DA NANG ®</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -699,7 +703,7 @@ select, input { font-family: inherit; }
     <div class="card-hd-left" style="display:flex;align-items:center;gap:8px;flex:1;flex-wrap:wrap">
       🔗 GS <span class="badge" id="gs-badge">Chưa kết nối</span>
       <button class="gsbtn load" onclick="event.stopPropagation();loadAllFromGS()" style="padding:5px 12px;font-size:11.5px;font-weight:700;white-space:nowrap;border-radius:8px">🔄 Tải trận + kết quả</button>
-      <div class="gs-pill" onclick="event.stopPropagation()"><div class="gs-dot" id="gs-dot"></div><span id="gs-txt">GSheets</span></div>
+      <div class="gs-pill" onclick="event.stopPropagation()"><div class="gs-dot" id="gs-dot"></div><span id="gs-txt">SRV</span></div>
     </div>
     <span class="chevron">▾</span>
   </div>
@@ -710,17 +714,23 @@ select, input { font-family: inherit; }
     <span style="margin-left:6px;font-size:10.5px;color:var(--g500)">🏆 Quy tắc:</span>
     <span class="badge" id="rule-badge-inline" style="margin-left:2px">Chạm 11</span>
   </div>
+  <!-- v20: Thanh quy tắc luôn hiển thị — cập nhật ngay khi loadMatch -->
+  <div id="rule-inline-bar" style="padding:5px 14px 7px;border-top:1px solid var(--g100);background:var(--g50);display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+    <span style="font-size:10.5px;color:var(--g500)">🏆 Quy tắc điểm:</span>
+    <span id="rule-badge-always" style="font-size:12px;font-weight:700;color:var(--green-dk)">Chạm 11</span>
+    <span id="rule-badge-desc" style="font-size:10px;color:var(--g400)">— đổi sân tại 6 điểm</span>
+  </div>
   <div class="card-body">
     
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-      <button class="gsbtn save" onclick="pushMatchToGS()" style="flex:1;background:var(--blue)">⬆ Đẩy trận lên GSheet</button>
+      <button class="gsbtn save" onclick="pushMatchToGS()" style="flex:1;background:var(--blue)">⬆ Đẩy trận lên SRV</button>
       <button class="gsbtn test" onclick="testGs()" style="flex:0 0 auto">🔌 Test</button>
       <button class="gsbtn test" onclick="debugMatches()" style="flex:0 0 auto;background:#8b5cf6">🔍 Debug</button>
     </div>
 
     <details id="gs-url-details" style="margin-top:4px">
       <summary style="font-size:11px;color:var(--g400);cursor:pointer;user-select:none;padding:4px 0">
-        ⚙️ Đổi URL GAS (nâng cao)
+        ⚙️ Đổi URL Máy chủ (nâng cao)
       </summary>
       <div style="margin-top:8px;background:var(--g50);border-radius:10px;padding:10px 12px">
         <div style="font-size:10.5px;color:var(--g500);margin-bottom:6px;line-height:1.5">
@@ -816,21 +826,18 @@ select, input { font-family: inherit; }
         <div class="flabel">Trọng tài</div>
         <input class="inp" id="inp-referee" placeholder="Họ tên trọng tài…">
       </div>
-      <div style="grid-column:1/-1">
-        <div class="flabel">🏆 Quy tắc điểm thắng <span class="badge" id="rule-badge" style="margin-left:4px">Chạm 11</span></div>
-        <div class="sel-w">
-          <select class="sel" id="sel-rule" onchange="setRule(this.value)">
-            <option value="11">Chạm 11 – đổi sân tại 6 điểm</option>
-            <option value="11c2m15">Chạm 11, cách 2 max 15 – đổi sân tại 6 điểm</option>
-            <option value="15">Chạm 15 – đổi sân tại 8 điểm</option>
-            <option value="15c2m21">Chạm 15, cách 2 max 21 – đổi sân tại 8 điểm</option>
-            <option value="21">Chạm 21 – đổi sân tại 11 điểm</option>
-            <option value="24">Chạm 24 – đổi sân tại 12 điểm</option>
-            <option value="25">Chạm 25 – đổi sân tại 13 điểm</option>
-          </select>
-        </div>
-        <div class="win-info-box" id="win-info" style="margin-top:6px">Thắng khi chạm <strong>11</strong> điểm. Đến <strong>6 điểm</strong> tự động nhắc đổi sân.</div>
-      </div>
+      <!-- Quy tắc điểm được lấy tự động từ Admin — ẩn khỏi giao diện TT -->
+      <select class="sel" id="sel-rule" onchange="setRule(this.value)" style="display:none">
+        <option value="11">Chạm 11 – đổi sân tại 6 điểm</option>
+        <option value="11c2m15">Chạm 11, cách 2 max 15 – đổi sân tại 6 điểm</option>
+        <option value="15">Chạm 15 – đổi sân tại 8 điểm</option>
+        <option value="15c2m21">Chạm 15, cách 2 max 21 – đổi sân tại 8 điểm</option>
+        <option value="21">Chạm 21 – đổi sân tại 11 điểm</option>
+        <option value="24">Chạm 24 – đổi sân tại 12 điểm</option>
+        <option value="25">Chạm 25 – đổi sân tại 13 điểm</option>
+      </select>
+      <div id="win-info" style="display:none"></div>
+      <span id="rule-badge" style="display:none">Chạm 11</span>
     </div>
   </div>
 </div>
@@ -845,7 +852,7 @@ select, input { font-family: inherit; }
   </div>
   <div class="card-body open">
     <div class="match-grid" id="match-grid">
-      <div class="empty-msg" style="grid-column:1/-1">Tải từ GSheets hoặc thêm thủ công</div>
+      <div class="empty-msg" style="grid-column:1/-1">Tải từ SRV hoặc thêm thủ công</div>
     </div>
     <div class="match-bar" style="display:none">
       <button class="sm-btn add" onclick="openAddModal()">＋ Thêm thủ công</button>
@@ -1543,7 +1550,7 @@ select, input { font-family: inherit; }
       <button class="m-btn no" onclick="closeModal('modal-save')" style="font-size:15px">✕ Huỷ</button>
       <button class="m-btn ok" onclick="confirmSave()" style="font-size:15px;letter-spacing:.3px">✅ Lưu ngay</button>
     </div>
-    <div style="margin-top:8px;font-size:10.5px;color:var(--g400);text-align:center">GSheets sync tự động sau khi lưu</div>
+    <div style="margin-top:8px;font-size:10.5px;color:var(--g400);text-align:center">SRV sync tự động sau khi lưu</div>
   </div>
 </div>
 
@@ -1665,6 +1672,18 @@ function setRule(r) {
 function _syncRuleInlineBadge() {
   const el = document.getElementById('rule-badge-inline');
   if (el && RULES[winRule]) el.textContent = RULES[winRule].label;
+  // v20: cập nhật thanh luôn hiển thị
+  const elA = document.getElementById('rule-badge-always');
+  const elD = document.getElementById('rule-badge-desc');
+  if (elA && RULES[winRule]) elA.textContent = RULES[winRule].label;
+  if (elD && RULES[winRule]) {
+    const desc = {
+      '11':'— đổi sân tại 6 điểm','11c2m15':'— cách 2, max 15',
+      '15':'— đổi sân tại 8 điểm','15c2m21':'— cách 2, max 21',
+      '21':'— đổi sân tại 11 điểm','24':'— đổi sân tại 12 điểm','25':'— đổi sân tại 13 điểm'
+    };
+    elD.textContent = desc[winRule] || '';
+  }
 }
 
 function calcTarget() {
@@ -1804,7 +1823,7 @@ function saveGsUrl() {
   const hint = document.getElementById('gs-no-url-hint');
   if (hint) hint.style.display = GS_URL ? 'none' : 'block';
   updateGsBadge();
-  toast('✅ Đã lưu URL GSheets vào app!');
+  toast('✅ Đã lưu URL SRV vào app!');
   if (GS_URL) { loadAllFromGS(); startAutoPoll(); }
 }
 
@@ -1829,7 +1848,7 @@ function setDot(s) {
   const dot = document.getElementById('gs-dot');
   const txt = document.getElementById('gs-txt');
   if (dot) dot.className = 'gs-dot '+(s||'');
-  if (txt) txt.textContent = {ok:'GSheets ✓',err:'GSheets ✗',syn:'Đang sync…'}[s]||'GSheets';
+  if (txt) txt.textContent = {ok:'SRV ✓',err:'SRV ✗',syn:'Đang sync…'}[s]||'SRV';
 }
 let _syncQueue = [], _syncBusy = false;
 
@@ -1839,7 +1858,7 @@ const _LOG_FLUSH_MS  = 1500; // flush sau 1.5s không có event mới
 const _LOG_FLUSH_MAX = 8;    // flush ngay khi đủ 8 rows
 let _logBuffer    = [];      // hàng đợi rows chưa flush
 let _logTimer     = null;    // debounce timer
-let _gasHasBatch  = null;    // null=chưa biết, true=GAS v11+, false=GAS cũ
+let _gasHasBatch  = null;    // null=chưa biết, true=Máy chủ v11+, false=Máy chủ cũ
 
 function logToEventBuffer(row) {
   if (!GS_URL) return;
@@ -1857,7 +1876,7 @@ async function _flushEventLog() {
   clearTimeout(_logTimer);
   const rows = _logBuffer.splice(0); // lấy hết buffer, reset
 
-  // Nếu biết GAS cũ (không có batchLog) → dùng log đơn lẻ ngay
+  // Nếu biết Máy chủ cũ (không có batchLog) → dùng log đơn lẻ ngay
   if (_gasHasBatch === false) {
     _sendLogsFallback(rows);
     return;
@@ -1879,7 +1898,7 @@ async function _flushEventLog() {
       _gasHasBatch = true;
       return;
     }
-    // GAS trả về nhưng logged=0 hoặc ok:false → GAS chưa có batchLog handler
+    // Máy chủ trả về nhưng logged=0 hoặc ok:false → Máy chủ chưa có batchLog handler
     _gasHasBatch = false;
     _sendLogsFallback(rows);
   } catch(e) {
@@ -1891,7 +1910,7 @@ async function _flushEventLog() {
   }
 }
 
-// Fallback: gửi từng row bằng action 'log' cũ (tương thích GAS v10 trở về trước)
+// Fallback: gửi từng row bằng action 'log' cũ (tương thích Máy chủ v10 trở về trước)
 function _sendLogsFallback(rows) {
   rows.forEach(row => {
     const body = JSON.stringify({ action: 'log', row });
@@ -1995,7 +2014,7 @@ async function getFromGS(params = '', timeout=20000) {
   const tid  = setTimeout(() => ctrl.abort(), timeout);
   try {
     const url = GS_URL + params + (params.includes('?') ? '&' : '?') + '_t=' + Date.now();
-    // KHÔNG dùng custom header - GAS chỉ accept simple requests (không preflight)
+    // KHÔNG dùng custom header - Máy chủ chỉ accept simple requests (không preflight)
     const res  = await fetch(url, { method: 'GET', redirect: 'follow', signal: ctrl.signal });
     clearTimeout(tid);
     const text = await res.text();
@@ -2021,46 +2040,46 @@ function _refCacheGet(k) { const c=_refCache[k]; if(c && Date.now()-c.ts<45000) 
 function _refCacheSet(k,d) { _refCache[k]={ts:Date.now(),d}; }
 
 async function loadAllFromGS() {
-  if (!GS_URL) { toast('⚠️ Chưa nhập URL GSheets!'); return; }
+  if (!GS_URL) { toast('⚠️ Chưa nhập URL SRV!'); return; }
 
   const isFirstLoad = matchList.length === 0;
   if (isFirstLoad) toast('🔄 Đang tải dữ liệu…');
   else toast('🔄 Đang làm mới…');
   setDot('syn');
 
-  // Thử BATCH (GAS v8+). Fallback về 2 requests song song nếu GAS cũ
+  // Thử BATCH (Máy chủ v8+). Fallback về 2 requests song song nếu Máy chủ cũ
   // ── FIX v12: Luôn fetch live data khi load để biết trạng thái đang playing ──
   const actions = _resultsCleared ? 'matches,live' : 'matches,results,live';
   let matchData = null, resultData = null, liveInitData = null;
 
   const batchData = await getFromGS(`?action=batch&actions=${actions}`);
   if (batchData?.matches) {
-    // GAS v8 batch thành công
+    // Máy chủ v8 batch thành công
     matchData     = batchData.matches;
     resultData    = _resultsCleared ? null : (batchData.results || null);
     liveInitData  = batchData.live  || null;
   } else {
-    // Fallback: GAS cũ → gọi riêng từng request
+    // Fallback: Máy chủ cũ → gọi riêng từng request
     console.warn('[loadAllFromGS] Batch không khả dụng, dùng fallback');
     const requests = _resultsCleared
       ? [getFromGS('?action=matches'), Promise.resolve(null), getFromGS('?action=live&code=all')]
       : [getFromGS('?action=matches'), getFromGS('?action=results'), getFromGS('?action=live&code=all')];
     const [md, rd, ld] = await Promise.all(requests).catch(e => {
       console.error('[loadAllFromGS fallback]', e);
-      setDot('err'); toast('⚠️ Lỗi kết nối GSheets'); return [null, null, null];
+      setDot('err'); toast('⚠️ Lỗi kết nối SRV'); return [null, null, null];
     });
     matchData = md; resultData = rd; liveInitData = ld;
   }
 
   if (!matchData && !resultData) {
-    setDot('err'); toast('⚠️ GSheets không phản hồi!'); return;
+    setDot('err'); toast('⚠️ SRV không phản hồi!'); return;
   }
 
   let gotMatches = false;
   if (matchData?.rows?.length > 1) {
     const newMatches = [];
     matchData.rows.slice(1).forEach(r => {
-      // GAS v3: Giải đấu(0) | Nội dung(1) | Bảng(2) | Mã trận(3) | Đội A(4) | Điểm A(5) | Điểm B(6) | Đội B(7) | Sân(8) | Vòng đấu(9) | Ghi chú(10)
+      // Máy chủ v3: Giải đấu(0) | Nội dung(1) | Bảng(2) | Mã trận(3) | Đội A(4) | Điểm A(5) | Điểm B(6) | Đội B(7) | Sân(8) | Vòng đấu(9) | Ghi chú(10)
       const giai  = String(r[0]||'').trim();
       const nd    = String(r[1]||'').trim();
       const bang  = String(r[2]||'').trim();
@@ -2073,7 +2092,8 @@ async function loadAllFromGS() {
       const round    = String(r[9]||'').trim();  // Vòng đấu
       const referee  = String(r[10]||'').trim(); // GhiChú / Trọng tài (v15)
       if (!nd || !code) return;
-      const key = `${nd}|${bang}|${code}`;
+      // v40 FIX: key = "giai|nd|bang|code" (4 phần) để không trùng giữa nội dung/giải
+      const key = giai ? `${giai}|${nd}|${bang}|${code}` : `${nd}|${bang}|${code}`;
       newMatches.push({ giai, noidung:nd, bang, code, teamA:tA, teamB:tB,
                         matchScoreA:sA, matchScoreB:sB,
                         court, round, referee, // phân quyền
@@ -2083,22 +2103,22 @@ async function loadAllFromGS() {
     saveMatchList();
     // FIX v33: nếu admin thêm nội dung/trận mới chưa có điểm → bỏ ẩn nội dung đó
     _clearHiddenIfNewNDs(newMatches);
-    // FIX v34: quét toàn bộ matches từ GAS → tự động ẩn nội dung có CK đã xong
+    // FIX v34: quét toàn bộ matches từ Máy chủ → tự động ẩn nội dung có CK đã xong
     _autoHideFromMatches(newMatches);
     gotMatches = true;
   }
   let addedResults = 0;
-  // FIX v_sync: GAS là source of truth — REPLACE thay vì MERGE để tránh kết quả
+  // FIX v_sync: Máy chủ là source of truth — REPLACE thay vì MERGE để tránh kết quả
   // stale khi admin xóa bảng rồi tạo lại (KetQua sheet rỗng → S.results phải rỗng).
   // Trước đây: nếu resultData rỗng → block if bị skip → S.results/localStorage
-  // vẫn giữ kết quả cũ (VD: A1 "Hoàn thành") dù GAS đã xóa sạch.
+  // vẫn giữ kết quả cũ (VD: A1 "Hoàn thành") dù Máy chủ đã xóa sạch.
   if (!_resultsCleared && resultData) {
-    // GAS đã phản hồi resultData → rebuild hoàn toàn từ GAS (xóa stale local entries)
+    // Máy chủ đã phản hồi resultData → rebuild hoàn toàn từ Máy chủ (xóa stale local entries)
     const gsResults = {};
     if (resultData?.rows?.length > 1) {
       resultData.rows.slice(1).forEach(r => {
         if (!r[0] || !r[4]) return;
-        // GAS v3 KetQua: Thời gian(0) | Giải đấu(1) | Nội dung(2) | Bảng(3) | Mã trận(4) | Đội A(5) | Đội B(6) | Điểm A(7) | Điểm B(8) | Thắng(9) | Sân(10) | Trọng tài(11) | Quy tắc(12)
+        // Máy chủ v3 KetQua: Thời gian(0) | Giải đấu(1) | Nội dung(2) | Bảng(3) | Mã trận(4) | Đội A(5) | Đội B(6) | Điểm A(7) | Điểm B(8) | Thắng(9) | Sân(10) | Trọng tài(11) | Quy tắc(12)
         const noidung = String(r[2]||'').trim();
         const bang    = String(r[3]||'').trim();
         const code    = String(r[4]||'').trim();
@@ -2119,11 +2139,11 @@ async function loadAllFromGS() {
         addedResults++;
       });
     }
-    S.results = gsResults; // REPLACE (không merge) — GAS là source of truth
+    S.results = gsResults; // REPLACE (không merge) — Máy chủ là source of truth
     try { localStorage.setItem('pb_res6', JSON.stringify(S.results)); } catch(e){}
   }
 
-  // ── FIX v12: Nạp liveScores từ GAS ngay khi load ──
+  // ── FIX v12: Nạp liveScores từ Máy chủ ngay khi load ──
   // Đảm bảo liveScores populated TRƯỚC khi renderMatchGrid và loadMatch check
   if (liveInitData?.rows?.length > 1) {
     const myKey = S.currentMatch?.key;
@@ -2143,6 +2163,7 @@ async function loadAllFromGS() {
         game:      String(r[7]||''),
         updatedAt: String(r[8]||''),
         status:    st || 'playing',
+        referee:   String(r[10]||''), // FIX v5: col 10 = Trọng tài (HDR_LIVE)
       };
     });
   }
@@ -2173,7 +2194,7 @@ async function loadAllFromGS() {
   setDot('ok');
 
   if (!gotMatches && !_resultsCleared) {
-    toast('⚠️ GSheets không phản hồi!');
+    toast('⚠️ SRV không phản hồi!');
     setDot('err');
   } else {
     const extra = _resultsCleared
@@ -2239,8 +2260,11 @@ async function pushMatchToGS() {
   if (!GS_URL) { toast('⚠️ Chưa nhập URL!'); return; }
   if (!matchList.length) { toast('⚠️ Không có trận để đẩy!'); return; }
   const m = matchList[matchList.length - 1]; // đẩy trận vừa thêm
-  await syncGS('addMatch', [m.noidung, m.bang, m.code, m.teamA, m.teamB, '']);
-  toast('⬆ Đã đẩy trận lên GSheets Matches!');
+  // FIX v11: row phải có đủ [giai, noidung, bang, code, teamA, '', '', teamB] — đúng cấu trúc HDR_MATCHES
+  // Trước đây thiếu giai ở index 0 → Máy chủ lưu sai cấu trúc, dedup key bị lệch
+  const giai = m.giai || '';
+  await syncGS('addMatch', [giai, m.noidung, m.bang, m.code, m.teamA, '', '', m.teamB, '', '', ''], 0, giai);
+  toast('⬆ Đã đẩy trận lên SRV Matches!');
 }
 async function testGs() {
   if (!GS_URL) { toast('⚠️ Chưa nhập URL!'); return; }
@@ -2258,10 +2282,10 @@ async function testGs() {
     const open = confirm(
       '❌ Kết nối thất bại!\n\n' +
       'Nguyên nhân thường gặp:\n' +
-      '1. Chưa deploy lại GAS sau khi sửa code\n' +
+      '1. Chưa deploy lại Máy chủ sau khi sửa code\n' +
       '2. Quyền deploy chưa chọn "Anyone"\n' +
-      '3. GAS đang cold start (thử lại sau 30s)\n\n' +
-      'Nhấn OK để mở URL GAS trên trình duyệt và xem lỗi thực tế.'
+      '3. Máy chủ đang cold start (thử lại sau 30s)\n\n' +
+      'Nhấn OK để mở URL Máy chủ trên trình duyệt và xem lỗi thực tế.'
     );
     if (open) window.open(testUrl, '_blank');
   }
@@ -2281,15 +2305,30 @@ function pushLiveScore() {
   const teamAOrig  = m.origTeamA || m.teamA;
   const teamBOrig  = m.origTeamB || m.teamB;
 
-  // Cập nhật local ngay lập tức
+  // Cập nhật local ngay lập tức (FIX v8.16: thêm referee + status)
+  const refValLocal = document.getElementById('inp-referee')?.value?.trim() || m.referee || '';
   liveScores[m.key] = {
     scoreA: scoreAOrig, scoreB: scoreBOrig,
     teamA: teamAOrig, teamB: teamBOrig,
-    updatedAt: now()
+    updatedAt: now(),
+    status: 'playing',
+    referee: refValLocal,
   };
   renderMatchGrid();
 
-  // Ghi lại row mới nhất để debounce gửi
+  // ── v50 NEW: Ghi Firebase TRỰC TIẾP từ browser — không qua GAS (~50ms) ──
+  // GAS vẫn ghi sheet nền qua _sendLiveRow (backup + persistence)
+  _writeLiveToFirebase(m.key, {
+    key: m.key, giai: m.giai||'',
+    teamA: teamAOrig, scoreA: scoreAOrig,
+    scoreB: scoreBOrig, teamB: teamBOrig,
+    server: S.server === 'a' ? teamAOrig : teamBOrig,
+    game: 'Game ' + S.game,
+    updatedAt: now(), status: 'playing',
+    referee: refValLocal, ts: Date.now(),
+  });
+
+  // Ghi lại row mới nhất để debounce gửi GAS (backup sheet)
   const refVal = document.getElementById('inp-referee')?.value?.trim() || '';
   _livePendingRow = [
     m.key,
@@ -2301,11 +2340,87 @@ function pushLiveScore() {
   ];
   const pendingGiai = m.giai || '';
 
-  // Debounce 400ms — gộp bấm liên tiếp thành 1 request
-  // Tránh race condition: GAS xử lý 1 request/lần, bấm nhanh → chỉ gửi điểm cuối cùng
+  // Debounce 200ms — gộp bấm liên tiếp (giảm từ 400ms để GAS nhận nhanh hơn)
   clearTimeout(_livePushTimer);
   _liveRetryCount = 0;
-  _livePushTimer = setTimeout(() => _sendLiveRow(_livePendingRow, pendingGiai, 0), 400);
+  _livePushTimer = setTimeout(() => _sendLiveRow(_livePendingRow, pendingGiai, 0), 200);
+}
+
+// ── v51 FIX: Ghi Firebase RTDB qua REST API (không cần auth, không bị Security Rules block) ──
+// SDK .set() yêu cầu auth nếu rules là "auth != null" → fail silently → không có realtime
+// REST API: PUT .json không cần auth nếu rules ".write": true → luôn hoạt động như GAS
+const _FB_RTDB_URL = 'https://app-pickleball-default-rtdb.asia-southeast1.firebasedatabase.app';
+let _fbWriteOkLogged = false;
+let _fbWriteErrLogged = false;
+
+function _writeLiveToFirebase(key, payload) {
+  try {
+    const fbKey = key.replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const url = _FB_RTDB_URL + '/liveScores/' + fbKey + '.json';
+    // v52 DIAGNOSTIC: kiểm tra response để biết ghi Firebase thành công hay bị Security Rules chặn
+    // v52 ROBUST: keepalive:true → request survive nếu user navigate / switch tab giữa chừng
+    fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).then(res => {
+      if (res.ok) {
+        if (!_fbWriteOkLogged) {
+          console.log('[FB-WRITE] ✅ Ghi liveScores Firebase OK:', fbKey, '=', payload.scoreA + '-' + payload.scoreB);
+          _fbWriteOkLogged = true;
+        }
+      } else {
+        // 401/403 = Security Rules ".write" KHÔNG phải true → admin sẽ KHÔNG nhận realtime
+        res.text().then(t => {
+          console.error('[FB-WRITE] ❌ Firebase TỪ CHỐI ghi (HTTP ' + res.status + '). '
+            + 'Realtime sẽ KHÔNG hoạt động! Cần đặt RTDB rules ".write": true cho /liveScores. Chi tiết:', t);
+        }).catch(()=>{});
+      }
+    }).catch(err => {
+      if (!_fbWriteErrLogged) {
+        console.error('[FB-WRITE] ❌ Lỗi mạng khi ghi Firebase:', err.message, '→ admin nhận realtime qua fallback poll (chậm hơn)');
+        _fbWriteErrLogged = true;
+      }
+    });
+  } catch(e) { console.error('[FB-WRITE] exception:', e.message); }
+}
+
+// ── v51: Xóa node liveScores qua REST ──
+function _deleteLiveFromFirebase(key) {
+  try {
+    const fbKey = key.replace(/[^a-zA-Z0-9_\-]/g, '_');
+    fetch(_FB_RTDB_URL + '/liveScores/' + fbKey + '.json', {
+      method: 'DELETE', keepalive: true,
+    }).catch(() => {});
+  } catch(e) {}
+}
+
+// ── v51: Ghi kết quả lên Firebase /results qua REST ──
+function _writeResultToFirebase(entry, liveKey) {
+  try {
+    const fbKey = liveKey.replace(/[^a-zA-Z0-9_\-]/g, '_');
+    fetch(_FB_RTDB_URL + '/results/' + fbKey + '.json', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        key:    liveKey,
+        giai:   entry.giai||'',
+        nd:     entry.noidung||'',
+        bang:   entry.bang||'',
+        code:   entry.code||'',
+        teamA:  entry.teamA||'',
+        teamB:  entry.teamB||'',
+        scoreA: entry.scoreA||0,
+        scoreB: entry.scoreB||0,
+        winner: entry.winner||'',
+        court:  entry.court||'',
+        ref:    entry.referee||'',
+        ts:     Date.now(),
+      }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch(e) { /* silent */ }
 }
 
 async function _sendLiveRow(row, giai, retryCount) {
@@ -2325,19 +2440,11 @@ async function _sendLiveRow(row, giai, retryCount) {
       setDot('ok');
       setTimeout(() => setDot(''), 2000);
       _liveRetryCount = 0;
-      // Xác nhận score khớp với GAS response
-      if (json.score && S.currentMatch) {
-        const origSideA = S.currentMatch.origSideA || 'a';
-        const localA = origSideA === 'a' ? S.a : S.b;
-        const localB = origSideA === 'a' ? S.b : S.a;
-        // Nếu score trong GAS response không khớp local → push lại (có thể bị ghi đè)
-        if (json.score[0] !== localA || json.score[1] !== localB) {
-          console.warn('[Live] Score mismatch GAS:', json.score, 'vs local:', [localA, localB], '→ re-push');
-          pushLiveScore(); // re-push với score mới nhất
-        }
-      }
+      // v55: BỎ score mismatch re-push — GAS data luôn cũ hơn Firebase (debounce)
+      // Re-push gây vòng lặp vô hạn: GAS cũ → mismatch → re-push → GAS vẫn cũ → ...
+      // Firebase REST PUT đã đảm bảo admin nhận đúng score ngay lập tức
     } else {
-      throw new Error('GAS returned ok:false');
+      throw new Error('Máy chủ returned ok:false');
     }
   } catch(e) {
     if (retryCount < 3) {
@@ -2430,10 +2537,12 @@ function confirmAdd() {
   if (!bang)         { toast('⚠️ Chọn Bảng!'); return; }
   if (!code||!tA||!tB) { toast('⚠️ Điền đủ Mã trận, Đội A, Đội B!'); return; }
 
-  const key = `${nd}|${bang}|${code}`;
+  // v40 FIX: key 4 phần để không trùng giữa nội dung
+  const curGiai = S.giai || '';
+  const key = curGiai ? `${curGiai}|${nd}|${bang}|${code}` : `${nd}|${bang}|${code}`;
   if (matchList.find(x => x.key === key)) { toast('⚠️ Trận đã tồn tại!'); return; }
 
-  matchList.push({ noidung:nd, bang, code, teamA:tA, teamB:tB, matchScoreA:null, matchScoreB:null, key });
+  matchList.push({ noidung:nd, bang, code, giai:curGiai, teamA:tA, teamB:tB, matchScoreA:null, matchScoreB:null, key });
   saveMatchList();
   syncDropdownsFromData(false);
   syncBXHDropdowns();
@@ -2524,6 +2633,7 @@ function saveActiveMatch() {
         receiverPlayerIdx: _pm.receiverPlayerIdx
       },
       matchStarted,
+      winRule: winRule, // FIX v19: lưu rule để restore đúng (tránh reset về '11' default)
       evLog: evLog.slice(-50),
       ts: Date.now()
     };
@@ -2556,6 +2666,12 @@ function restoreActiveMatch() {
     const sv = snap.S;
     Object.assign(S, sv);
     matchStarted = snap.matchStarted || false;
+    // FIX v19: khôi phục winRule từ snapshot → ưu tiên snap.winRule, fallback m.rule, fallback '11'
+    if (snap.winRule && RULES[snap.winRule]) {
+      setRule(snap.winRule);
+    } else if (sv.currentMatch?.rule && RULES[sv.currentMatch.rule]) {
+      setRule(sv.currentMatch.rule);
+    }
     if (snap.evLog) evLog = snap.evLog;
     // Khôi phục player manager state
     if (snap.pm && typeof _pm !== 'undefined') {
@@ -2859,7 +2975,7 @@ function renderMatchGrid() {
   if (!matchList.length) {
     badge.textContent = '0';
     if (title) title.textContent = '📋 Chọn trận đấu';
-    grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">Chưa có trận. Tải từ GSheets hoặc thêm thủ công.</div>';
+    grid.innerHTML = '<div class="empty-msg" style="grid-column:1/-1">Chưa có trận. Tải từ SRV hoặc thêm thủ công.</div>';
     return;
   }
   if (!filterND) {
@@ -2937,8 +3053,8 @@ function _renderMatchCard(grid, m, idx) {
     const localResult = S.results[m.key];
     const liveEntry   = liveScores[m.key];
 
-    // ── Parking slot: LUÔN ưu tiên trước live GAS khi không active ──
-    // Khi park: GAS LiveScore vẫn còn entry 'playing' cũ (chưa kịp xóa)
+    // ── Parking slot: LUÔN ưu tiên trước live Máy chủ khi không active ──
+    // Khi park: Máy chủ LiveScore vẫn còn entry 'playing' cũ (chưa kịp xóa)
     // → nếu không ưu tiên park, card sẽ thấy isLiveOnGAS=true và hiện sai score
     const parkedSlot = _parkedMatches.get(m.key);
     const isParked   = !active &&                           // không phải trận đang chấm
@@ -2946,7 +3062,7 @@ function _renderMatchCard(grid, m, idx) {
                        !_savedMatchKeys.has(m.key) &&
                        !_clearedLiveKeys.has(m.key);
 
-    // Live trên GAS chỉ tính khi KHÔNG park (tránh nhầm entry cũ là live mới)
+    // Live trên Máy chủ chỉ tính khi KHÔNG park (tránh nhầm entry cũ là live mới)
     const isLiveOnGAS = !isParked && liveEntry &&
                         liveEntry.status !== 'finished' &&
                         !_savedMatchKeys.has(m.key) &&
@@ -2958,14 +3074,14 @@ function _renderMatchCard(grid, m, idx) {
                 || _savedMatchKeys.has(m.key)
                 );
 
-    // isLive: chỉ khi active+đang chấm, HOẶC GAS live (không phải park)
+    // isLive: chỉ khi active+đang chấm, HOẶC Máy chủ live (không phải park)
     const isLive = (!isParked && active && matchStarted && !done) ||
                    (!isParked && !active && isLiveOnGAS && !done);
 
     const btn = document.createElement('button');
     let statusLabel = '', statusStyle = '';
 
-    // ── Thứ tự ưu tiên: done > đang chấm (active) > park > live GAS > chưa đấu ──
+    // ── Thứ tự ưu tiên: done > đang chấm (active) > park > live Máy chủ > chưa đấu ──
     if (done) {
       statusLabel = '✅ Hoàn thành';
       statusStyle = 'color:#16a34a;font-weight:700;font-size:9px';
@@ -2992,9 +3108,9 @@ function _renderMatchCard(grid, m, idx) {
       (isParked ? ' parked' : '');
 
     const hasLocalLive = !done && active && matchStarted; // máy này đang chấm
-    const hasLive      = !done && !isParked && liveEntry; // live từ GAS (máy khác)
+    const hasLive      = !done && !isParked && liveEntry; // live từ Máy chủ (máy khác)
 
-    // ── Score: ưu tiên park → local → GAS live → matchList → localResult ──
+    // ── Score: ưu tiên park → local → Máy chủ live → matchList → localResult ──
     let scA, scB, winA = false, winB = false;
     let scStyleA = '', scStyleB = '', hasSc = false, isLiveScore = false;
 
@@ -3015,7 +3131,7 @@ function _renderMatchCard(grid, m, idx) {
       scB = origSideA === 'a' ? S.b : S.a;
       hasSc = true; isLiveScore = true;
     } else if (hasLive) {
-      // Máy khác đang chấm → lấy từ GAS liveScores
+      // Máy khác đang chấm → lấy từ Máy chủ liveScores
       scA = liveEntry.scoreA; scB = liveEntry.scoreB;
       hasSc = true; isLiveScore = true;
     } else if (m.matchScoreA !== null && m.matchScoreA !== undefined &&
@@ -3101,7 +3217,7 @@ function renderResults() {
     const parts = (r.savedAt || '').split(' ');
     const timeShort = (parts[1] || '').slice(0,5);
     const dateShort = (parts[0] || '').replace(/\/\d{4}$/, ''); // bỏ năm: 15/5
-    const ruleShort = (r.winRule||'').replace('Chạm ','').replace(' cách 2 (max ','/').replace(')','');
+    const ruleShort = (r.winRule||(m.rule?`Chạm ${m.rule.replace('c2m','/').split('/')[0]}`:'') ||'').replace('Chạm ','').replace(' cách 2 (max ','/').replace(')','').replace('11c2m15','11/15').replace('15c2m21','15/21') || (m.rule?m.rule:'');
     const snA = sn(r.teamA), snB = sn(r.teamB), snW = sn(r.winner);
     return `
     <tr>
@@ -3297,7 +3413,7 @@ function _loadParkedMatches() {
 _loadParkedMatches();
 
 // ══════════════════════════════════════════════════════════════
-// replayMatchGS: Gọi GAS để sync 3 sheets khi đánh lại trận đã hoàn thành
+// replayMatchGS: Gọi Máy chủ để sync 3 sheets khi đánh lại trận đã hoàn thành
 //   → Matches: reset điểm A/B về rỗng
 //   → KetQua: xóa row kết quả cũ
 //   → LiveScore: xóa row finished
@@ -3305,7 +3421,8 @@ _loadParkedMatches();
 // ══════════════════════════════════════════════════════════════
 async function replayMatchGS(m) {
   if (!GS_URL || !m) return;
-  const key  = m.key  || ((m.noidung||'') + '|' + (m.bang||'') + '|' + (m.code||''));
+  // v40 FIX: m.key đã là 4 phần; fallback tự build
+  const key  = m.key || ((m.giai?m.giai+'|':'') + (m.noidung||'') + '|' + (m.bang||'') + '|' + (m.code||''));
   const parts = key.split('|');
   try {
     const res = await fetch(GS_URL, {
@@ -3327,7 +3444,7 @@ async function replayMatchGS(m) {
       setDot('ok'); setTimeout(() => setDot(''), 2000);
       return true;
     } else {
-      console.warn('[replayMatchGS] GAS error:', json.reason);
+      console.warn('[replayMatchGS] Máy chủ error:', json.reason);
       return false;
     }
   } catch(e) {
@@ -3352,7 +3469,7 @@ function startMatch() {
 
   // ══ GỌI replayMatch NẾU TRẬN ĐÃ HOÀN THÀNH ══
   // _wasFinished = flag set trong loadMatch khi trận đã có điểm
-  // → gọi GAS reset 3 sheets: Matches, KetQua, LiveScore
+  // → gọi Máy chủ reset 3 sheets: Matches, KetQua, LiveScore
   const wasFinished = S.currentMatch._wasFinished;
   if (wasFinished && GS_URL && !isResume) {
     S.currentMatch._wasFinished = false; // reset flag
@@ -3547,7 +3664,7 @@ function resetMatch() {
     if (prevKey && ls[prevKey]) { delete ls[prevKey]; localStorage.setItem('pb_live6', JSON.stringify(ls)); }
   } catch(e) {}
 
-  // Xoá LiveScore trên GSheets (async, fire-and-forget)
+  // Xoá LiveScore trên SRV (async, fire-and-forget)
   if (GS_URL && S.currentMatch) clearLiveGS(S.currentMatch);
 
   _setMatchStarted(false, false);
@@ -3556,9 +3673,10 @@ function resetMatch() {
 }
 async function clearLiveGS(m) {
   if (!GS_URL || !m) return;
-  const key = (m.noidung||'') + '|' + (m.bang||'') + '|' + (m.code||'');
+  // v40 FIX: gửi key mới 4 phần; Máy chủ clearLive() xử lý cả 2 format
+  const key = m.key || ((m.giai?m.giai+'|':'') + (m.noidung||'') + '|' + (m.bang||'') + '|' + (m.code||''));
   try {
-    // Gửi action deleteLive để GAS xoá hẳn row khỏi sheet LiveScore (thoát trận không lưu)
+    // Gửi action deleteLive để Máy chủ xoá hẳn row khỏi sheet LiveScore (thoát trận không lưu)
     await syncGS('deleteLive', { key });
   } catch(e) {}
 }
@@ -3567,7 +3685,8 @@ async function clearLiveGS(m) {
 // Admin sẽ thấy tỉ số cuối nhưng trận rời khỏi "Đang thi đấu"
 async function finishLiveGS(m, scoreA, scoreB) {
   if (!GS_URL || !m) return;
-  const key = (m.noidung||'') + '|' + (m.bang||'') + '|' + (m.code||'');
+  // v40 FIX: gửi key mới 4 phần
+  const key = m.key || ((m.giai?m.giai+'|':'') + (m.noidung||'') + '|' + (m.bang||'') + '|' + (m.code||''));
   try {
     await syncGS('finishLive', {
       key,
@@ -3697,7 +3816,7 @@ function confirmSave() {
   _resultsCleared = false;
   try { localStorage.setItem('pb_res6', JSON.stringify(S.results)); } catch(e) {}
 
-  // Cập nhật matchList local ngay — không đợi polling GAS
+  // Cập nhật matchList local ngay — không đợi polling Máy chủ
   const matchIdx = matchList.findIndex(x => x.key === m.key);
   if (matchIdx !== -1) {
     matchList[matchIdx].matchScoreA = scoreOrig_A;
@@ -3724,6 +3843,11 @@ function confirmSave() {
   const winnerLabel = scoreOrig_A !== scoreOrig_B ? `🏆 ${sn(winner)} thắng` : '🤝 Hoà';
   toast(`💾 Đã lưu: ${m.code} · ${scoreOrig_A}–${scoreOrig_B} · ${winnerLabel}`, 4000);
 
+  // ── v51: Ghi Firebase /results NGAY từ browser qua REST API ──
+  _writeResultToFirebase(entry, m.key);
+  // Xóa node liveScores trên Firebase ngay qua REST (không cần SDK auth)
+  _deleteLiveFromFirebase(m.key);
+
   if (GS_URL) {
     const m2 = m; // dùng m trực tiếp (S.currentMatch đã bị clear bởi clearActiveMatch)
     syncGS('log', [
@@ -3749,7 +3873,7 @@ function loadMatch(idx) {
   const m = matchList[idx];
   if (!m) return;
 
-  // ── Nếu trận đang có live entry trên GAS → đảm bảo matchScoreA = null ──
+  // ── Nếu trận đang có live entry trên Máy chủ → đảm bảo matchScoreA = null ──
   const liveCheck = liveScores[m.key];
   if (liveCheck && liveCheck.status !== 'finished' &&
       !_savedMatchKeys.has(m.key) && !_clearedLiveKeys.has(m.key)) {
@@ -3821,7 +3945,7 @@ function loadMatch(idx) {
         if (bar) bar.style.display = 'none';
         // Xóa clearedLiveKeys để push live hoạt động bình thường
         if (m.key) _clearedLiveKeys.delete(m.key);
-        // Push live lên GAS ngay để admin thấy trạng thái đang thi đấu
+        // Push live lên Máy chủ ngay để admin thấy trạng thái đang thi đấu
         pushLiveScore();
       }
       // Cập nhật mi-tag
@@ -3829,6 +3953,9 @@ function loadMatch(idx) {
       if (miEl) {
         miEl.innerHTML = `<span class="mi-nd">${m.noidung||''}</span><span class="mi-bang">${m.bang||''}</span><span class="mi-code">${m.code}</span>`;
       }
+      // v20 FIX: luôn áp rule từ matchList mới nhất (Admin có thể đổi rule trong lúc đang chấm)
+      if (m.rule && RULES[m.rule]) setRule(m.rule);
+      else _syncRuleInlineBadge(); // sync badge dù rule không đổi
       saveActiveMatch();
       render(); renderMatchGrid();
       toast(`⚡ Tiếp tục ${m.code}: ${S.a}–${S.b} · Game ${S.game}`, 3000);
@@ -3837,9 +3964,9 @@ function loadMatch(idx) {
   }
 
   // ══════════════════════════════════════════════════════════════
-  // CASE 4: Trận hoàn toàn mới / liveScores từ GAS → load
+  // CASE 4: Trận hoàn toàn mới / liveScores từ Máy chủ → load
   // ══════════════════════════════════════════════════════════════
-  // Kiểm tra liveScores: nếu trận đang playing trên GAS → resume từ GAS
+  // Kiểm tra liveScores: nếu trận đang playing trên Máy chủ → resume từ Máy chủ
   const gasLive = liveScores[m.key];
   const isLiveOnGAS = gasLive && gasLive.status !== 'finished' &&
     !_savedMatchKeys.has(m.key) && !_clearedLiveKeys.has(m.key);
@@ -3857,7 +3984,7 @@ function loadMatch(idx) {
   })();
 
   if ((isLiveOnGAS || snapForThisMatch) && !S.results[m.key] && !_savedMatchKeys.has(m.key)) {
-    // Resume từ snapshot localStorage (ưu tiên) hoặc GAS live
+    // Resume từ snapshot localStorage (ưu tiên) hoặc Máy chủ live
     if (snapForThisMatch) {
       const sv = snapForThisMatch.S;
       Object.assign(S, sv);
@@ -3882,6 +4009,13 @@ function loadMatch(idx) {
       origTeamB: S.currentMatch?.origTeamB || m.teamB,
       origSideA: S.currentMatch?.origSideA || 'a',
     };
+    // FIX v8.16: điền referee vào inp-referee khi resume từ Máy chủ live
+    { const ri = document.getElementById('inp-referee'); if (ri && m.referee && !ri.value.trim()) ri.value = m.referee; }
+    { const ci = document.getElementById('inp-court'); if (ci && m.court && !ci.value.trim()) ci.value = m.court; }
+    // v20 FIX: luôn áp rule từ matchList (mới nhất từ Admin) — thắng cả snapshot localStorage cũ
+    // Nếu Admin vừa đổi rule, m.rule đã update → phải áp ngay, không để snapshot override
+    if (m.rule && RULES[m.rule]) setRule(m.rule);
+    else _syncRuleInlineBadge(); // fallback: sync badge với winRule hiện tại
     if (matchStarted) {
       document.querySelector('.scoreboard')?.classList.remove('not-started');
       const sb = document.getElementById('btn-start');
@@ -3953,6 +4087,22 @@ function loadMatch(idx) {
   const miEl2 = document.getElementById('mi-tag');
   if (miEl2) {
     miEl2.innerHTML = `<span class="mi-nd">${m.noidung||''}</span><span class="mi-bang">${m.bang||''}</span><span class="mi-code">${m.code}</span>`;
+  }
+  // FIX v8.16: điền referee từ matchList vào inp-referee để pushLiveScore gửi đúng tên TT
+  const refInp2 = document.getElementById('inp-referee');
+  if (refInp2 && m.referee && !refInp2.value.trim()) {
+    refInp2.value = m.referee;
+  }
+  // Điền court nếu có
+  const courtInp2 = document.getElementById('inp-court');
+  if (courtInp2 && m.court && !courtInp2.value.trim()) {
+    courtInp2.value = m.court;
+  }
+  // v20 FIX: Áp rule từ Admin (luôn từ matchList mới nhất)
+  if (m.rule && RULES[m.rule]) {
+    setRule(m.rule);
+  } else {
+    _syncRuleInlineBadge(); // sync badge kể cả khi trận không có rule riêng
   }
   pushLog(`📋 Mở: ${m.code}`, null);
   _setMatchStarted(false, false);
@@ -4492,8 +4642,8 @@ function endWarmupAndPlay() {
 let _pollInterval   = null;
 let _appFocused     = !document.hidden;
 
-const POLL_FOCUSED    = 8000;  // 8 giây khi đang dùng app — đủ nhanh để sync
-const POLL_BACKGROUND = 60000; // 60 giây khi app chạy ngầm
+const POLL_FOCUSED    = 3000;  // v21: 3 giây khi đang dùng app — rule/sân sync gần realtime
+const POLL_BACKGROUND = 30000; // 30 giây khi app chạy ngầm
 
 function startAutoPoll() {
   stopAutoPoll();
@@ -4520,7 +4670,7 @@ function schedulePoll() {
 async function pollMatches() {
   if (!GS_URL) return;
   try {
-    // Thử batch (GAS v8+), fallback 2 requests nếu cần
+    // Thử batch (Máy chủ v8+), fallback 2 requests nếu cần
     const batchPoll = await getFromGS('?action=batch&actions=matches,live');
     let data, liveData;
     if (batchPoll?.matches || batchPoll?.live) {
@@ -4537,7 +4687,7 @@ async function pollMatches() {
       liveData.rows.slice(1).forEach(r => {
         const key = String(r[0]||'').trim();
         if (!key) return;
-        // HDR_LIVE v9: Key(0)|Giải đấu(1)|Đội A(2)|Điểm A(3)|Điểm B(4)|Đội B(5)|Giao bóng(6)|Game(7)|Cập nhật lúc(8)|Trạng thái(9)
+        // HDR_LIVE: Key(0)|Giải đấu(1)|Đội A(2)|Điểm A(3)|Điểm B(4)|Đội B(5)|Giao bóng(6)|Game(7)|Cập nhật lúc(8)|Trạng thái(9)|Trọng tài(10)
         newLive[key] = {
           teamA:  String(r[2]||'').trim(),
           scoreA: Number(r[3])||0,
@@ -4547,6 +4697,7 @@ async function pollMatches() {
           game:   String(r[7]||''),
           updatedAt: String(r[8]||''),
           status: String(r[9]||''), // 'playing' | 'finished' | '' (cũ)
+          referee: String(r[10]||''), // FIX v5: col 10 = Trọng tài (HDR_LIVE)
         };
       });
       const myKey = S.currentMatch?.key;
@@ -4554,14 +4705,14 @@ async function pollMatches() {
         // Bỏ qua key đã bị reset hoặc đã lưu kết quả — không restore lại
         if (_clearedLiveKeys.has(k)) return;
         if (_savedMatchKeys.has(k))  return;
-        // Bỏ qua nếu GAS đã đánh dấu finished (v9+)
+        // Bỏ qua nếu Máy chủ đã đánh dấu finished (v9+)
         if (newLive[k]?.status === 'finished') return;
         if (k === myKey) {
           // ── FIX v12: Trận của máy này đang chấm ──
           // Cập nhật liveScores[myKey] để _renderMatchCard biết trận đang live
-          // NHƯNG không ghi đè score (local S.a/S.b luôn chính xác hơn GAS)
+          // NHƯNG không ghi đè score (local S.a/S.b luôn chính xác hơn Máy chủ)
           if (!matchStarted) {
-            // Nếu không đang chấm (tạm dừng) → dùng score từ GAS để hiện đúng
+            // Nếu không đang chấm (tạm dừng) → dùng score từ Máy chủ để hiện đúng
             liveScores[k] = newLive[k];
           } else {
             // Đang chấm → chỉ cập nhật metadata, giữ score local
@@ -4590,7 +4741,7 @@ async function pollMatches() {
     const newCount = data.rows.length - 1;
     const newMatches = [];
     data.rows.slice(1).forEach(r => {
-      // GAS v3: Giải đấu(0) | Nội dung(1) | Bảng(2) | Mã trận(3) | Đội A(4) | Điểm A(5) | Điểm B(6) | Đội B(7) | Sân(8) | Vòng đấu(9)
+      // Máy chủ v3: Giải đấu(0) | Nội dung(1) | Bảng(2) | Mã trận(3) | Đội A(4) | Điểm A(5) | Điểm B(6) | Đội B(7) | Sân(8) | Vòng đấu(9)
       const giai=String(r[0]||'').trim(), nd=String(r[1]||'').trim(), bang=String(r[2]||'').trim(), code=String(r[3]||'').trim();
       const tA=String(r[4]||'').trim(), tB=String(r[7]||'').trim();
       const sA=(r[5]!==''&&r[5]!=null) ? Number(r[5]) : null;
@@ -4599,7 +4750,9 @@ async function pollMatches() {
       const round    = String(r[9]||'').trim();
       const referee  = String(r[10]||'').trim(); // GhiChú / Trọng tài (v15)
       if (!nd||!code) return;
-      newMatches.push({giai,noidung:nd,bang,code,teamA:tA,teamB:tB,matchScoreA:sA,matchScoreB:sB,court,round,referee,key:`${nd}|${bang}|${code}`});
+      // v40 FIX: key 4 phần giai|nd|bang|code
+      const mRule2=String(r[12]||'').trim(); // v18: Quy tắc điểm từ Matches col[12]
+      newMatches.push({giai,noidung:nd,bang,code,teamA:tA,teamB:tB,matchScoreA:sA,matchScoreB:sB,court,round,referee,rule:mRule2,key:giai?`${giai}|${nd}|${bang}|${code}`:`${nd}|${bang}|${code}`});
     });
     const oldBangs  = [...new Set(matchList.map(m=>m.bang).filter(Boolean))].join(',');
     const newBangs  = [...new Set(newMatches.map(m=>m.bang).filter(Boolean))].join(',');
@@ -4607,11 +4760,25 @@ async function pollMatches() {
     const newNDs    = [...new Set(newMatches.map(m=>m.noidung).filter(Boolean))].join(',');
     const oldScores = matchList.map(m=>`${m.key}:${m.matchScoreA??''}:${m.matchScoreB??''}`).join('|');
     const newScores = newMatches.map(m=>`${m.key}:${m.matchScoreA??''}:${m.matchScoreB??''}`).join('|');
+    // v21 FIX: thêm rule vào hasChange — khi admin đổi rule không thêm trận/điểm → cũ bị bỏ qua
+    const oldRules  = matchList.map(m=>`${m.key}:${m.rule||''}`).join('|');
+    const newRules  = newMatches.map(m=>`${m.key}:${m.rule||''}`).join('|');
+
+    // v21 FIX REALTIME: nếu trận đang chấm có rule mới → áp ngay, KHÔNG chờ hasChange
+    if (S.currentMatch?.key) {
+      const curKey  = S.currentMatch.key;
+      const freshM  = newMatches.find(m => m.key === curKey);
+      if (freshM && freshM.rule && freshM.rule !== (S.currentMatch.rule || '') && RULES[freshM.rule]) {
+        S.currentMatch.rule = freshM.rule; // cập nhật currentMatch
+        setRule(freshM.rule);              // áp dụng ngay lên winRule + badge
+      }
+    }
 
     const hasChange = newCount !== _lastMatchCount
                    || oldBangs !== newBangs
                    || oldNDs   !== newNDs
-                   || oldScores !== newScores;
+                   || oldScores !== newScores
+                   || oldRules  !== newRules; // v21: thêm rule
 
     if (!hasChange) return; // không có gì thay đổi → bỏ qua
 
@@ -4619,13 +4786,13 @@ async function pollMatches() {
     _lastMatchCount = newCount;
     matchList = newMatches;
     saveMatchList();
-    // Dọn _savedMatchKeys cho các trận đã có điểm chính thức từ GAS
+    // Dọn _savedMatchKeys cho các trận đã có điểm chính thức từ Máy chủ
     newMatches.forEach(m => {
       if ((m.matchScoreA !== null && m.matchScoreA !== undefined) && _savedMatchKeys.has(m.key)) {
         _savedMatchKeys.delete(m.key);
       }
     });
-    // FIX v33: nếu GAS có trận chưa có điểm thuộc nội dung đang bị ẩn → bỏ ẩn
+    // FIX v33: nếu Máy chủ có trận chưa có điểm thuộc nội dung đang bị ẩn → bỏ ẩn
     _clearHiddenIfNewNDs(newMatches);
     // FIX v34: quét CK có điểm → tự động ẩn nội dung/giải đã kết thúc
     _autoHideFromMatches(newMatches);
@@ -4643,6 +4810,276 @@ async function pollMatches() {
 function stopAutoPoll() {
   if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
   document.removeEventListener('visibilitychange', onVisibilityChange);
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  FIREBASE REAL-TIME ASSIGNMENT (v42)
+//  Lắng nghe /assignments/{myCode} qua WebSocket — nhận ngay < 1 giây
+//  Fallback: poll Máy chủ CacheService mỗi 8s nếu Firebase không khả dụng
+// ══════════════════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyAJV0Ojod9lQ4vec-y90l52xX7HUTP-dvA",
+  authDomain:        "app-pickleball.firebaseapp.com",
+  databaseURL:       "https://app-pickleball-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:         "app-pickleball",
+  storageBucket:     "app-pickleball.firebasestorage.app",
+  messagingSenderId: "462226845907",
+  appId:             "1:462226845907:web:5b451c3c1f624062796426",
+};
+
+let _firebaseApp  = null;
+let _firebaseDb   = null;
+let _fbListener   = null; // unsubscribe function
+let _lastAssignTs = 0;    // ts của assignment đã xử lý — tránh nhận lại
+
+// ── Fallback poll (nếu Firebase lỗi) ──
+let _assignPollInterval = null;
+const ASSIGN_POLL_FOCUSED    = 8000;
+const ASSIGN_POLL_BACKGROUND = 30000;
+
+function startAssignPoll() {
+  stopAssignPoll();
+  const lic = licLoad();
+  if (!GS_URL || !lic?.code) return;
+
+  // ── FIX v44: dùng SĐT làm key Firebase (không trùng kể cả khi trùng tên)
+  // Máy chủ ghi assignments/{phone}, app TT lắng nghe theo phone đăng nhập
+  const listenKey = (lic.phone || '').replace(/\D/g, '') || lic.code;
+
+  // ── Thử Firebase trước ──
+  if (_initFirebase(listenKey)) return; // Firebase OK → không cần poll
+
+  // ── Fallback: poll Máy chủ CacheService ──
+  console.warn('[Assignment] Firebase không khả dụng → dùng poll fallback');
+  _assignPollInterval = setInterval(
+    _checkAssignmentPoll,
+    _appFocused ? ASSIGN_POLL_FOCUSED : ASSIGN_POLL_BACKGROUND
+  );
+  setTimeout(_checkAssignmentPoll, 2000);
+  document.addEventListener('visibilitychange', _onAssignVisibility);
+}
+
+function stopAssignPoll() {
+  // Dừng Firebase listener
+  if (_fbListener) { try { _fbListener(); } catch(e){} _fbListener = null; }
+  // Dừng poll fallback
+  if (_assignPollInterval) { clearInterval(_assignPollInterval); _assignPollInterval = null; }
+  document.removeEventListener('visibilitychange', _onAssignVisibility);
+}
+
+function _onAssignVisibility() {
+  stopAssignPoll();
+  startAssignPoll();
+}
+
+// ── Khởi tạo Firebase + đăng ký listener ──
+function _initFirebase(myCode) {
+  try {
+    if (typeof firebase === 'undefined') return false; // SDK chưa load
+    if (!_firebaseApp) {
+      _firebaseApp = firebase.apps.length
+        ? firebase.apps[0]
+        : firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    _firebaseDb = _firebaseApp.database();
+
+    const ref = _firebaseDb.ref('assignments/' + myCode.toUpperCase());
+
+    // onValue: kích hoạt ngay khi có thay đổi (WebSocket thật sự)
+    ref.on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (!data) return; // null = chưa có assignment hoặc đã xóa
+      if (data.ts && data.ts <= _lastAssignTs) return; // đã xử lý rồi
+      if (data.expireAt && Date.now() > data.expireAt) return; // hết hạn
+      _lastAssignTs = data.ts || Date.now();
+      _handleNewAssignment(data);
+    });
+
+    _fbListener = () => ref.off('value'); // hàm để unsubscribe
+    console.log('[Assignment] Firebase listener đang hoạt động ✅');
+    return true;
+  } catch(e) {
+    console.warn('[Assignment] Firebase init lỗi:', e.message);
+    return false;
+  }
+}
+
+// ── Fallback: poll Máy chủ CacheService ──
+async function _checkAssignmentPoll() {
+  const lic = licLoad();
+  if (!GS_URL || !lic?.code) return;
+  try {
+    // FIX v44: dùng SĐT làm key (nhất quán với Máy chủ v44)
+    const pollKey = (lic.phone || '').replace(/\D/g, '') || lic.code;
+    const url = `${GS_URL}?action=checkAssignment&code=${encodeURIComponent(pollKey)}&ts=${_lastAssignTs}`;
+    const res  = await fetch(url, { cache: 'no-store' });
+    const data = await res.json();
+    if (!data?.ok || !data?.hasNew || !data?.match) return;
+    const m = data.match;
+    if (m.ts && m.ts <= _lastAssignTs) return;
+    _lastAssignTs = m.ts || Date.now();
+    _handleNewAssignment(m);
+  } catch(e) { /* mạng lỗi → bỏ qua */ }
+}
+
+// ── Xử lý assignment mới (dùng chung cho Firebase + poll) ──
+async function _handleNewAssignment(m) {
+  const isBusy = matchStarted && S.currentMatch;
+
+  // FIX v8.18: Nếu type='assignedToGiai' (không có code cụ thể) → reload + hiện banner chung
+  if (!m.code || m.type === 'assignedToGiai') {
+    _showAssignNotification(m, -1, false);
+    await loadAllFromGS();
+    renderMatchGrid();
+    return;
+  }
+
+  // Tìm trận cụ thể trong matchList
+  let mIdx = matchList.findIndex(x =>
+    x.noidung === m.noidung && x.bang === m.bang && x.code === m.code
+  );
+
+  // Nếu chưa có trong matchList → load Máy chủ trước rồi tìm lại
+  if (mIdx < 0) {
+    await loadAllFromGS();
+    mIdx = matchList.findIndex(x =>
+      x.noidung === m.noidung && x.bang === m.bang && x.code === m.code
+    );
+  }
+
+  if (isBusy) {
+    // Đang chấm → chỉ hiện banner, không tự switch
+    _showAssignNotification(m, mIdx, false);
+  } else {
+    // Rảnh → load trận ngay + thông báo
+    _showAssignNotification(m, mIdx, true);
+    if (mIdx >= 0) {
+      loadMatch(mIdx);
+    }
+  }
+}
+
+// ── Hiện banner thông báo + beep ──
+function _showAssignNotification(m, mIdx, autoLoad) {
+  // Beep ngắn
+  try {
+    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.45, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.45);
+  } catch(e) {}
+
+  const label  = autoLoad ? '⚡ Tự động tải trận mới!' : '🔔 Trận mới được phân — bấm để chuyển';
+  const detail = [
+    m.noidung, m.bang, m.code,
+    m.teamA && m.teamB ? `${m.teamA} vs ${m.teamB}` : '',
+    m.court ? '🏟 Sân ' + m.court : '',
+  ].filter(Boolean).join('  ·  ');
+
+  const old = document.getElementById('assign-banner');
+  if (old) old.remove();
+
+  const banner = document.createElement('div');
+  banner.id = 'assign-banner';
+  banner.innerHTML = `
+    <div style="font-size:14px;font-weight:700;margin-bottom:5px">${label}</div>
+    <div style="font-size:12px;opacity:.92;line-height:1.5">${detail}</div>
+    ${(!autoLoad && mIdx >= 0) ? `
+    <div style="margin-top:10px">
+      <button id="assign-go-btn"
+        style="background:#fff;color:#e65100;border:none;border-radius:8px;
+               padding:7px 18px;font-weight:700;font-size:13px;cursor:pointer">
+        ▶ Tải trận ngay
+      </button>
+    </div>` : ''}
+  `;
+  Object.assign(banner.style, {
+    position:  'fixed', top: '16px', left: '50%',
+    transform: 'translateX(-50%)',
+    background: autoLoad ? '#1a73e8' : '#e65100',
+    color: '#fff', borderRadius: '16px', padding: '16px 24px',
+    boxShadow: '0 6px 28px rgba(0,0,0,.38)', zIndex: '99999',
+    maxWidth: '92vw', textAlign: 'center',
+    animation: 'assignBannerIn .25s ease',
+  });
+  document.body.appendChild(banner);
+
+  if (!autoLoad && mIdx >= 0) {
+    document.getElementById('assign-go-btn')?.addEventListener('click', async () => {
+      banner.remove();
+      await loadAllFromGS();
+      const mIdx2 = matchList.findIndex(x =>
+        x.noidung === m.noidung && x.bang === m.bang && x.code === m.code
+      );
+      if (mIdx2 >= 0) loadMatch(mIdx2);
+    });
+  }
+
+  setTimeout(() => banner.parentNode && banner.remove(), autoLoad ? 8000 : 20000);
+}
+
+// ── Hàm tương thích ngược (vẫn giữ tên cũ, gọi _handleNewAssignment) ──
+async function checkNewAssignment() { await _checkAssignmentPoll(); }
+
+function _showAssignNotification(m, mIdx, autoLoad) {
+  // Âm thanh beep ngắn
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.4);
+  } catch(e) {}
+
+  // Thông báo nổi (banner lớn hơn toast thường)
+  const label = autoLoad ? '⚡ Đã tự động tải trận mới!' : '🔔 Trận mới được phân — bấm để chuyển';
+  const detail = `${m.noidung || ''} · ${m.bang || ''} · ${m.code || ''}
+${m.teamA || '?'} vs ${m.teamB || '?'}${m.court ? ' · Sân ' + m.court : ''}`;
+
+  // Xóa banner cũ nếu có
+  const old = document.getElementById('assign-banner');
+  if (old) old.remove();
+
+  const banner = document.createElement('div');
+  banner.id = 'assign-banner';
+  banner.innerHTML = `
+    <div style="font-size:14px;font-weight:700;margin-bottom:4px">${label}</div>
+    <div style="font-size:12px;opacity:.9;white-space:pre-line">${detail}</div>
+    ${(!autoLoad && mIdx >= 0) ? '<div style="margin-top:8px"><button id="assign-go-btn" style="background:#fff;color:#1a73e8;border:none;border-radius:8px;padding:6px 14px;font-weight:700;font-size:13px;cursor:pointer">▶ Tải trận ngay</button></div>' : ''}
+  `;
+  Object.assign(banner.style, {
+    position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)',
+    background: autoLoad ? '#1a73e8' : '#e65100',
+    color: '#fff', borderRadius: '14px', padding: '14px 20px',
+    boxShadow: '0 4px 20px rgba(0,0,0,.35)', zIndex: '99999',
+    maxWidth: '90vw', textAlign: 'center',
+    animation: 'assignBannerIn .25s ease',
+  });
+
+  document.body.appendChild(banner);
+
+  // Nếu không auto-load: bấm banner/button → load trận
+  if (!autoLoad && mIdx >= 0) {
+    const goBtn = document.getElementById('assign-go-btn');
+    if (goBtn) goBtn.addEventListener('click', async () => {
+      banner.remove();
+      await loadAllFromGS();
+      const mIdx2 = matchList.findIndex(x =>
+        x.noidung === m.noidung && x.bang === m.bang && x.code === m.code
+      );
+      if (mIdx2 >= 0) loadMatch(mIdx2);
+    });
+  }
+
+  // Tự ẩn sau 8s (auto-load) hoặc 15s (đang bận)
+  setTimeout(() => { if (banner.parentNode) banner.remove(); }, autoLoad ? 8000 : 15000);
 }
 function openNewTournamentModal() {
   document.getElementById('clr-results-count').textContent =
@@ -4981,9 +5418,9 @@ async function loadBXHFromGS() {
     if (src) src.textContent = `📡 Nguồn: Google Sheets KetQua · ${_bxhRawRows.length} kết quả · cập nhật lúc ${now}`;
 
     renderBXH();
-    toast(`✅ BXH: ${_bxhRawRows.length} kết quả từ GSheets`);
+    toast(`✅ BXH: ${_bxhRawRows.length} kết quả từ SRV`);
   } catch (err) {
-    if (src) src.textContent = `⚠️ Không tải được GSheets — dùng dữ liệu local`;
+    if (src) src.textContent = `⚠️ Không tải được SRV — dùng dữ liệu local`;
     toast('⚠️ Lỗi tải BXH: ' + err.message);
     _bxhRawRows = null;
     renderBXH();
@@ -4992,7 +5429,7 @@ async function loadBXHFromGS() {
   }
 }
 function _parseGSRow(r) {
-  // GAS v3 KetQua: Thời gian(0) | Giải đấu(1) | Nội dung(2) | Bảng(3) | Mã trận(4) | Đội A(5) | Đội B(6) | Điểm A(7) | Điểm B(8) | Thắng(9)
+  // Máy chủ v3 KetQua: Thời gian(0) | Giải đấu(1) | Nội dung(2) | Bảng(3) | Mã trận(4) | Đội A(5) | Đội B(6) | Điểm A(7) | Điểm B(8) | Thắng(9)
   return {
     savedAt: String(r[0]||'').trim(),
     giai:    String(r[1]||'').trim(),
@@ -5160,7 +5597,7 @@ function closeModal(id){
 }
 document.querySelectorAll(".modal-ov").forEach(m=>m.onclick=e=>{if(e.target===m){if(m.id==="modal-camera"){const c=document.getElementById("cam-container");const o=c.querySelector("iframe,img");if(o)o.remove();}m.classList.remove("show");}});
 function now(){const d=new Date();return d.toLocaleDateString('vi-VN')+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
-function nowMs(){return new Date().toISOString();} // ISO with ms: 2025-05-14T08:22:22.123Z — dùng để sort GAS
+function nowMs(){return new Date().toISOString();} // ISO with ms: 2025-05-14T08:22:22.123Z — dùng để sort Máy chủ
 function ts(){return new Date().toISOString().slice(0,16).replace(/[T:]/g,'-');}
 function toast(msg, duration) {
   const el = document.getElementById('toast');
@@ -5333,7 +5770,7 @@ function _updateTimerBtnLabels() {
 // VD: "HỘI" === "hội" === "hoi" sau normalize
 
 // ══════════════════════════════════════════════════════════════════════════════
-// AUTO-HIDE v2: Ẩn trận dựa trên dữ liệu từ GAS (polling-driven, không phụ thuộc ai bấm Lưu)
+// AUTO-HIDE v2: Ẩn trận dựa trên dữ liệu từ Máy chủ (polling-driven, không phụ thuộc ai bấm Lưu)
 // ── Nguồn sự thật = Matches sheet: CK có matchScoreA/B → nội dung đã xong → ẩn hết
 // ══════════════════════════════════════════════════════════════════════════════
 const _HIDDEN_ND_KEY   = 'pb_hidden_nds_v2';
@@ -5365,7 +5802,7 @@ function _isFinalMatch(m) {
          code === 'CK' || /^CK\d*$/.test(code) || code === 'FINAL';
 }
 
-// Hàm cốt lõi: quét matches từ GAS → tự ẩn/hiện nội dung/giải
+// Hàm cốt lõi: quét matches từ Máy chủ → tự ẩn/hiện nội dung/giải
 // Gọi sau mỗi lần nhận dữ liệu mới (loadAllFromGS + pollMatches)
 function _autoHideFromMatches(matches) {
   if (!matches || !matches.length) return;
@@ -5435,7 +5872,7 @@ function _clearHiddenIfNewNDs(newMatches) {
   if (changed) _saveHiddenState();
 }
 
-// ── Sort: active → parked → live GAS → chưa đấu → hoàn thành
+// ── Sort: active → parked → live Máy chủ → chưa đấu → hoàn thành
 function _matchSortKey(m) {
   const active      = S.currentMatch?.key === m.key;
   const isLiveOnGAS = liveScores[m.key] &&
@@ -5521,7 +5958,7 @@ async function licValidate() {
     _licStatus('err', '⚠️ Số điện thoại không hợp lệ!');
     return;
   }
-  if (!GS_URL) { _licStatus('err', '⚠️ Chưa cấu hình URL GSheets!'); return; }
+  if (!GS_URL) { _licStatus('err', '⚠️ Chưa cấu hình URL SRV!'); return; }
 
   btn.disabled = true;
   _licStatus('loading', '⏳ Đang xác thực...');
@@ -5549,7 +5986,7 @@ async function licValidate() {
       btn.disabled = false;
     }
   } catch(e) {
-    _licStatus('err', '⚠️ Lỗi kết nối — kiểm tra mạng và URL GSheets');
+    _licStatus('err', '⚠️ Lỗi kết nối — kiểm tra mạng và URL SRV');
     btn.disabled = false;
   }
 }
@@ -5565,7 +6002,7 @@ function licEnter() {
   const saved = licLoad();
   if (saved) _applyPerm(saved);
 
-  // ── Khôi phục trận đang chấm ngay lập tức (không cần chờ GSheets) ──
+  // ── Khôi phục trận đang chấm ngay lập tức (không cần chờ SRV) ──
   const _restored = restoreActiveMatch();
   if (_restored && S.currentMatch) {
     const m = S.currentMatch;
@@ -5604,7 +6041,7 @@ function licEnter() {
       if (grid) grid.innerHTML = `
         <div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--g500)">
           <div style="font-size:22px;margin-bottom:6px">⏳</div>
-          <div style="font-size:12px;font-weight:600">Đang tải dữ liệu từ GSheets...</div>
+          <div style="font-size:12px;font-weight:600">Đang tải dữ liệu từ SRV...</div>
         </div>`;
     }
     // Khôi phục scroll sau reload (sau khi UI đã render xong)
@@ -5613,13 +6050,14 @@ function licEnter() {
       setTimeout(() => { window.scrollTo({ top: _savedScrollY, behavior: 'instant' }); }, 150);
       sessionStorage.removeItem(_SCROLL_KEY);
     }
-    // Load GSheets ngầm — không block UI
+    // Load SRV ngầm — không block UI
     setTimeout(async () => {
       await loadAllFromGS();
       startAutoPoll();
+      startAssignPoll(); // v41: bắt đầu assignment poll siêu nhẹ
 
-      // ── FIX v12: Sau khi load, kiểm tra trận đang playing trên GAS ──
-      // Ưu tiên 1: nếu đang restore từ localStorage → sync score từ GAS live
+      // ── FIX v12: Sau khi load, kiểm tra trận đang playing trên Máy chủ ──
+      // Ưu tiên 1: nếu đang restore từ localStorage → sync score từ Máy chủ live
       // Ưu tiên 2: nếu không có snapshot, kiểm tra liveScores xem TT này có trận đang play
       const lic = licLoad();
       const myCode = lic?.code || '';
@@ -5628,7 +6066,7 @@ function licEnter() {
         const myKey = S.currentMatch.key;
         const lv = liveScores[myKey];
         if (lv && typeof lv.scoreA === 'number' && typeof lv.scoreB === 'number') {
-          // GAS live có dữ liệu mới hơn snapshot → ưu tiên GAS
+          // Máy chủ live có dữ liệu mới hơn snapshot → ưu tiên Máy chủ
           const gasA = lv.scoreA, gasB = lv.scoreB;
           const gasGame = parseInt(String(lv.game||'Game 1').replace(/\D/g,''))||1;
           if (gasA !== S.a || gasB !== S.b || gasGame !== S.game) {
@@ -5647,7 +6085,7 @@ function licEnter() {
         renderMatchGrid();
 
       } else if (!_restored && myCode && GS_URL) {
-        // ── Không có snapshot → tìm trận đang playing của TT này trên GAS ──
+        // ── Không có snapshot → tìm trận đang playing của TT này trên Máy chủ ──
         // Referee name được lưu ở col 10 của LiveScore
         const myLiveEntry = Object.entries(liveScores).find(([k, lv]) =>
           lv.status !== 'finished' &&
@@ -5658,13 +6096,18 @@ function licEnter() {
         );
         if (myLiveEntry) {
           const [liveKey, lv] = myLiveEntry;
-          // Tìm match trong matchList
+          // v40 FIX: parse liveKey mới "giai|nd|bang|code" (4 phần) hoặc cũ "nd|bang|code" (3 phần)
           const lkParts = liveKey.split('|');
-          const nd = lkParts[0], bang = lkParts[1], code = lkParts.slice(2).join('|');
+          let nd, bang, code;
+          if (lkParts.length >= 4) {
+            nd = lkParts[1]; bang = lkParts[2]; code = lkParts.slice(3).join('|');
+          } else {
+            nd = lkParts[0]; bang = lkParts[1]; code = lkParts.slice(2).join('|');
+          }
           const mIdx = matchList.findIndex(m => m.noidung===nd && m.bang===bang && m.code===code);
           if (mIdx >= 0) {
             const m = matchList[mIdx];
-            // Khôi phục state từ live GAS
+            // Khôi phục state từ live Máy chủ
             S.currentMatch = { ...m, origTeamA: m.teamA, origTeamB: m.teamB, origSideA: 'a',
               playersA: _parsePlayers(m.teamA), playersB: _parsePlayers(m.teamB) };
             S.playersA = S.currentMatch.playersA;
@@ -5684,7 +6127,7 @@ function licEnter() {
             }
             saveActiveMatch();
             render(); renderMatchGrid();
-            // Push live để GAS biết đang tiếp tục
+            // Push live để Máy chủ biết đang tiếp tục
             setTimeout(() => { if(GS_URL && matchStarted) pushLiveScore(); }, 500);
             toast(`⚡ Tìm thấy trận đang live: ${m.code} · ${S.a}–${S.b} · Game ${S.game}`, 4000);
           }
@@ -5698,12 +6141,12 @@ async function licCheckOnStart() {
   const saved = licLoad();
 
   if (saved && saved.code) {
-    // ── Có session: vào app NGAY, không hỏi GAS ──
+    // ── Có session: vào app NGAY, không hỏi Máy chủ ──
     _applyPerm(saved);
     _updatePermBadge();
     licEnter();
 
-    // Validate GAS ngầm sau 2s (chỉ cập nhật quyền, KHÔNG logout)
+    // Validate Máy chủ ngầm sau 2s (chỉ cập nhật quyền, KHÔNG logout)
     if (GS_URL) {
       setTimeout(async () => {
         try {
@@ -5721,6 +6164,9 @@ async function licCheckOnStart() {
                       checkedAt: Date.now() });
             _applyPerm(data);
             _updatePermBadge();
+            // FIX v5: re-render match grid sau khi quyền được cập nhật từ Máy chủ
+            // (tránh trường hợp matchList đã load nhưng _userPerm chưa có giai/assignment)
+            renderMatchGrid();
           }
           // Nếu invalid → giữ nguyên session, KHÔNG logout
         } catch(e) { /* mạng lỗi → bỏ qua */ }
@@ -5746,6 +6192,9 @@ function _showLoginScreen() {
   if (hdrInfo) hdrInfo.style.display = 'none';
 }
 initGsUrl();
+// FIX v5: áp dụng quyền từ localStorage TRƯỚC renderMatchGrid đầu tiên
+// Tránh trường hợp matchList có từ localStorage nhưng _userPerm còn rỗng → bị filter sai
+{ const _earlyLic = licLoad(); if (_earlyLic && _earlyLic.code) _applyPerm(_earlyLic); }
 if (matchList.length) syncDropdownsFromData(false);
 renderMatchGrid();
 render();
@@ -5804,7 +6253,7 @@ window.addEventListener('load', licCheckOnStart);
 
 <!-- ══════════════════════════════════════════════════════════════
      📣 POPUP GỌI VĐV / GỌI TRẬN — Referee v19
-     Gửi qua action=callPlayer (POST) → GAS ghi EventLog
+     Gửi qua action=callPlayer (POST) → Máy chủ ghi EventLog
      Admin đọc bằng action=getCallPlayer (GET) mỗi 6s
 ══════════════════════════════════════════════════════════════ -->
 <style>
@@ -5815,6 +6264,7 @@ window.addEventListener('load', licCheckOnStart);
   display:flex;flex-direction:column;box-shadow:0 28px 64px rgba(0,0,0,.32);overflow:hidden;
   animation:cpRefPop .35s cubic-bezier(.34,1.4,.64,1)}
 @keyframes cpRefPop{from{opacity:0;transform:scale(.88) translateY(20px)}to{opacity:1;transform:none}}
+@keyframes assignBannerIn{from{opacity:0;transform:translateX(-50%) translateY(-12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .cp-ref-hdr{background:linear-gradient(135deg,#a3e635,#84cc16);padding:16px 18px 14px;flex-shrink:0}
 .cp-ref-hdr-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .cp-ref-hdr-icon{width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,.18);
@@ -5967,7 +6417,7 @@ window.addEventListener('load', licCheckOnStart);
 <script>
 // ══════════════════════════════════════════════════════════════
 //  📣 CALL PLAYER — Referee v19
-//  POST action=callPlayer → GAS ghi EventLog
+//  POST action=callPlayer → Máy chủ ghi EventLog
 //  Admin poll action=getCallPlayer → nhận và hiển thị popup
 // ══════════════════════════════════════════════════════════════
 
@@ -6020,10 +6470,10 @@ function _cpStatus(type, msg) {
   }
 }
 
-// Core: POST action=callPlayer đến GAS
+// Core: POST action=callPlayer đến Máy chủ
 async function _cpPost(callType, players) {
   if (!GS_URL) {
-    _cpStatus('err', 'Chưa kết nối GSheets!');
+    _cpStatus('err', 'Chưa kết nối SRV!');
     return false;
   }
   var m     = S.currentMatch;
@@ -6061,7 +6511,7 @@ async function _cpPost(callType, players) {
       setTimeout(function(){ setDot && setDot(''); }, 2000);
       return true;
     } else {
-      throw new Error(json.error || 'GAS returned error');
+      throw new Error(json.error || 'Máy chủ returned error');
     }
   } catch(e) {
     setDot && setDot('err');
