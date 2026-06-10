@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TV Display v3 — Pickleball DA NANG (Login)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#22d374;--green2:#16a34a;--green-dim:rgba(34,211,116,.12);
+  --amber:#fbbf24;--amber2:#d97706;--amber-dim:rgba(251,191,36,.12);
+  --red:#f87171;--red-dim:rgba(248,113,113,.12);
+  --blue:#38bdf8;--blue-dim:rgba(56,189,248,.12);
+  --purple:#a78bfa;--purple-dim:rgba(167,139,250,.12);
+  --bg:#060d18;--bg2:#0b1628;--bg3:#101e35;--bg4:#162540;
+  --bdr:rgba(255,255,255,.07);--bdr2:rgba(255,255,255,.12);
+  --tx:#f1f5f9;--tx2:#94a3b8;--tx3:#64748b;
+  --r:8px;--r2:12px;
+  --font-display:'Barlow Condensed',sans-serif;
+  --font-body:'Barlow',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:var(--font-body)}
+
+/* ── TICKER ── */
+.ticker-bar{height:32px;background:#0a1520;border-bottom:1px solid var(--bdr);display:flex;align-items:center;overflow:hidden;flex-shrink:0;position:relative}
+.ticker-label{background:var(--amber);color:#000;font-family:var(--font-display);font-weight:800;font-size:13px;letter-spacing:1px;padding:0 14px;height:100%;display:flex;align-items:center;white-space:nowrap;flex-shrink:0;z-index:2}
+.ticker-track{display:flex;align-items:center;height:100%;overflow:hidden;flex:1}
+.ticker-inner{display:flex;gap:40px;animation:tickerScroll 40s linear infinite;white-space:nowrap}
+@keyframes tickerScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-item{font-size:13px;font-weight:600;color:var(--tx2);display:flex;align-items:center;gap:10px;white-space:nowrap}
+.ticker-item .dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
+.ticker-item.live-item{color:var(--amber)}
+.ticker-item.live-item .dot{background:var(--amber);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── HEADER ── */
+.hdr{height:64px;background:var(--bg2);border-bottom:1px solid var(--bdr);display:flex;align-items:center;padding:0 24px;gap:20px;flex-shrink:0}
+.hdr-logo{display:flex;align-items:center;gap:10px;flex-shrink:0;text-decoration:none}
+.hdr-logo img{height:44px;width:44px;object-fit:cover;border-radius:8px;flex-shrink:0}
+.hdr-logo-text{}
+.hdr-logo-text .ht1{font-family:var(--font-display);font-size:16px;font-weight:900;color:var(--green);letter-spacing:.5px;line-height:1.1}
+.hdr-logo-text .ht2{font-size:11px;color:var(--tx3);font-weight:600;letter-spacing:1px;line-height:1}
+.hdr-sub{font-size:12px;color:var(--tx3);font-weight:500;letter-spacing:.5px}
+.hdr-title{flex:1;text-align:center}
+.hdr-title h1{font-family:var(--font-display);font-size:26px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--tx)}
+.hdr-title p{font-size:11px;color:var(--tx3);letter-spacing:1px;margin-top:1px}
+.hdr-right{display:flex;align-items:center;gap:16px;flex-shrink:0}
+.live-pill{display:flex;align-items:center;gap:7px;background:var(--red-dim);border:1px solid rgba(248,113,113,.3);border-radius:20px;padding:5px 14px}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1s infinite}
+.live-text{font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--red);letter-spacing:1px}
+.clock{font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--amber);letter-spacing:1px;min-width:70px;text-align:right}
+
+/* ── STATS BAR ── */
+.stats-bar{height:52px;background:var(--bg3);border-bottom:1px solid var(--bdr);display:flex;align-items:stretch;flex-shrink:0}
+.stat-item{flex:1;display:flex;align-items:center;justify-content:center;gap:12px;border-right:1px solid var(--bdr);padding:0 16px}
+.stat-item:last-child{border-right:none}
+.stat-icon{font-size:16px;opacity:.7}
+.stat-body{}
+.stat-num{font-family:var(--font-display);font-size:22px;font-weight:900;color:var(--tx);line-height:1}
+.stat-label{font-size:10px;color:var(--tx3);font-weight:600;letter-spacing:.8px;text-transform:uppercase;line-height:1}
+.stat-item.live-stat .stat-num{color:var(--amber)}
+.stat-item.done-stat .stat-num{color:var(--green)}
+
+/* ── MAIN ── */
+.main{display:flex;flex:1;min-height:0;overflow:hidden}
+
+/* ── LEFT: bangs/BXH ── */
+.panel-left{width:72%;display:flex;flex-direction:column;border-right:1px solid var(--bdr);overflow:hidden;min-height:0}
+.panel-tabs{display:flex;border-bottom:1px solid var(--bdr);background:var(--bg2);flex-shrink:0;overflow-x:auto}
+.panel-tab{padding:10px 18px;font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:.5px;color:var(--tx3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s}
+.panel-tab.active{color:var(--green);border-bottom-color:var(--green);background:var(--green-dim)}
+#panel-bodies{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.panel-body{flex:1;min-height:0;display:none;flex-direction:column}
+.panel-body.active{display:flex}
+
+/* ── NOIDUNG SECTION ── */
+.nd-section{margin-bottom:16px}
+.nd-title{font-family:var(--font-display);font-size:13px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--amber);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.nd-title::after{content:'';flex:1;height:1px;background:var(--bdr2)}
+
+/* ── BXH TABLE ── */
+.bxh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.bxh-grid.cols-3{grid-template-columns:repeat(3,1fr);gap:7px}
+.bxh-grid.cols-4{grid-template-columns:repeat(4,1fr);gap:5px}
+/* Compact: ≥7 bảng */
+.bxh-grid.compact .bxh-card-title{font-size:12px}
+.bxh-grid.compact .bxh-card-hdr{padding:5px 9px}
+.bxh-grid.compact .bxh-table th{padding:3px 6px;font-size:8px}
+.bxh-grid.compact .bxh-table td{padding:4px 6px}
+.bxh-grid.compact .bxh-table{font-size:11px}
+.bxh-grid.compact .rank-badge{width:17px;height:17px;font-size:10px}
+.bxh-grid.compact .team-name{font-size:11px}
+.bxh-grid.compact .pts-badge{font-size:14px}
+.bxh-grid.compact .hs-val{font-size:11px}
+/* Mini: ≥10 bảng */
+.bxh-grid.mini .bxh-card-title{font-size:11px}
+.bxh-grid.mini .bxh-card-hdr{padding:4px 8px}
+.bxh-grid.mini .bxh-card-badge{font-size:8px;padding:1px 5px}
+.bxh-grid.mini .bxh-table th{padding:2px 5px;font-size:7px}
+.bxh-grid.mini .bxh-table td{padding:3px 5px}
+.bxh-grid.mini .bxh-table{font-size:10px}
+.bxh-grid.mini .rank-badge{width:15px;height:15px;font-size:9px}
+.bxh-grid.mini .team-name{font-size:10px}
+.bxh-grid.mini .pts-badge{font-size:12px;min-width:18px}
+.bxh-grid.mini .hs-val{font-size:10px}
+.bxh-card{background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--r2);overflow:hidden}
+.bxh-card-hdr{background:var(--bg4);padding:7px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bdr)}
+.bxh-card-title{font-family:var(--font-display);font-size:14px;font-weight:800;letter-spacing:.5px;color:var(--tx)}
+.bxh-card-badge{font-size:10px;font-weight:700;color:var(--tx3);background:var(--bg2);border:1px solid var(--bdr);border-radius:4px;padding:2px 7px}
+.bxh-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.bxh-table th{padding:5px 8px;text-align:left;font-size:9px;font-weight:700;color:var(--tx3);letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--bdr)}
+.bxh-table th:not(:first-child),.bxh-table td:not(:first-child){padding-left:1px;padding-right:1px}
+.bxh-table td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04)}
+.bxh-table tr:last-child td{border-bottom:none}
+.bxh-table tr:hover td{background:rgba(255,255,255,.03)}
+.rank-badge{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:11px;font-weight:800;flex-shrink:0}
+.rank-1{background:var(--amber);color:#000}
+.rank-2{background:#94a3b8;color:#000}
+.rank-3{background:#cd7f32;color:#fff}
+.rank-x{background:var(--bg4);color:var(--tx3)}
+.team-name{font-weight:600;font-size:12px;color:var(--tx);line-height:1.3;width:100%;min-width:0}
+.team-name .pn{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-name .pn:not(:first-child){color:var(--tx2);font-weight:500}
+.pts-badge{font-family:var(--font-display);font-size:16px;font-weight:900;color:var(--green);text-align:center}
+.bxh-table td,.bxh-table th{overflow:hidden}
+.hs-val{font-family:var(--font-display);font-size:13px;font-weight:700;text-align:right}
+.hs-pos{color:var(--green)}
+.hs-neg{color:var(--red)}
+.hs-zer{color:var(--tx3)}
+
+/* ── RIGHT PANEL ── */
+.panel-right{width:28%;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+
+/* ── LIVE SECTION ── */
+.live-section{flex-shrink:0;border-bottom:1px solid var(--bdr)}
+.section-hdr{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--bg2);border-bottom:1px solid var(--bdr)}
+.section-hdr-title{font-family:var(--font-display);font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--tx2)}
+.section-hdr-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.live-list{padding:8px;display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto}
+
+/* ── LIVE MATCH CARD ── */
+.live-card{background:var(--bg3);border:1px solid rgba(248,113,113,.25);border-radius:var(--r);padding:8px 10px;position:relative;overflow:hidden}
+.live-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red)}
+.live-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.live-court{font-size:10px;font-weight:700;color:var(--red);letter-spacing:.5px}
+.live-game{font-size:10px;color:var(--tx3);font-weight:600}
+.live-teams{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center}
+.live-team{display:flex;flex-direction:column;gap:2px}
+.live-team.right{text-align:right;align-items:flex-end}
+.live-team-name{font-size:11px;font-weight:700;color:var(--tx);line-height:1.25;max-width:100px}
+.live-team-name .ln{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live-team-name.winning{color:var(--green)}
+.live-team-name.losing{color:var(--tx2)}
+.live-score-wrap{display:flex;align-items:center;justify-content:center;gap:4px}
+.live-score{font-family:var(--font-display);font-size:26px;font-weight:900;line-height:1}
+.live-score.winning{color:var(--green)}
+.live-score.losing{color:var(--tx2)}
+.live-dash{font-size:14px;color:var(--tx3)}
+.live-nd{font-size:9px;color:var(--tx3);margin-top:4px;text-align:center;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+
+/* ── UPCOMING ── */
+.upcoming-section{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.upcoming-list{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:5px}
+.upcoming-card{background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--r);padding:7px 10px;display:grid;grid-template-columns:36px 1fr auto;gap:7px;align-items:center}
+.upcoming-card:hover{border-color:var(--bdr2)}
+.upcoming-time{font-family:var(--font-display);font-size:13px;font-weight:800;color:var(--amber);white-space:nowrap}
+.upcoming-teams{min-width:0}
+.upcoming-a{font-size:11px;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.upcoming-b{font-size:10px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.upcoming-vs{display:none}
+.upcoming-meta{display:flex;flex-direction:column;align-items:flex-end;gap:1px;flex-shrink:0}
+.upcoming-court{font-size:10px;font-weight:700;color:var(--blue);white-space:nowrap}
+.upcoming-bang{font-size:9px;color:var(--tx3);white-space:nowrap}
+.upcoming-nd{display:none}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+
+/* ── EMPTY ── */
+.empty-state{padding:20px;text-align:center;color:var(--tx3);font-size:12px}
+
+/* ── LOADING ── */
+.loading{display:flex;align-items:center;justify-content:center;height:60px;gap:8px;color:var(--tx3);font-size:12px}
+.spin{width:16px;height:16px;border:2px solid var(--bdr2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── LOGIN SCREEN ── */
+.login-overlay{position:fixed;inset:0;background:radial-gradient(ellipse at top,rgba(34,211,116,.06),transparent 60%),var(--bg);z-index:100;display:flex;align-items:center;justify-content:center}
+.login-box{background:var(--bg2);border:1px solid var(--bdr2);border-radius:20px;padding:40px;width:min(440px,92vw);display:flex;flex-direction:column;gap:18px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.login-logo{display:flex;align-items:center;gap:14px;margin-bottom:4px}
+.login-logo .logo-img{width:64px;height:64px;border-radius:14px;object-fit:cover;flex-shrink:0;border:2px solid rgba(34,211,116,.2)}
+.login-logo-text{}
+.login-logo h2{font-family:var(--font-display);font-size:22px;font-weight:900;letter-spacing:1px;color:var(--green);line-height:1.1}
+.login-logo h3{font-size:13px;font-weight:800;color:var(--tx);letter-spacing:2px;text-transform:uppercase;margin-top:1px}
+.login-logo p{font-size:10px;color:var(--tx3);margin-top:3px}
+.login-label{font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.login-input{width:100%;background:var(--bg3);border:1.5px solid var(--bdr2);border-radius:10px;padding:14px 16px;font-size:18px;color:var(--tx);outline:none;font-family:var(--font-body);text-align:center;letter-spacing:1px}
+.login-input:focus{border-color:var(--green)}
+.login-btn{background:var(--green2);color:#fff;border:none;border-radius:10px;padding:14px 24px;font-family:var(--font-display);font-size:18px;font-weight:800;letter-spacing:1px;cursor:pointer;transition:background .15s}
+.login-btn:hover{background:var(--green)}
+.login-btn:disabled{opacity:.5;cursor:not-allowed}
+.login-err{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);display:none;text-align:center}
+.login-hint{font-size:11px;color:var(--tx3);line-height:1.5;text-align:center}
+
+/* ── LOGOUT BTN (in header) ── */
+.logout-btn{background:var(--bg3);border:1px solid var(--bdr2);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;color:var(--tx3);cursor:pointer;letter-spacing:.5px;transition:all .15s}
+.logout-btn:hover{color:var(--red);border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.06)}
+
+/* ── LAYOUT WRAPPER ── */
+.screen{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* ── BRACKET: CSS chuẩn (port từ player, có connector + màu vòng) ── */
+.bk-bracket{display:flex;flex-direction:row;align-items:stretch;width:max-content}
+.bk-round{display:flex;flex-direction:column;gap:0;flex-shrink:0;min-width:180px}
+.bk-round-label{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  padding:5px 8px;text-align:center;margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,.08)}
+.bk-round-label.lbl-sf{color:#34d399}
+.bk-round-label.lbl-qf{color:#fb923c}
+.bk-round-label.lbl-r16{color:#60a5fa}
+.bk-round-label.lbl-final{color:#f59e0b}
+.bk-round-label.lbl-3rd{color:#c084fc}
+.bk-round-label.lbl-group{color:#818cf8}
+.bk-round-slots{display:flex;flex-direction:column;flex:1;justify-content:space-around;gap:0}
+.bk-slot{display:flex;flex-direction:column;flex:1;justify-content:center;padding:4px 0}
+.bk-card{margin:0 4px;background:var(--bg3);border:1px solid var(--bdr2);border-left-width:3px;
+  border-radius:7px;overflow:hidden}
+.bk-card.c-done{border-left-color:#22c55e}
+.bk-card.c-live{border-left-color:#f97316;box-shadow:0 0 8px rgba(249,115,22,.25)}
+.bk-card.c-final{border-left-color:#f59e0b}
+.bk-card.c-sf{border-left-color:#34d399}
+.bk-card.c-qf{border-left-color:#fb923c}
+.bk-card.c-3rd{border-left-color:#a78bfa}
+.bk-card.c-r16{border-left-color:#60a5fa}
+.bk-card-team{display:flex;align-items:center;justify-content:space-between;
+  padding:5px 8px;font-size:11px;font-weight:600;color:var(--tx2);gap:6px}
+.bk-card-team:first-child{border-bottom:1px solid rgba(255,255,255,.05)}
+.bk-card-team.winner{color:var(--green)}
+.bk-card-team.loser{color:var(--tx3)}
+.bk-card-team .tn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.bk-card-team .ts{font-family:var(--font-display);font-weight:900;font-size:14px;flex-shrink:0;min-width:16px;text-align:right}
+.bk-card-team .tbd{color:var(--tx4);font-style:italic;font-size:10px}
+/* Connector lines */
+.bk-conn-col{display:flex;flex-direction:column;flex-shrink:0;width:18px}
+.bk-conn-pair{display:flex;flex-direction:column;flex:1}
+.bk-conn-arm{flex:1;position:relative;overflow:visible}
+.bk-conn-arm.arm-top::before{content:'';position:absolute;top:50%;left:0;right:0;height:1.5px;background:var(--conn-clr,var(--bdr2))}
+.bk-conn-arm.arm-top::after{content:'';position:absolute;top:50%;right:0;width:1.5px;height:calc(50% + .75px);background:var(--conn-clr,var(--bdr2))}
+.bk-conn-arm.arm-bot::before{content:'';position:absolute;top:0;left:0;right:0;height:1.5px;background:var(--conn-clr,var(--bdr2))}
+.bk-conn-arm.arm-bot::after{content:'';position:absolute;bottom:50%;right:0;width:1.5px;height:calc(50% + .75px);background:var(--conn-clr,var(--bdr2))}
+.bk-conn-col.cc-qf{--conn-clr:rgba(251,146,60,.7)}
+.bk-conn-col.cc-sf{--conn-clr:rgba(52,211,153,.7)}
+.bk-conn-col.cc-final{--conn-clr:rgba(245,158,11,.8)}
+.bk-conn-col.cc-r16{--conn-clr:rgba(96,165,250,.6)}
+
+/* ── SUB-TAB (Vòng bảng / Cây thi đấu) ── */
+.sub-tabs{display:flex;gap:4px;padding:8px 12px 0;background:var(--bg3);border-bottom:1px solid var(--bdr);flex-shrink:0}
+.sub-tab{padding:6px 16px;font-family:var(--font-display);font-size:12px;font-weight:700;letter-spacing:.5px;color:var(--tx3);cursor:pointer;border-radius:6px 6px 0 0;border:1px solid transparent;border-bottom:none;position:relative;display:flex;align-items:center;gap:6px;transition:all .15s}
+.sub-tab:hover{color:var(--tx);background:var(--bg4)}
+.sub-tab.active{color:var(--tx);background:var(--bg2);border-color:var(--bdr);border-bottom-color:var(--bg2)}
+.sub-tab.bracket-tab.active{color:var(--amber);border-top-color:var(--amber)}
+.sub-tab .new-badge{background:var(--amber);color:#000;font-size:8px;font-weight:900;padding:1px 5px;border-radius:4px;letter-spacing:.5px}
+.sub-body{flex:1;min-height:0;overflow-y:auto;scroll-behavior:smooth;display:none;padding:12px 14px}
+.sub-body.active{display:block}
+.bracket-wrap{padding:8px 0 12px;transform-origin:top left;will-change:transform}
+.bracket-scaler{overflow:hidden;width:100%;flex:1;min-height:0}
+.bracket-empty{padding:24px;text-align:center;color:var(--tx3);font-size:12px}
+
+/* ── DONE STAGE: no more groups ── */
+.done-section{padding:16px;text-align:center}
+.done-badge{display:inline-flex;align-items:center;gap:8px;background:var(--green-dim);border:1px solid rgba(34,211,116,.25);border-radius:20px;padding:8px 20px;font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--green);letter-spacing:.5px;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-overlay" id="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">
+      <img class="logo-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABQCAIAAABga0e4AAABX2lDQ1BJQ0MgUHJvZmlsZQAAeJxjYGCSyKrIUWBxYGDIzSspCnJ3UoiIjFJgf8zAw8DIAAaJycUFjgEBPgzYAVDVt2sQtZd1QWYx7fzJ6FBslf/hP/OXD9+5tHHogwHulNTiZKAxHEC2S3JBUQmQDbJLpbykAMQuALJFkjMSU4DsFiBbJzkzGSjGuAHI5ikCOhbI3gNSkw5hXwCxkyDsJyB2UUiQM5D9A8hWSEdiJyGxc3NKkxH+YeBJzQsNBtJqQCzDEMTgzuDEEM/gwmDGYAqkg8Ei8UAylSEHzmfAYQYb2AxnIDRgYACFLUQJIsyK04yNILp4gLHAevf//89aDAzskxgY/k74///34v///y5mYGC+zcBwoBHid6BSXgZGhFn58xkYLL4C1UxAiCVNY2DY3s7AIHEbIaayiIGBv5WBYdu1gsSiRLAQMxAzpaUxMHxazsDAG8nAIAwMP65oAKt6ZYB1TfWOAAAlP0lEQVR42u18Z5hcx3FgVfcLE97M7MwGbA7AYpEjkRhAEgxgACmKBKN0kiUqy5bEO1nS6fxJshVsfWdbliybOkln8062KFIySTGTEDIIgiQysMhY7C42YePkmRe77sfM7r7ZnUGgSN3d9+l98+HrbXS/rq5XVV1VXVXYsvqajGEAIhAAACAAABIBACFC7iECxFw/AUy0J8cQQYl+LD4GAIAQps8lQMj3AwIVfz8CQdF1kabDXxq2if5LjxHC7/NJAyPDum7ABF4msEMArNhL3f0TbfcjCKDYXBfSp641gSD3XCCgiXVzyCs21/3yibWmwFAKTiw2vgCGicFC1TRJliRDct4nZOH4LsdJlvIUcRnIcs8thSwEGifTwvHvA7JkSZKIiIQAxqZsAGkcSznyznGpqz/PYgTFNjA5xs1uONF2j6fcf+QXnvinYO6EBJg+t5BVC9jwknDSuOxxjS+A34UQEkLKdY9LLNe70AU6ugZgweDpE6f359pYYjxOomcStFw/ucYXG1bQj665ecl7+XBeanwOrxIgAuI07iCakBdIebCnyJGC9hS2GheW6GINLM6GBAQ0IdRdLI8FbEiTMBSQ1gQbFo53y8rScLrFQzFhX4BVhgz++Fz2wwowLQhczHapxzXGPRffBRgl5lIB/V3Zg9NfcrnzJqlK0KT0ImLFIANEFyZKLIYIiPjuAHLPwSkbxItv/XJ3jBf/KtP/QrjUBwPJRWRYILEmZVaJZd1HsvugpSv79ORuU2m48co+hPtMKRDcpT4BFYiv/H+594V/lFlX8kh5TQQn8I9TsE5TiLr413bbSlNpGF16VnECQcoTAAIyEoRAwBiRGF8Zi8sszB2lk1r++IE2BZBLwlmShMl10JI0ftpSMS6apr9cYRun8UQRLs19JyREEDZQkoNfIIKT4OAnxonyqguW0rPoPYW5RJtylIUARfSsAn3q3epZcBl6FgIhA2Ex0pEHnEW3pZauS3IOh3YGju72mWMcPMQUIcQl9Cx8v/UsROn/ogjICUzSkQzmrzGXfiA7/2rTMmjvpqBj0crbMitvTZ/cq+zfGkj2SuAhUCZ4rajx8/4DrLXNTelTXTQAhORyUxS17N3GrXuuW4Mv8gURAXKbJZ2BA+Uz7atuSbUuyoxeUA9s8Z85pIKFAAAcWhbpV92Srmowz59S97wUGL0go0TkEAgBnF/MkL40pVweZU3sSwi/X5OAIG+KYmn7bir3TONtLKHR0CSD5PfBCASINAMODQvNFbemqlvs3pPyc4+XD5xWwUTwEPD8op3veDsPeitn6mvuTAfKabQXgAmP6ikPBfsuDAJjgJMur4K1LiGD3OoCXc6+coLTRVl/ABcNElkMOMxbkb7qpnQgIk4f8O7b7I/3SsARmAg3WTMarNrmrCTxgW7PUA8fPCeDxYAAFEKJgGhuc5Pm82Wy2dPnz1uWjZJELl/A++ei8WvaH05mIRIZWNlk3vWpKGPUvls7tNNj9DkQ5ugDRbXXPZRaeQ30npKq5+i6sLyB4Np7sr1nfFt/FUrFGVNAGE5zQx0i23fsWGNN9bI5s09398YSCZQlch9C79vDlfIK07KnUFYe44hTXDZQ2D91zMTcQvfxhCVAWX7nZ8Ziw+zX35/RdwgchiuuWVxRUTEW6//gpzOf/k9KBDUzwa9dqpGQz56zFAWa56ZDldh/VtHjoqIqXF0eOdHV7QiKJ5IZ05xdX88YJpIpQETGJpRvLAknTTWrxmXrxBgsui8iRZZZ7lhFACRCInS9CSd+ONlw9eNke8pcVogyAMaAsqx2Yba6wdj6VASYs3Ld4sc+++gHblvf0dm76Hp93w41MYLf+UvnLz+OZzrtRr/24neqn/tJRSqmHH/TO/86XfN7m6pmnOvrt0wTOUPOEulM1rQqyyPzZrVIjJHjIEPEAmNpKsyE6JLPE/sq+MzuueP7yvVwpaLCtJ2cWQxuw5iKUVZBv9t+dM0Vk2NyFwt5+0Dg/V8abd8T6NzN5ixp+cgDD4SCoZde3XEh0/7Bj9qrlyqLFijl5dastcbyZUpFyKmcZ/kakw2tGS5RoMIOKDWDPXhhqB8VBQBIiPkzW9K6frLjXMCvzaqrSWYyhm7kTkmgEjDjNG9Ewak3rT2xLyJZVf8QtiFjIOLshg9FHQffej4ghfm6a67ljD/36iu7t+6eOU9Sgd+82sccCYiHFTXs9ThCkRhzDMkyKFxjJkaYUjYc8PqbGurItsk0G2uqEaG7fwAkqbOnp6NvYH5zc0W4DBwH8f0SXRK4Hc4uRX2yP2+3ucyXXJsm2wVzCzQyYAycKFt0e3LxNfq/fWeG0LNr1183p7X1dEfHW3sPoE8NBNP/8C1/9d+Zi+c7X/2CBIPYuDXZUIXf+y9eEHLLz1LpGO16JrzoxvjxzlOL583yqp6ReCISCJzoPk8EyBkxphuG6dimbRduZyrM0z0OBf3Tx5NLeSTiSqTCtOxJoUZF3DsT/QjTJX6RMXlrjxEQigRbdFvm1keiz/y4cui4mLmoeeOGDZZtP/nc8/FoDEhpWZS98cGRlibeUultW2LNvzW9aqni8UhOdaL12tSMej026qlqztTMmHHuiLenuyNYFm6qqe4bGYmNjjFVAceROJ8/q6V/eGQsFmMKJ0FY2s1zZf04fkYRKarClYoK03GA4aTYmkADu+x2zhPIkHEkB0EgSkg6A8IbP5JYc2fmmR9X9O7HqpmRD923MVIWfmHT744dbuc+D+lU0WA1zXVG0hmS7Pig6pOgbIZ4pzvW1YVkg0cTwwMSMscjqtcu+HA8Ezt79FiaqLGmmnEeTySAYHZTg24YPRcGwVbIAFByumpJOPO/HNUwnLReprddCFFUlSvl4wK+qDP08tqIgAzIQsqgNyL8IUdPY12bed8Xo5FK8ZsfRAbbncqW8o/c/2BDXe22N3Zv3rqdeT0kCAQSZ7EhZbBb8jUm//rPyrY95fUvHcro5pN/UXfqiGf2VXb7Gx4z5T18IHr8wIUH7r0zEA63Hzw8kkq31Nf5vH6/16P5vKfPnweLz1+bqWyyh88oYAJIiJKLV4qYO67DspSAd6sOiuJClts7OqmrFL4UCvSmHJ4QgSwEA8pqrNV3p0IRQnBueji18tbk8T3eF/5HWXbYnLOs9eOPPFxXW7V9z57fvrQJQCEBKBFXKTnIWxabs5frwYBRO0tUtFkzF6YVBYXK2pZnJcnyl5llZWWZzjk9A93v7D9wzaoVK1auaD9+vOd8T01NTTignerusWwbBKtpsdY9EG9bmbaRJca4HWdgI0hUElmlEDRFs0fM6VluZBVSClwKWTk8IYCBvgrrjo+mNn4623FCGuqR1mzIDJ+XX3ki0rHX4y9Tb7jx6lvWrotGs5u3vb1p01ZPCMqqhRa2OAckFMSGu/msxRZXbT2D/jLHsXl0WLIMWwiqqHMUVd78S4+mBlsaaqOp9L7de0Lh8D0b7hgdi1qmMRyPx+MJYEzysIEj4vDbmtfPFq9NL1+XblpsoSRGB+QJ96VbxkxFFk4q0shw6piplFWgZ1FxPatA5yIEAItVzzYf+6vkI3f4AMQv/qcc61UPbvd17fCZWQ6MPL6g41j7Tuw4O/yG7T89awn4Q5RNkGNzj0+QcHQdbB1O7FO1MpaK8QO/C5ZV67phH91eEakBS1deeyKUiWNlZdC2nbqqSvB4ju7b3zsy+vC99wDCgfbjIGjNquUP3X1X0k4P9Md63oZDu/2957wev732nuTJfV49yZHDFbAhFdGzfl+ZxRDIYHUL9Psfpoji96ty86IM99mVdUbjikzrisz86/S21UMz5vfVzkpzzsf6fF3HJSuL1Y3k1TA2iKm416t6Pnz/PR3dPaf3SoYBNS2mKgUCcpWNma6T8qHNmmM5LS21Hlk93nEumkrPrK3xhUOpdGZwcFC3rIHhEQJYOHf2wvlzVyxd1tbapAR5Opsd6bN7DnhnrzbGLshjPRIqxa69r1hmRSpM2y7in0GX0YOFpg/mjxFywBdx9CTfs5tGHT1jG8EQNrU5NbPsYKUpq050SDlzyHdoe+DoLn9iRKpqtOetzAYqqOOY6D0kdF1WJfz6F/70B9/8hldVdu/dPXaBXzirnDsmZQZqWKqh77zuULqyqrw6HDnR1eUA2I5zYXikpry8KhI5fq6ru6MTFAURz549137yFAnR0tS4cO78FcsWDY4NjPQPz15lmwb2n1C4SjnnG0LhL7cXl/qArr27XRSKokh54QNY6A7OcVneEwwCCrVVnPCsZ2NS89XZijra9rzn2VEyLHIsZhtINiLyYFjUNYmb7jZnNFmZrHPmGNu3RYt2woIlCz70uWVP/vaFWN/A3sNHtu5+862Dh1KjMSlSJoRDJLqGOmsqy5fNbxoYHgsFAmf7+k3LRs5BCC5JjPGOvgFd13lAE0IgIqrqwIWhZ5574ZUtWz/64APz2lorKyqOm6eTca6VOWCj4zAQRTXv8b1MCCHM/+V2T+UsNskVWYFT/VkIACB7iUuiuPMMAQjPHpYsk269z6ivZ+iAZSEieHyWopg28ZFh5+QR5fVfKXq0Jp2CTDaGPLlmxcLHHv3kb15+DXzeN/btf/G118vKyzEYsG0nT9ZcHhgcTSSzbU2NjhDxZDIfqULU2lCfzupj0Shw7hgmCIdy/ldZ9mp+lTHLtgGY3+cHZJk4VdRbatjhmiPExRxIjoOWzvK2LbhM7QmUIF7M+YccycD1jyZal+jZFGMl7EjGxbE3/e27FX+IGlqcQBkDolSChgbZYK+UGWFgc8gmPvWnj2aM9C9/+RTTAooiexRPIpUSJMBxUJLItvM28KQcQHIcRGxtqA/4vCe6urOpdEN9XUjTjnWcAwRZVkIBf6SsrCISLo9EysuCoWBQ0/wA6PV49h85/OyTryy83bn1Q4nYqMx4yQAAIcDjd/rOKC88HkaFSBRzFgrh17RSPnhAIuBIadz41bELXXL7Fh/XSt4SKB6RTbPEBQmsnG6CgAASgAwoETIgQQw5AQjhACAIAUKAJE3cPhS9g8h32nZtVVVtVcVILFamaSfP9+q6AQxVRfZ5fYoiccaIyBFCCOE4Tu5tpmWnU1nZS/6AKB0VAIjgpLFtTbptufnL71aiRwC5Iogu5oMvvDxEyseKJWNSvF+CAIFwLcIwNzfPsxJKvpzvZPxOFBEBHYdAIEPmOA4gci5RbjeShIjCcQCAM5ZjEsZYDkFCiBzTMcaYqvaPjKSy2daGup6hIdMwJFlyhDAt2zBiQARCjJ/xCER5okBEDpbOYllp0i/AxmligicZQIolRnPiKb+X6bFgOR+8lJP+NPWSdvxiFBEAuESoECpEYtxDbBqgm4AIqspkmYQgQ7ezNkgSeDwgCBDBtMAwwO8n03QsG/w+sCwnnQbGwOslx4FsFnw+sG3HNMHnQ8ZEJgOmCZIEPl9uIZHNCtsGxIRlHdB1yGSASAgCVQHHASGAAFQFLCu/f1UF3ciFXpLPC+SAnsr7iWQZdCOv8nh9OOE+UkCSJ3ysWDzOAy//3pAm8Y6IZFr19Q0zG+oN0zp+5kwyGkVFaWtrq66qGh4ZPXH2LHJOtl1VVTV/1qw39u+vbWqqrSh/68DBGTNmtLU064Z5oL3dHwwsv3r1O4eOaJo2u6nxrUOHnXR6/sKFi+bOOdfTc+DIUYFItj1n7pwZ5RUE0Nnb29vdvWz5cr/PxyV+rrs7HCoLBTREdu58d3VlpdfjIYKzXV2NdbWqohqWue/wEX8gsHTVSgDUDb1/cLCloREZ6rqxv71djIdGEsHlXkJqbXOhoRkaWwp+DS3Y0IJNLVA1876/jSz7kxqomIUtM6FppjRzNpSVf/nb3zaz2dHh4RMnTi675TaoqNq8YwdZ1u4398hNM9nM2RCpfPCznyeim+5/4Ivf+lZ3RwdooW/87d85pjE6NNS8+urld95FRB/7wpfu+cSnYiMjStPMr333rzOp5PnOznQstuGR/wRVNVBV88RTT2dTqYG+vt6enjUb7n5l85ZENBobHfmzP//Klp27EtGxkcHBP/vzrx07cWJ0ePh8Z+cjn/rMua6uwYH+TCLx+L/+600PPpxJJocvXHhz95uf+8pXU4nE4MDAnt27leZWaGzBppmsZSZUzp6/seLDPw5CdSs2tUBDCzS0TEVIfZN/7gKW1+4p528eb2OhLlLMVOjp67tl44OCxDe/9IVAeXl9dc3f/fPjFeXh+upqYZrAmO04JJwHN2wQtpNIp0GWVy9d8ounnj7f17di4UJd1y1Dv/f22/yqp29wcMXChd987Ivf/+GPGhctvva++87396Msg+MoirJ1587WVWsY5x+85WYhnF89+1zDgkX/9tLLVRUVf//4T2pa217csSMcCn35m99cuPrqw6fPlAUCD3zi05//i288dPddTdUzxmKx9Q89cvu998XSmVQqefWGu27/yMccoClXjBMby0s/KvJjeWWcITFGDPPtfMA1QgkXLSJyZAcP7P/351+c1diwavFiRZJ+9uRTyNiC1llgmgAgS9LI8MjCOW1L57TFkylPuGzerFlPPv/isY5zKxcvQsRoNNZYW7P2quVj0diKJYsHh4aOnDz9wjP/8eef/zyTJCACxkzDbG5q+sLnP8cZO3X2rG6Y16xe/fxTT8+f3ToaHVt7zbWP/+OPmurrx2KxT3/sY//6s5/mrhQf2rjxzltvOdtxbiwaA8Qffu873/rWN3XdYIz//Ic//MaX/7OTyRRXhSb2Po4K9+9d+uCJyHEcEI6iKIZhzG1p9vt9X/7Tzwa1wLzWWSAcAJBlubunZ9/Bg3evXz8Wi85qbPJ5vI8+8vDCOXMaa+vKNG1kdPR323d84LZbDdO0bVviPJFK7d9/4O5165pra8iycuSpyPJnHn7o6LFjv3j6N6FQKDo2+pvf/Hpg4AJjrEzzp+Mx29AlSers7Hru2WdMUzdM86oF8+668Ya/+sEPe4aHfR7P2+/s/d1rrzIGjLFdu3b9bvNWlOV3ES1RIqaULo0sYHjnvfc++sD97xw42FTfkM1mZcuOxeOL580DxoGAiFRVfe71zaqq2o4zv20250zPpKOjI82NDeWhkKKqL2/brptmMBB4e/8Bv8938w3X//0T/2s0Fs/71xyh+X179u776l//zZzZs/2RCEM829X90tYdacspCwSfeuHFxx577OyFCwGfb/f+Azvf2guyrPl8/+1v/vu+o0eXLV0qAIjESzt3Hj15WvV4Lct8Yfv29u5uVJTLQpY7phRKxJReCsNoZHW/R/3p97578vix7//z4yuWLNy0ecsnPvmJ517ftKh1lqppIBzbsjyc7Ws/+ubefTLi4tmtQwMDH//kp7/xox/XVpTXV1aQZZ3q7Hx9+86w33fk9OmvfPu7j96/8dS2LYlYtKu7CxUVgAxd96rq1j1vK5xtXH9Lb2/PbTdcf3jH5vtuvH5keNinqlIoosjyyMjI1z73mZ2vvDC3rj6TSumW8dKWbfevv6U2HEkkEr/6xx89/cS/eBFN03zxX37+6x/9g5RTIEtFb2Kx+AeCS5k7GbzvK9HOdvXgyz4MEImciU1lfn/E77Mcu+fCEDA2s7YmkUpFM9mQ31/m9ZwfG7NtJ+DzVWr+zuHhiBbwybJFQkbsj8cVWakJBZPZrOb19oyM+j1quebvHhlzMum62tqGGVWnurqiyRRTVXKc6nCYI/SORpuqKgzLAkCvLAPAWCoZ8PmzujGaSkmyXFcWygEWTafLg8EL0Rggqy0LjaXTIZ8XAGzbThlGWNNICNtx+mKxfJwKA5Hi86+PLrvR/OX3qtAjLmLuXHGsQ87kjiVTsXg8pwQiwLnefuAcJD6WSIzFYiDLwFkyk0kmk6jIo8nEaD4Oh5gsZy393EAKGB+OxkCW46lMPJYEWQZPoG9gpK97ADwqSB5hCkA+MDgGQKDI3f2DwHD8Uo5A4vFMGhhjMreF3T04mCcBzhOpdM6Q6ujrA0mK5uAEBM5iiWRew5TeTZCHVDxiD3AiGjDfzYAEggDkBAAgcQSeE14EwFSFctaJzBHzYS0kMeCcbAKSQCAIBAKhEyAHrgAQSsiQmAckSSG0OLNZGedMFiRytr8QBCCRAMcmUlXHZrZNQAyEA9mcwCUBAhgCV4HnYCMm8/zNpqQKQcj5eDBZvj1hoJADIh+7UKiXIhSNR5PcN6wTiUhuR7WsgmMj6RiqM0wDs1EZEEApyAbKacMgQJgIDubNBQmZQp4g+QLCpzm+gOUPOarf9GnIPKbqtVXV4rLw+xWTTJ8CwEBiIABUSbYcyxQgIQgBtg0kAARPZxyw1XTWAVMzMphJk5n2pOM8nZSyKZZJop5GYXLHFvn8Fg4gATFyn0v5jZsIAtQyR/U5iXMe20BZccssdAXeToTzkuS+WaPCGHdEAAYXzsnX3h0f7OCD3VLTIt0/3xg8L4/2qiQQFIFsEmWqn4JhO1zphCpFsNzQwvFgGaqarXhBVkCRgXPwypGsnSn3NnL0q8zrV2acGd6yrPbjx4e2lHvq48ZQmbf+aP+m5qp5cys3nBvb5ZFDquTLWPGR7Jm2inU98bfDvpmd0S0cwaNUxrL9wgEhMGuQlQXKatGokYlqsRFPdJjHR1hijBtZzLsREEgAGQyQymqt6mbTSGPXUW+kxbzhgcz5kx6YyAcbt8aJFfizpIvqB4Ae2vkbzUw7j3x9ZNvTocOvBMpn6/NWp/g1qc5jnv5zXjvLQCawcN2HEvNXJzg3mAKEEFB9IbVNN3UJtJCnLuKZJQjKPA2GHT89vGlZ+QO6bXmVcGPoqmQ6fUPz1w0T/UqZiB5oCKzaY2wKKc0NoeuzJmlqYGntfYPJMwlj4NTIrpbAhrmVNx3u3hry1Nw863tHBl6cXX7t6dGdHsWXsfpPDG+eM6c5qnfZBJzANmXTlE8f9G36RRA4kIncI2pmpVsWZRHx5F5t6Jhn7k3J2/4kcWBr4I1nfaheQp24DB88p94j3r5O+ZaPxKvbjENbAufbvapGC69JNs7LSjKlE5KT4rVt5tyrkrIorwusCCvz/bxx4/yfl6ktZZ7Gtsr1O87941X1G2dGrj49uq062Ma5l3OPI7IzAm2mYyrck7XjEV+zaSeaI9d1jL5KZM6tui1jxTJ2XELZpnTaHMlYsZCvniMeGngu4K1uCa/gnKq0uQzthD48u+JWTZqxrunrB3peKZMbM9lkxrRCEev0fn9fu1cNODMXZZbdlGyel+497d/3WjA9LK3/7NiqO5Iv/Sx8+DUNPZNh4aV88KjNnpsyDEQsHniaDysmkebeMusDn48HIuZzPy4fPeHxNppeTehplk1ziss1y4ee+MmXZoVu1p3U+ejeoxdeemTJT1468RczI9dl7aRHLuuPH68LLuqOvl3ub+iPH/ZKkeFMh18pG053mHaGM+6Vg7pjKMybMjoRuSJV6taozP0AHFE4QtQG5hl2ptzXsr/vmQXVtyyu3vhm989umf21wwPPrm786L6eX69p+pgl0q+f/PbdC/5GEJlO5uWT//UH3xgePRUGzfZqjtcvzCxLdavBFuO+Lww7Nnvun8pTQzLzO5MJCu7NT/jghdD8/suNKUWOZCFYtPb+1PL1ya1Pho5u1kAhNeT4g7amUSZLn/w6EUsl9KRlQ6W/vC606ujAq7Wh+aOZEyFPVcoecogkDg6BxIEAOAOHgCMwBEHgOHnFgCFDAAEivz7LCRzmCIcj2AI8EhgW2E7+BEBi1dr8eHYEEOpCVx278LLEMaDOqAo2nes7//NvS+W1lElBOi7pCQ5ZNmdtcv3Hksff9Gz59xAwRIXIvqyY0isIwM3TXIK1rMxu+GR08Lz0wk/L565Mzl6eAlKO7PKt2hCfUZslBySJEQqBoEpo2sQIDBMcSzEyXM8wPS1nU5BN8UyG2wZzLGYbZNnMsZhwHAEgBENCZA5DYpwxGWUZZEUwyVJU8HiZR0v7NPRppPqE6nMUjy3QkSVgDEwHFIaOTaYJKMNAh3f3b8PX3B0HEJ3H/Ed2aHc8Gm+aZ7z+v8OndnkxIPJKwxUE4FLRXO2CnLr8KCIedDoPeJ74TmVtiyUIju3RKuqdYLld3ZIBIUuSnTUwFafkmCc+6o0OYTImJUb56KBsWwgARhYRZDIFIOeSBABOIgGMgSK7rpRcke05EWJaIBwWDCOg49gggkxmAi3VQ4jIJFExwwpEKBi2Q1UiVG4EI5bXb/lUZMDr5+iOw1Nx+ehuvyA8/pZ3+zPB+HmJBR0S45HUJW5aC1BBhNrsuSldxymILEgCKGgjADAQFoKJ4BVgsNY1qcVrs1ZWALDzJ3zdJz2xYQZm7ishCGBBcdVNmb4Oqf+wB/zW3Lbm22+6MaBpmj+getRdb765ffdboyOjICtc4iQmc9iQoWM7YFll4bK1V6+6ae21tu0kkolMJrtpx66jx09DSqmcZ7QsNA5u81tjDDgACEAEGYIVVtMcs36uwblQvc6Jvb7jOwOgEmQZyIIpRE7JPU6P7CchNJ82Hp+FU25qJ+77ccrpSLk0LA6oEBIAoOwR9a2O7ahELBDWK2qtQLlwEAyDoUroIQ5U02Ld/idRJSC6T/hGLsQGRwcrIpGa6ur66rplSxbPm92KyIeGR/RkmhhnjCOgcARlDZ/Pd93VKz/60APrb1wXCASzWaPrfM+rW7efPNYJQlp1X3LDx+NDXXLfaYVUQpVQhnCt1bokOXOhUV6rI5cIVc6tzqNqYkTF3GUCAyIX2YI7KKawPfEjkH+vWIdc4Q6HBSvNpnkm57Ykg2NTNs0yCSkVk7IpRg4QkSDsO+I5e0xddUdm6brUUJ/ScyR98Hh7/1A/EQW0wMzm5qWLF7TObCGgoaFhK5sl21ZUZfXK5R9+4N67b7u9vq5ueHRk7/4Dz7/26kuvbRvrila04X1fHK2dZf32n0LHtmuOTERAggDQ43N8QeHxCdWHHh9Isi3J1H9Wjg+p45bYu4x1yLNhQeRN/tqPaFqwaKH6j4BEJluwNlbfZveflUf65bFB1UhwcAA4gUwTdM0YCB2BwbUfTCy/OXlmv7bj2WC2z5bL1eVL5q1ds2bp4kXl4UgyGT949NgLr26ybPueO9ZftWRpKBiKJWKH29t3vbVn38FjxrCuVMvXfzAxb43e/oZ3x38EhInMK4Rw8ZCNYDPgQgmIcJVVWWvWzLJHevHg5nBe7SSamnro3pe7QMLE3idPw4w+edhNy/hxS3ucEthEQAz9QUdPoZOVAAk4IaN8ZBwVvIcxIkBK8UiTte6hWFWTeXBL6J1NXjFmKZXeqxbPv2ntdUsWLQpqWk9fnyOcpoaGdDpz9MSxbbve2HuwPTuUhaC04hZ9xfpE9ALf+nRw+KwKfsEwfwfmzspCBiSACMFBcIB5HV9QpONSrjhJ7rwrKayK4uFKVYeSuTsOAiPk47a8c7HyKshQGAgmNi/PXPfBpFeDfZuCB7cpkLR8M/xrVixdv+7GeW1zEOHU2Y7NO7a/+c7BZH8CfPLCG8w1t6csS7z5W+3MPh9wQE/uGuti5VUw5+USAMSAU8G5f+W5O+8FsqakmF6qFk0+nSPDAGHOmsw1d6UZh7de0Y7t9IBhljeE7759vSzLL7z62mDXCEjy3GvMNXcnJUm89bLWvtsPNqCf8peYl12LBjnmGfC9QdZFEHTJrLASFYZKFu7JBwwgpREUseSG1Jo7UpmUtPXXkb4DACGGDGnMqV5E6x5KhCv0dzZpB7YGRJaBnxCIhCuD4zKQhTTuP5gC5yWRNTFGCL/mLx5TWjqOdMppWPw0cScNTfNrF4Qi5lwUgyc9h97QvAFx8yPRYA2cO+IFE2/4SPLmh6NnDvqe/2mk94iXFGKeiWAx9/sRpifCu+NjS5x6WAJ+LHoyEimy8ofNNyxREopxEA5CipU1mnd9JmpbKCzmC9FLPy0b6ZBAI8ZJiCKhMH/IklB+TXtv4uBLhUyXpKyp6EJAYD7KxvmRrf6mBTogPvX9SCbOWYAIgAQWXetyKOticF6xntU2N5XVsfB6djw3NK9vjWfZTaWyyf7pc4uNd5W0cyeXUYEbWyA5ufuFXJ2CqVXdCpP7J8vqud9TCobCNHBXv2t8wVyXueP3+6VxWUXTvhgV+1gFd2lFa1rhxes60LToJix8CQqUMZ/RLorkMCMWr+uQ/6wIF6nrgFS8zAVeoiZEXmOVcpGnxeo64PTsz/esrsOU/DH3cT4RCYvTytj9/vWz8N3XdaD/V2rREPx/8bhr0RTKvlIZjnipMZdRi2YaN9Al6tgUVNJyy518GPHU8VhaNEw7ES7Wdi9KJBX9uIUVmqbKKQKaFGhTlAGampw5zkEugGlaSZ0pYmva3Ml24Vy3TITSMJdcF4qtW3RfQEiQTxooXouGTS8oNR7JiyX0F5ymZ+E0mVWk6l9hzb/pcydkFpaUWQW1aEQxmYXTb/oKZdZF9CxA+mPNv/cmRxoL8oSxwAd0+TnSJY7wYhG+F5+L0/pL8svUnGcqniPtItgSbDgtR1oarw2VP7JL+LCI3P4scg0glz+26JiiTiMX/vOaakEyd5G57sKsk3C6w/fdFWlKwFnEN3fx9sQ3ykXDTOYJF+iRROPyiFz87K7zV9DvVlKn1EeeEmfiPt7c3yH3nlJzc5THcJru6BZkLo1cFMI8RQZNwInFxoui+8I/1vx71zGlF3vefVkJuhzF85J1MvH3e/97oznT/wFSzkx1G631VAAAAABJRU5ErkJggg==" alt="DA NANG Referee">
+      <div class="login-logo-text">
+        <h2>Referee Pickleball</h2>
+        <h3>DA NANG ®</h3>
+        <p>by Team Trọng Tài Pickleball Đà Nẵng CBKQ</p>
+      </div>
+    </div>
+    <div>
+      <div class="login-label">Số điện thoại đăng nhập</div>
+      <input class="login-input" id="login-phone" placeholder="0901234567" inputmode="tel" autocomplete="off">
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Đăng nhập →</button>
+    <div class="login-hint">Tài khoản được Admin phân quyền giải đấu &amp; nội dung tương ứng để hiển thị lên màn hình TV / LED.</div>
+  </div>
+</div>
+
+<!-- SCREEN -->
+<div class="screen" id="screen" style="display:none">
+
+  <!-- TICKER -->
+  <div class="ticker-bar">
+    <div class="ticker-label">🔴 LIVE</div>
+    <div class="ticker-track">
+      <div class="ticker-inner" id="ticker-inner">
+        <span class="ticker-item"><span class="dot"></span>Đang tải dữ liệu...</span>
+        <span class="ticker-item"><span class="dot"></span>Đang tải dữ liệu...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div>
+      <div class="hdr-logo">
+        <img src="data:image/png;base64,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" alt="DA NANG">
+        <div class="hdr-logo-text">
+          <div class="ht1">Referee Pickleball</div>
+          <div class="ht2" id="hdr-venue">DA NANG ®</div>
+        </div>
+      </div>
+    </div>
+    <div class="hdr-title">
+      <h1 id="hdr-title">GIẢI PICKLEBALL ĐÀ NẴNG</h1>
+      <p id="hdr-date"></p>
+    </div>
+    <div class="hdr-right">
+      <div class="live-pill" id="live-pill" style="display:none">
+        <span class="live-dot"></span>
+        <span class="live-text">ĐANG ĐẤU</span>
+      </div>
+      <div class="clock" id="clock"></div>
+      <button class="logout-btn" onclick="doLogout()" title="Đăng xuất">⏻ Đăng xuất</button>
+    </div>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-icon">📋</span>
+      <div class="stat-body">
+        <div class="stat-num" id="st-total">—</div>
+        <div class="stat-label">Tổng trận</div>
+      </div>
+    </div>
+    <div class="stat-item live-stat">
+      <span class="stat-icon">⚡</span>
+      <div class="stat-body">
+        <div class="stat-num" id="st-live">—</div>
+        <div class="stat-label">Đang đấu</div>
+      </div>
+    </div>
+    <div class="stat-item done-stat">
+      <span class="stat-icon">✅</span>
+      <div class="stat-body">
+        <div class="stat-num" id="st-done">—</div>
+        <div class="stat-label">Hoàn thành</div>
+      </div>
+    </div>
+    <div class="stat-item">
+      <span class="stat-icon">⏳</span>
+      <div class="stat-body">
+        <div class="stat-num" id="st-remain">—</div>
+        <div class="stat-label">Còn lại</div>
+      </div>
+    </div>
+    <div class="stat-item" id="st-nd-wrap">
+      <span class="stat-icon">🗂</span>
+      <div class="stat-body">
+        <div class="stat-num" id="st-nd">—</div>
+        <div class="stat-label">Nội dung · Bảng</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- LEFT: BXH tabs per noidung -->
+    <div class="panel-left">
+      <div class="panel-tabs" id="panel-tabs"></div>
+      <div id="panel-bodies"></div>
+    </div>
+
+    <!-- RIGHT: Live + Upcoming -->
+    <div class="panel-right">
+      <div class="live-section">
+        <div class="section-hdr">
+          <div class="live-dot" style="width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1s infinite;flex-shrink:0"></div>
+          <div class="section-hdr-title">Đang thi đấu</div>
+          <div class="section-hdr-badge" id="live-count-badge">0</div>
+        </div>
+        <div class="live-list" id="live-list">
+          <div class="empty-state">Chưa có trận nào đang diễn ra</div>
+        </div>
+      </div>
+      <div class="upcoming-section">
+        <div class="section-hdr">
+          <span style="font-size:14px">📅</span>
+          <div class="section-hdr-title">Trận kế tiếp</div>
+        </div>
+        <div class="upcoming-list" id="upcoming-list">
+          <div class="empty-state">Không có dữ liệu</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// CẤU HÌNH CỐ ĐỊNH — Admin chỉnh URL này 1 lần khi triển khai
+// ════════════════════════════════════════════════════════
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbw1HiQCcbGXgGzXj77oDrETKRTyn4WjUGjyNaPBpS5oapnwyBSvJWFf_Y_Ob-sUqj8QoQ/exec';
+
+const POLL_SEC=10, ROTATE_SEC=20;
+let _pollTimer=null, _rotateTimer=null, _activeNdIdx=0;
+let _matches=[], _results=[], _live=[], _groups=[], _nds=[];
+
+// Phiên đăng nhập
+let SESS_NAME='', SESS_GIAI=[], SESS_ND=[]; // SESS_GIAI/ND: mảng các giá trị được phân quyền
+const SESS_KEY='tv_display_sess_v1';
+
+// ── LOGIN ──
+async function doLogin(){
+  const phoneRaw=(document.getElementById('login-phone').value||'').trim();
+  const phone=phoneRaw.replace(/\D/g,'');
+  if(!phone||phone.length<8){showLoginErr('Vui lòng nhập số điện thoại hợp lệ');return;}
+  const btn=document.getElementById('login-btn');
+  btn.disabled=true;btn.textContent='Đang đăng nhập...';
+  hideLoginErr();
+  try{
+    const r=await fetch(`${GAS_URL}?action=validate&device=tv-display&_t=${Date.now()}&phone=${encodeURIComponent(phone)}`,{cache:'no-store'});
+    const d=await r.json();
+    if(!d.valid){showLoginErr(d.reason||'Số điện thoại không đúng hoặc chưa được phân quyền');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
+    const st=(d.statusRaw||'').toLowerCase();
+    if(st==='khóa'||st==='disabled'){showLoginErr('Tài khoản bị khóa');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
+    if(!d.giai||!d.giai.trim()){showLoginErr('⚠️ Tài khoản chưa được phân giải đấu. Vui lòng liên hệ Admin.');btn.disabled=false;btn.textContent='Đăng nhập →';return;}
+
+    SESS_NAME=d.name||'';
+    SESS_GIAI=d.giai.split(',').map(s=>s.trim()).filter(Boolean);
+    SESS_ND=(d.noidung||'').split(',').map(s=>s.trim()).filter(Boolean);
+
+    try{localStorage.setItem(SESS_KEY,JSON.stringify({phone,name:SESS_NAME,giai:SESS_GIAI,nd:SESS_ND}));}catch(e){}
+
+    enterDisplay();
+  }catch(e){showLoginErr('Lỗi kết nối: '+e.message);btn.disabled=false;btn.textContent='Đăng nhập →';}
+}
+function showLoginErr(m){const e=document.getElementById('login-err');e.textContent=m;e.style.display='block';}
+function hideLoginErr(){document.getElementById('login-err').style.display='none';}
+
+function doLogout(){
+  if(!confirm('Đăng xuất khỏi màn hình hiển thị?'))return;
+  try{localStorage.removeItem(SESS_KEY);}catch(e){}
+  clearInterval(_pollTimer);clearInterval(_rotateTimer);
+  document.getElementById('screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-phone').value='';
+  document.getElementById('login-btn').disabled=false;
+  document.getElementById('login-btn').textContent='Đăng nhập →';
+}
+
+// ── ENTER DISPLAY (sau login thành công / restore session) ──
+async function enterDisplay(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('screen').style.display='flex';
+  // Lấy thông tin giải đấu (tên, địa điểm) từ tournaments — dùng giải đầu tiên được phân
+  await loadTournamentInfo();
+  startClock(); fetchAll(); startPolling();
+}
+
+async function loadTournamentInfo(){
+  try{
+    const r=await fetch(`${GAS_URL}?action=tournaments&_t=${Date.now()}`,{cache:'no-store'});
+    const d=await r.json();
+    const rows=(d?.rows||[]).slice(1);
+    // Tìm giải đầu tiên trong danh sách được phân quyền (so khớp Mã giải hoặc Tên giải)
+    const giaiKey=SESS_GIAI[0]||'';
+    let info=rows.find(r=>String(r[0]||'').trim()===giaiKey || String(r[1]||'').trim()===giaiKey);
+    if(!info && rows.length) info=rows[0];
+    const title=(info?String(info[1]||'').trim():'')||giaiKey||'GIẢI PICKLEBALL';
+    const venue=info?String(info[2]||'').trim():'';
+    const dateStart=info?String(info[4]||'').trim():'';
+    document.getElementById('hdr-title').textContent=title.toUpperCase();
+    document.getElementById('hdr-venue').textContent=venue||'DA NANG ®';
+    if(dateStart){
+      document.getElementById('hdr-date').textContent=dateStart+(venue?' · '+venue:'');
+    }
+  }catch(e){console.error('loadTournamentInfo:',e);}
+}
+
+// ── CLOCK ──
+function startClock(){
+  function tick(){
+    const now=new Date();
+    document.getElementById('clock').textContent=
+      String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+  }
+  tick(); setInterval(tick,1000);
+}
+
+// ── KEY ──
+document.addEventListener('keydown',e=>{
+  if(e.key==='f'||e.key==='F'){document.documentElement.requestFullscreen?.();}
+  if(e.key==='c'||e.key==='C'){doLogout();}
+});
+
+// ── FETCH (lọc theo giải được phân quyền) ──
+async function get(action,giaiVal,extra=''){
+  const base=`${GAS_URL}?action=${action}${giaiVal?'&giai='+encodeURIComponent(giaiVal):''}${extra}`;
+  const r=await fetch(base); return r.json();
+}
+
+async function fetchAll(){
+  try{
+    _matches=[];_results=[];_live=[];
+    // Lấy dữ liệu cho TỪNG giải đấu được phân quyền, gộp lại
+    for(const giai of SESS_GIAI){
+      const [mRes,rRes,lRes]=await Promise.all([
+        get('matches',giai),
+        get('results',giai),
+        get('live',giai,'&code=all')
+      ]);
+      if(mRes?.rows?.length>1) _matches.push(...mRes.rows.slice(1));
+      if(rRes?.rows?.length>1) _results.push(...rRes.rows.slice(1));
+      if(lRes?.rows?.length>1) _live.push(...lRes.rows.slice(1).filter(r=>String(r[9]||'')==='playing'||String(r[9]||'')===''));
+    }
+    // Lọc theo NỘI DUNG được phân quyền (nếu có chỉ định, rỗng = tất cả nội dung của giải)
+    if(SESS_ND.length){
+      const ndSet=new Set(SESS_ND.map(s=>s.toUpperCase()));
+      const ndMatch=nd=>ndSet.has(String(nd||'').toUpperCase()) ||
+                        [...ndSet].some(x=>String(nd||'').toUpperCase().includes(x)||x.includes(String(nd||'').toUpperCase()));
+      _matches=_matches.filter(r=>ndMatch(r[1]));
+      _results=_results.filter(r=>ndMatch(r[2]));
+      _live=_live.filter(r=>{
+        const k=String(r[0]||'');const p=k.split('|');
+        const nd=p.length>=4?p[1]:(p.length>=3?p[0]:'');
+        return ndMatch(nd);
+      });
+    }
+    // v5 FIX: dedupe _live — key cũ (nd|bang|code, 3 phần) và key mới (giai|nd|bang|code, 4 phần)
+    // có thể cùng tồn tại cho 1 trận → giữ bản ghi có "Cập nhật lúc" mới nhất
+    _live=dedupeLive(_live);
+    processData(); render();
+  }catch(e){console.error(e);}
+}
+
+// v5: Tách nd|bang|code chuẩn hóa từ key Live (hỗ trợ cả key 3 phần cũ và 4 phần mới)
+function _liveKeyParts(r){
+  const key=String(r[0]||'');
+  const p=key.split('|');
+  const nd=p.length>=4?p[1]:(p.length>=3?p[0]:'');
+  const bang=p.length>=4?p[2]:(p.length>=3?p[1]:'');
+  const code=p.length>=4?p[3]:(p.length>=3?p[2]:key);
+  return {nd,bang,code,norm:`${nd}|${bang}|${code}`};
+}
+// v5: parse "dd/MM/yyyy HH:mm:ss" → timestamp để so sánh bản ghi nào mới hơn
+function _parseVNDate(s){
+  const m=String(s||'').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})/);
+  if(!m)return 0;
+  return new Date(+m[3],+m[2]-1,+m[1],+m[4],+m[5],+m[6]).getTime();
+}
+// v5: dedupe theo nd|bang|code — giữ bản ghi "Cập nhật lúc"(col8) mới nhất
+function dedupeLive(rows){
+  const map={};
+  rows.forEach(r=>{
+    const {norm}=_liveKeyParts(r);
+    const ts=_parseVNDate(r[8]);
+    if(!map[norm]||ts>=map[norm]._ts){ map[norm]=r; map[norm]._ts=ts; }
+  });
+  return Object.values(map);
+}
+
+// Tên bảng thuộc vòng loại trực tiếp (KO) — KHÔNG hiển thị trên dashboard vòng bảng
+const KO_BANG_REGEX = /^(vòng\s*\d+|vong\s*\d+|tứ\s*kết|tu\s*ket|bán\s*kết|ban\s*ket|chung\s*kết|chung\s*ket|hạng\s*\d|hang\s*\d|playoff|ko|knockout)/i;
+
+function processData(){
+  // Nội dung
+  _nds=[...new Set(_matches.map(r=>String(r[1]||'')).filter(Boolean))];
+  // Groups: {nd, bang, matches[], results[], standings[]}
+  _groups=[];
+  _nds.forEach(nd=>{
+    let bangs=[...new Set(_matches.filter(r=>String(r[1]||'')===nd).map(r=>String(r[2]||'')).filter(Boolean))].sort();
+    // v3 FIX: bỏ các bảng thuộc vòng loại trực tiếp (Tứ kết, Bán kết, Chung kết, Vòng 16/32, Hạng 3...)
+    bangs=bangs.filter(b=>!KO_BANG_REGEX.test(b.trim()));
+    bangs.forEach(bang=>{
+      const mList=_matches.filter(r=>String(r[1]||'')===nd&&String(r[2]||'')===bang);
+      const rList=_results.filter(r=>String(r[2]||'')===nd&&String(r[3]||'')===bang);
+      // v3: thu thập TẤT CẢ đội trong bảng theo thứ tự xuất hiện trận đấu (giống thứ tự admin)
+      const allTeams=[];
+      const seen=new Set();
+      mList.slice().sort((a,b)=>String(a[3]||'').localeCompare(String(b[3]||''),undefined,{numeric:true,sensitivity:'base'}))
+        .forEach(m=>{
+          [String(m[4]||''),String(m[7]||'')].forEach(t=>{
+            if(t&&!seen.has(t)){seen.add(t);allTeams.push(t);}
+          });
+        });
+      const standings=calcStandings(rList,allTeams);
+      _groups.push({nd,bang,matches:mList,results:rList,standings});
+    });
+  });
+}
+
+function calcStandings(rList,allTeams){
+  const t={};
+  const order=[]; // giữ thứ tự xuất hiện ban đầu — dùng làm tie-break khi chưa có kết quả
+  const add=n=>{if(!t[n]){t[n]={team:n,played:0,won:0,lost:0,pts:0,ptsFor:0,ptsAgainst:0,pDiff:0};order.push(n);}};
+  // v3: khởi tạo TẤT CẢ đội trong bảng (kể cả chưa đấu) theo thứ tự xuất hiện
+  (allTeams||[]).forEach(add);
+  rList.forEach(r=>{
+    const tA=String(r[5]||''),tB=String(r[6]||''),sA=Number(r[7]||0),sB=Number(r[8]||0),win=String(r[9]||'');
+    if(!tA||!tB)return;
+    add(tA);add(tB);
+    t[tA].played++;t[tB].played++;
+    t[tA].ptsFor+=sA;t[tA].ptsAgainst+=sB;
+    t[tB].ptsFor+=sB;t[tB].ptsAgainst+=sA;
+    if(win===tA){t[tA].won++;t[tA].pts+=1;t[tB].lost++;}
+    else if(win===tB){t[tB].won++;t[tB].pts+=1;t[tA].lost++;}
+  });
+  Object.values(t).forEach(x=>{x.pDiff=x.ptsFor-x.ptsAgainst;});
+  // Sort ỔN ĐỊNH (stable): khi pts/pDiff/ptsFor bằng nhau (chưa thi đấu) → giữ nguyên thứ tự xuất hiện
+  const idx=Object.fromEntries(order.map((n,i)=>[n,i]));
+  return Object.values(t)
+    .sort((a,b)=>b.pts-a.pts||b.pDiff-a.pDiff||b.ptsFor-a.ptsFor||idx[a.team]-idx[b.team])
+    .map((x,i)=>({...x,rank:i+1}));
+}
+
+// ── RENDER ──
+function render(){
+  // v6 FIX: renderTabs trước (khôi phục _activeNdIdx) → renderStats sau mới đúng nội dung
+  renderTabs();
+  renderStats();
+  renderLive();
+  renderUpcoming();
+  renderTicker();
+  initAutoScroll(); // chỉ khởi động lần đầu, không reset nếu đã chạy
+}
+
+function renderStats(){
+  // v6 FIX: thống kê theo NỘI DUNG đang xem (tab active), không phải tổng cả giải
+  const ndList=[...new Set(_groups.map(g=>g.nd))];
+  const activeNd=ndList[_activeNdIdx]||'';
+  const mList=activeNd?_matches.filter(r=>String(r[1]||'')===activeNd):_matches;
+  const lList=_live.filter(r=>{
+    if(String(r[0]||'').startsWith('CALL'))return false;
+    if(!activeNd)return true;
+    const {nd}=_liveKeyParts(r);
+    return nd===activeNd;
+  });
+  const total=mList.length;
+  const done=mList.filter(r=>r[5]!==''&&r[5]!==null&&r[6]!==''&&r[6]!==null).length;
+  const live=lList.length;
+  const remain=total-done-live;
+  document.getElementById('st-total').textContent=total||'—';
+  document.getElementById('st-done').textContent=done||'0';
+  document.getElementById('st-live').textContent=live||'0';
+  document.getElementById('st-remain').textContent=Math.max(0,remain)||'0';
+  const bangs=[...new Set(mList.map(r=>String(r[2]||'')).filter(Boolean))];
+  document.getElementById('st-nd').textContent=activeNd?`${esc(activeNd)} · ${bangs.length} bảng`:`${_nds.length} · ${bangs.length}`;
+  // Live pill — vẫn hiện nếu BẤT KỲ nội dung nào đang có trận live (không chỉ tab hiện tại)
+  const anyLive=_live.filter(r=>!String(r[0]||'').startsWith('CALL')).length;
+  document.getElementById('live-pill').style.display=anyLive>0?'flex':'none';
+}
+
+let _tabRestored=false;
+let _tabsBuilt=false; // bodies chỉ build 1 lần duy nhất
+
+function renderTabs(){
+  const tabs=document.getElementById('panel-tabs');
+  const bodies=document.getElementById('panel-bodies');
+  const ndList=[...new Set(_groups.map(g=>g.nd))];
+  if(!ndList.length)return;
+
+  // Khôi phục tab đã chọn (chỉ 1 lần)
+  if(!_tabRestored){
+    _tabRestored=true;
+    try{
+      const saved=localStorage.getItem(ACTIVE_ND_KEY);
+      if(saved){const idx=ndList.indexOf(saved);if(idx>=0)_activeNdIdx=idx;}
+    }catch(e){}
+  }
+  if(_activeNdIdx>=ndList.length)_activeNdIdx=0;
+
+  // Tabs header: rebuild mỗi lần (nhẹ, không ảnh hưởng DOM bên dưới)
+  tabs.innerHTML=ndList.map((nd,i)=>`<div class="panel-tab${i===_activeNdIdx?' active':''}" onclick="switchNd(${i})">${nd}</div>`).join('');
+
+  if(!_tabsBuilt){
+    // Lần đầu: tạo toàn bộ panel-body + sub-tab + bracket placeholder
+    _tabsBuilt=true;
+    bodies.innerHTML=ndList.map((nd,i)=>{
+      const ndGroups=_groups.filter(g=>g.nd===nd);
+      return `<div class="panel-body${i===_activeNdIdx?' active':''}" data-nd-idx="${i}">${renderNdBody(nd,ndGroups)}</div>`;
+    }).join('');
+  } else {
+    // Các lần sau: chỉ update BXH in-place, KHÔNG đụng đến sub-tab/bracket HTML
+    ndList.forEach((nd,i)=>{
+      const ndGroups=_groups.filter(g=>g.nd===nd);
+      const n=ndGroups.length;
+      const safeId=nd.replace(/[^a-zA-Z0-9]/g,'_');
+
+      // Cập nhật active trên panel-body
+      const pb=document.querySelector(`.panel-body[data-nd-idx="${i}"]`);
+      if(pb)pb.classList.toggle('active',i===_activeNdIdx);
+
+      // Update BXH grid in-place
+      const gridEl=document.getElementById('bxh-grid-'+safeId);
+      if(gridEl){
+        let colClass='',sizeClass='';
+        if(n>=13){colClass='cols-4';sizeClass='mini';}
+        else if(n>=7){colClass='cols-4';sizeClass='compact';}
+        else if(n>=4){colClass='cols-4';}
+        gridEl.className=`bxh-grid ${colClass} ${sizeClass}`;
+        gridEl.innerHTML=ndGroups.map(g=>renderBXHCard(g,n)).join('');
+      }
+
+      // Re-render bracket scores in-place (KHÔNG fetch lại API, chỉ cập nhật điểm từ _results)
+      if(_bracketCache[nd]){
+        const bEl=document.getElementById('bracket-'+safeId);
+        if(bEl){renderBracket(nd,_bracketCache[nd].tree,bEl);scaleBracket(safeId);}
+      }
+    });
+  }
+}
+
+// _ndSubTab[nd] = 'group' | 'bracket'  — nhớ sub-tab của từng nội dung
+const _ndSubTab={};
+
+function renderNdBody(nd,ndGroups){
+  if(!ndGroups.length)return'<div class="empty-state">Chưa có dữ liệu</div>';
+  const n=ndGroups.length;
+  const safeId=nd.replace(/[^a-zA-Z0-9]/g,'_');
+  // Sub-tab bar — bracket-tab chỉ hiện khi đã load xong và có cây (update động qua JS)
+  const subTabHtml=`<div class="sub-tabs" id="subtabs-${safeId}">
+    <div class="sub-tab active" id="st-group-${safeId}" onclick="switchSubTab('${safeId}','group')">📋 Vòng bảng</div>
+    <div class="sub-tab bracket-tab" id="st-bracket-${safeId}" style="display:none" onclick="switchSubTab('${safeId}','bracket')">🏆 Cây thi đấu <span class="new-badge" id="st-badge-${safeId}" style="display:none">MỚI</span></div>
+  </div>`;
+  // Sub-body vòng bảng
+  let colClass='', sizeClass='';
+  if(n>=13){colClass='cols-4';sizeClass='mini';}
+  else if(n>=7){colClass='cols-4';sizeClass='compact';}
+  else if(n>=4){colClass='cols-4';}
+  const groupHtml=`<div class="sub-body active" id="sb-group-${safeId}">
+    <div class="bxh-grid ${colClass} ${sizeClass}" id="bxh-grid-${safeId}">${ndGroups.map(g=>renderBXHCard(g,n)).join('')}</div>
+  </div>`;
+  // Sub-body cây thi đấu
+  const bracketHtml=`<div class="sub-body" id="sb-bracket-${safeId}">
+    <div class="bracket-scaler" id="bracket-scaler-${safeId}">
+      <div id="bracket-${safeId}" class="bracket-wrap"><div class="bracket-empty">Đang tải cây thi đấu...</div></div>
+    </div>
+  </div>`;
+  loadBracket(nd, safeId);
+  return subTabHtml+groupHtml+bracketHtml;
+}
+
+
+function switchSubTab(safeId, which){
+  const stG=document.getElementById('st-group-'+safeId);
+  const stB=document.getElementById('st-bracket-'+safeId);
+  const sbG=document.getElementById('sb-group-'+safeId);
+  const sbB=document.getElementById('sb-bracket-'+safeId);
+  if(!stG||!stB||!sbG||!sbB)return;
+  const goGroup=which==='group';
+  stG.classList.toggle('active',goGroup);
+  stB.classList.toggle('active',!goGroup);
+  sbG.classList.toggle('active',goGroup);
+  sbB.classList.toggle('active',!goGroup);
+  // Nhớ lựa chọn + báo scroll reset
+  notifyScrollReset();
+  // Scale bracket khi switch sang tab cây (lúc này container mới có kích thước thực)
+  if(which==='bracket'){
+    // Lấy safeId từ tham số và scale sau khi DOM paint
+    setTimeout(()=>scaleBracket(safeId),50);
+  }
+  const ndMap=Object.fromEntries([...(document.querySelectorAll('[id^="subtabs-"]'))].map(el=>[el.id.replace('subtabs-',''),el]));
+  _ndSubTab[safeId]=which;
+  // Reset scroll về đầu khi đổi sub-tab
+  if(goGroup&&sbG)sbG.scrollTop=0;
+  if(!goGroup&&sbB)sbB.scrollTop=0;
+  startAutoScroll();
+}
+
+// ── BRACKET: lấy giải đấu (tên) tương ứng với 1 nội dung từ _matches ──
+function getGiaiForNd(nd){
+  const m=_matches.find(r=>String(r[1]||'')===nd);
+  return m?String(m[0]||''):'';
+}
+
+let _bracketCache={}; // nd -> {tree, version}
+async function loadBracket(nd, safeId){
+  const giai=getGiaiForNd(nd);
+  if(!giai)return;
+  try{
+    const url=`${GAS_URL}?action=bracketTree&giai=${encodeURIComponent(giai)}&nd=${encodeURIComponent(nd)}&_t=${Date.now()}`;
+    const r=await fetch(url,{cache:'no-store'});
+    const d=await r.json();
+    const el=document.getElementById('bracket-'+safeId);
+    if(!el)return;
+    const stB=document.getElementById('st-bracket-'+safeId);
+    const badge=document.getElementById('st-badge-'+safeId);
+    if(!d.ok||!d.tree?.rounds?.length){
+      // Chưa có cây → ẩn sub-tab bracket
+      if(stB)stB.style.display='none';
+      return;
+    }
+    // Có cây → hiện sub-tab bracket
+    if(stB)stB.style.display='';
+    _bracketCache[nd]={tree:d.tree,version:d.version};
+    renderBracket(nd, d.tree, el);
+    scaleBracket(safeId);
+    // Kiểm tra vòng bảng đã 100% chưa
+    const ndGroups=_groups.filter(g=>g.nd===nd);
+    const allDone=ndGroups.length>0&&ndGroups.every(g=>g.matches.length>0&&g.results.length>=g.matches.length);
+    // v10: KHÔNG tự động chuyển sub-tab — user tự chọn khi muốn xem cây
+    // Chỉ hiện badge MỚI để thông báo cây đã sẵn sàng
+    if(allDone){
+      if(badge)badge.style.display='none'; // vòng bảng xong → không cần badge
+    } else {
+      if(badge&&_ndSubTab[safeId]!=='bracket')badge.style.display=''; // cây mới có → badge
+    }
+  }catch(e){
+    console.error('loadBracket:',e);
+    const el=document.getElementById('bracket-'+safeId);
+    if(el)el.innerHTML='<div class="bracket-empty">Không tải được cây thi đấu</div>';
+  }
+}
+
+function scaleBracket(safeId){
+  // Auto-scale toàn bộ bracket vừa khung container — không cần scroll
+  requestAnimationFrame(()=>{
+    const scaler=document.getElementById('bracket-scaler-'+safeId);
+    const wrap=document.getElementById('bracket-'+safeId);
+    if(!scaler||!wrap)return;
+    const cW=scaler.clientWidth, cH=scaler.clientHeight||600;
+    const wW=wrap.scrollWidth, wH=wrap.scrollHeight;
+    if(wW<=0||wH<=0)return;
+    const scaleX=cW/wW, scaleY=cH/wH;
+    const scale=Math.min(scaleX,scaleY,1); // không zoom in, chỉ zoom out
+    wrap.style.transform=`scale(${scale})`;
+    wrap.style.transformOrigin='top left';
+    // Đặt height container = height sau scale để không có khoảng trắng
+    scaler.style.height=Math.ceil(wH*scale)+'px';
+  });
+}
+
+function renderBracket(nd, tree, el){
+  const rounds=tree.rounds||[];
+  if(!rounds.length){el.innerHTML='<div class="bracket-empty">Chưa có cây thi đấu</div>';return;}
+
+  // Xác định fromFin cho từng round (đếm từ cuối)
+  const total=rounds.length;
+  const fromFin=i=>total-1-i; // 0=chung kết, 1=bán kết, 2=tứ kết, ...
+
+  const lblCls=ff=>{
+    if(ff===0)return'lbl-final';
+    if(ff===1)return'lbl-sf';
+    if(ff===2)return'lbl-qf';
+    if(ff>=3)return'lbl-r16';
+    return'';
+  };
+  const cardCls=(ff,isDone,isLive)=>{
+    if(isLive)return'c-live';
+    if(isDone)return'c-done';
+    if(ff===0)return'c-final';
+    if(ff===1)return'c-sf';
+    if(ff===2)return'c-qf';
+    return'c-r16';
+  };
+  const connCls=ff=>{
+    if(ff===0)return'cc-final';
+    if(ff===1)return'cc-sf';
+    if(ff===2)return'cc-qf';
+    return'cc-r16';
+  };
+
+  const mkCard=(m,ff)=>{
+    const nameA=m.teamA||m.seedA||(m.isByeA?'BYE':'—');
+    const nameB=m.teamB||m.seedB||(m.isByeB?'BYE':'—');
+    const isTbdA=!m.teamA&&!m.isByeA;
+    const isTbdB=!m.teamB&&!m.isByeB;
+    const res=_results.find(r=>String(r[2]||'')===nd&&String(r[4]||'')===m.code);
+    let sA='',sB='',winA=false,winB=false,isDone=false;
+    if(res){
+      sA=res[7]??'';sB=res[8]??'';
+      const win=String(res[9]||'');
+      winA=!!(win&&win===String(res[5]||''));
+      winB=!!(win&&win===String(res[6]||''));
+      isDone=!!(win);
+    }
+    const isLive=_live.some(r=>{const{code}=_liveKeyParts(r);return code===m.code;});
+    const cc=cardCls(ff,isDone,isLive);
+    // Tên: split theo " - " nếu đôi
+    const tnHtml=n=>{
+      const ps=n.split(/\s*-\s*/);
+      if(ps.length===1)return`<span class="tn${isTbdA&&n===nameA||isTbdB&&n===nameB?' tbd':''}">${esc(n)}</span>`;
+      return`<span class="tn">${ps.map(p=>`<span style="display:block;line-height:1.2">${esc(p)}</span>`).join('')}</span>`;
+    };
+    return`<div class="bk-card ${cc}">
+      <div class="bk-card-team${winA?' winner':winB?' loser':''}">${tnHtml(nameA)}<span class="ts">${sA!==''?esc(String(sA)):''}</span></div>
+      <div class="bk-card-team${winB?' winner':winA?' loser':''}">${tnHtml(nameB)}<span class="ts">${sB!==''?esc(String(sB)):''}</span></div>
+    </div>`;
+  };
+
+  const mkConn=(nPairs,cc)=>{
+    let h=`<div class="bk-conn-col ${cc}">`;
+    for(let i=0;i<nPairs;i++)h+=`<div class="bk-conn-pair"><div class="bk-conn-arm arm-top"></div><div class="bk-conn-arm arm-bot"></div></div>`;
+    return h+'</div>';
+  };
+
+  let html='<div class="bk-bracket">';
+  rounds.forEach((round,ri)=>{
+    const ff=fromFin(ri);
+    const lc=lblCls(ff);
+    const nM=round.matches?.length||0;
+    html+=`<div class="bk-round"><div class="bk-round-label ${lc}">${esc(round.name)}</div><div class="bk-round-slots">`;
+    (round.matches||[]).forEach(m=>{
+      html+=`<div class="bk-slot">${mkCard(m,ff)}</div>`;
+    });
+    html+='</div></div>';
+    // Connector sang vòng tiếp theo
+    if(ri<rounds.length-1){
+      const nextNM=rounds[ri+1].matches?.length||0;
+      const nPairs=nextNM||1;
+      html+=mkConn(nPairs,connCls(ff));
+    }
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+function renderBXHCard(g,n){
+  const maxW=n>=10?70:n>=7?90:130;
+  const total=g.matches.length;
+  const done=g.results.length;
+  const pct=total?Math.round(done/total*100):0;
+  const rows=g.standings.map((s,i)=>{
+    const rankClass=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-x';
+    const hs=s.pDiff;
+    const hsClass=hs>0?'hs-pos':hs<0?'hs-neg':'hs-zer';
+    const hsStr=hs>0?`+${hs}`:String(hs);
+    return`<tr>
+      <td style="overflow:hidden;vertical-align:top;padding-top:7px;padding-bottom:7px"><div style="display:flex;align-items:flex-start;gap:6px;min-width:0">
+        <div class="rank-badge ${rankClass}" style="margin-top:1px">${s.rank}</div>
+        <span class="team-name" title="${esc(s.team)}">${s.team.split(/\s*-\s*/).map(p=>`<span class="pn">${esc(p)}</span>`).join('')}</span>
+      </div></td>
+      <td style="text-align:center;font-size:11px;color:var(--green);vertical-align:top;padding-top:9px">${s.won}</td>
+      <td style="text-align:center;font-size:11px;color:var(--red);vertical-align:top;padding-top:9px">${s.lost}</td>
+      <td class="hs-val ${hsClass}" style="vertical-align:top;padding-top:7px">${hsStr}</td>
+      <td style="text-align:center;vertical-align:top;padding-top:5px"><div class="pts-badge">${s.pts}</div></td>
+    </tr>`;
+  }).join('');
+  const statusColor=pct===100?'var(--green)':pct>0?'var(--amber)':'var(--tx3)';
+  // v4 FIX: colgroup % cố định — Đội rộng nhất, các cột số nhỏ gọn, ĐS không bị tràn
+  return`<div class="bxh-card">
+    <div class="bxh-card-hdr">
+      <span class="bxh-card-title">${esc(g.bang)}</span>
+      <span class="bxh-card-badge" style="color:${statusColor}">${pct===100?'✅ Xong':pct>0?pct+'%':'Chưa đấu'}</span>
+    </div>
+    <table class="bxh-table">
+      <colgroup>
+        <col style="width:66%"><col style="width:8%"><col style="width:8%"><col style="width:10%"><col style="width:8%">
+      </colgroup>
+      <thead><tr>
+        <th>Đội</th><th style="text-align:center">W</th><th style="text-align:center">L</th><th style="text-align:right">HS</th><th style="text-align:center">ĐS</th>
+      </tr></thead>
+      <tbody>${rows||'<tr><td colspan="5" style="text-align:center;color:var(--tx3);padding:12px;font-size:11px">Chưa có kết quả</td></tr>'}</tbody>
+    </table>
+  </div>`;
+}
+
+function renderLive(){
+  // v5 FIX: chỉ hiện trận đang đấu thuộc NỘI DUNG đang xem (tab active)
+  const ndList=[...new Set(_groups.map(g=>g.nd))];
+  const activeNd=ndList[_activeNdIdx]||'';
+  const liveMatches=_live.filter(r=>{
+    if(String(r[0]||'').startsWith('CALL'))return false;
+    if(!activeNd)return true; // chưa xác định tab → hiện tất cả
+    const {nd}=_liveKeyParts(r);
+    return nd===activeNd;
+  });
+  const badge=document.getElementById('live-count-badge');
+  if(badge)badge.textContent=liveMatches.length;
+  const list=document.getElementById('live-list');
+  if(!liveMatches.length){list.innerHTML='<div class="empty-state">Chưa có trận nào đang diễn ra'+(activeNd?' ở '+esc(activeNd):'')+'</div>';return;}
+  list.innerHTML=liveMatches.map(r=>{
+    // HDR_LIVE: Key(0)|Giải(1)|ĐộiA(2)|ĐiểmA(3)|ĐiểmB(4)|ĐộiB(5)|Giao(6)|Game(7)|Updated(8)|Status(9)|TT(10)
+    const {nd,bang,code}=_liveKeyParts(r);
+    const tA=String(r[2]||''),tB=String(r[5]||'');
+    const sA=Number(r[3]||0),sB=Number(r[4]||0);
+    const game=String(r[7]||'Game 1');
+    // Find court from matches
+    const mRow=_matches.find(m=>String(m[3]||'')===code&&String(m[1]||'')===nd);
+    const court=mRow?String(mRow[8]||''):'';
+    const winA=sA>sB,winB=sB>sA;
+    return`<div class="live-card">
+      <div class="live-card-top">
+        <span class="live-court">${court?'⚡ '+court:'⚡ ĐANG ĐẤU'}</span>
+        <span class="live-game">${game}</span>
+      </div>
+      <div class="live-teams">
+        <div class="live-team">
+          <div class="live-team-name ${winA?'winning':winB?'losing':''}" title="${esc(tA)}">${tA.split(/\s*-\s*/).map(p=>`<span class="ln">${esc(p)}</span>`).join('')}</div>
+        </div>
+        <div class="live-score-wrap">
+          <span class="live-score ${winA?'winning':winB?'losing':''}">${sA}</span>
+          <span class="live-dash">-</span>
+          <span class="live-score ${winB?'winning':winA?'losing':''}">${sB}</span>
+        </div>
+        <div class="live-team right">
+          <div class="live-team-name ${winB?'winning':winA?'losing':''}" title="${esc(tB)}">${tB.split(/\s*-\s*/).map(p=>`<span class="ln">${esc(p)}</span>`).join('')}</div>
+        </div>
+      </div>
+      <div class="live-nd">${nd?nd+' · ':''}${bang} · ${code}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderUpcoming(){
+  // v7 FIX: "Trận kế tiếp" — mỗi BẢNG (của nội dung đang xem) lấy 2 trận chưa đấu
+  // gần nhất theo MÃ TRẬN (vd: A1 đang đấu/đã xong → hiện A2, A3)
+  const ndList=[...new Set(_groups.map(g=>g.nd))];
+  const activeNd=ndList[_activeNdIdx]||'';
+  const ndGroups=activeNd?_groups.filter(g=>g.nd===activeNd):_groups;
+
+  const liveCodes=new Set(_live.filter(r=>!String(r[0]).startsWith('CALL')).map(r=>{
+    const {code}=_liveKeyParts(r); return code;
+  }));
+  const done=new Set(_results.map(r=>String(r[2]||'')+'|'+String(r[3]||'')+'|'+String(r[4]||'')));
+
+  let pending=[];
+  ndGroups.forEach(g=>{
+    const ms=g.matches.slice().sort((a,b)=>
+      String(a[3]||'').localeCompare(String(b[3]||''),undefined,{numeric:true,sensitivity:'base'}));
+    const next2=ms.filter(r=>{
+      const code=String(r[3]||'');
+      const key=String(r[1]||'')+'|'+String(r[2]||'')+'|'+code;
+      return !liveCodes.has(code) && !done.has(key);
+    }).slice(0,2);
+    pending.push(...next2);
+  });
+
+  const list=document.getElementById('upcoming-list');
+  if(!pending.length){list.innerHTML='<div class="empty-state">Không có trận nào sắp thi đấu</div>';return;}
+  // Sắp xếp theo bảng rồi mã trận để hiển thị gọn theo nhóm
+  pending.sort((a,b)=>String(a[2]+a[3]).localeCompare(String(b[2]+b[3]),undefined,{numeric:true,sensitivity:'base'}));
+  list.innerHTML=pending.map(r=>`<div class="upcoming-card">
+    <div class="upcoming-time">${r[11]||r[3]||'—'}</div>
+    <div class="upcoming-teams">
+      <div class="upcoming-a" title="${esc(r[4])}">${esc(shortName(String(r[4]||'')))}</div>
+      <div class="upcoming-vs">vs</div>
+      <div class="upcoming-b" title="${esc(r[7])}">${esc(shortName(String(r[7]||'')))}</div>
+    </div>
+    <div class="upcoming-meta">
+      <div class="upcoming-court">${r[8]||''}</div>
+      <div class="upcoming-bang">${r[2]||''} · ${r[3]||''}</div>
+      <div class="upcoming-nd">${r[1]||''}</div>
+    </div>
+  </div>`).join('');
+}
+
+function renderTicker(){
+  // v5: ticker live cũng chỉ hiện theo nội dung đang xem (đồng bộ với panel phải)
+  const ndList=[...new Set(_groups.map(g=>g.nd))];
+  const activeNd=ndList[_activeNdIdx]||'';
+  const liveMatches=_live.filter(r=>{
+    if(String(r[0]||'').startsWith('CALL'))return false;
+    if(!activeNd)return true;
+    const {nd}=_liveKeyParts(r);
+    return nd===activeNd;
+  });
+  const items=[];
+  liveMatches.forEach(r=>{
+    const tA=String(r[2]||''),sA=Number(r[3]||0),sB=Number(r[4]||0),tB=String(r[5]||'');
+    items.push(`<span class="ticker-item live-item"><span class="dot"></span>${esc(shortName(tA))} <strong>${sA} – ${sB}</strong> ${esc(shortName(tB))} • Đang thi đấu</span>`);
+  });
+  // Recent results
+  const recentDone=_results.slice(-8);
+  recentDone.forEach(r=>{
+    const tA=String(r[5]||''),tB=String(r[6]||''),sA=r[7],sB=r[8],win=String(r[9]||'');
+    items.push(`<span class="ticker-item"><span class="dot"></span>${esc(shortName(tA))} ${sA}–${sB} ${esc(shortName(tB))} • ${esc(shortName(win))} thắng · ${r[3]||''}</span>`);
+  });
+  if(!items.length)items.push(`<span class="ticker-item"><span class="dot"></span>Đang chờ kết quả…</span>`);
+  // Double for infinite scroll
+  const inner=document.getElementById('ticker-inner');
+  const all=[...items,...items].join('');
+  inner.innerHTML=all;
+}
+
+// ── AUTO SCROLL: tự cuộn panel BXH khi nội dung dài hơn khung (TV không có remote) ──
+let _scrollTimer=null;
+let _scrollEl=null;   // element đang cuộn — chỉ reset khi đổi element thực sự
+let _scrollDir=1;
+let _scrollPause=Date.now()+3000; // chờ 3s khi bắt đầu
+
+// Gọi 1 lần duy nhất khi khởi động — KHÔNG gọi lại sau mỗi fetchAll/renderTabs
+function initAutoScroll(){
+  if(_scrollTimer)return; // đã chạy rồi thì không khởi động lại
+  _scrollTimer=setInterval(_scrollTick,40);
+}
+
+function _scrollTick(){
+  const activePanel=document.querySelector('.panel-body.active');
+  if(!activePanel)return;
+  const el=activePanel.querySelector('.sub-body.active');
+  if(!el)return;
+  // Nếu đổi sang element khác (đổi tab/sub-tab) → reset trạng thái scroll nhưng KHÔNG ngắt interval
+  if(el!==_scrollEl){
+    _scrollEl=el;
+    _scrollDir=1;
+    _scrollPause=Date.now()+4000; // dừng 4s khi vào tab mới
+    return;
+  }
+  const max=el.scrollHeight-el.clientHeight;
+  if(max<=8){el.scrollTop=0;return;} // vừa khung → không cuộn gì
+  if(Date.now()<_scrollPause)return;
+  el.scrollTop+=_scrollDir*0.8; // chậm hơn: 0.8px/tick = 20px/s
+  if(el.scrollTop>=max-2){
+    el.scrollTop=max;
+    _scrollDir=-1;
+    _scrollPause=Date.now()+6000; // dừng 6s ở cuối để đọc nốt
+  } else if(el.scrollTop<=2&&_scrollDir===-1){
+    el.scrollTop=0;
+    _scrollDir=1;
+    _scrollPause=Date.now()+5000; // dừng 5s ở đầu
+  }
+}
+
+// Chỉ dùng khi user tự chuyển tab/sub-tab → báo cho scroll biết đổi element
+function notifyScrollReset(){
+  _scrollEl=null; // sẽ detect element mới ở tick tiếp theo
+}
+
+// ── TAB SWITCH ──
+const ACTIVE_ND_KEY='tv_active_nd_v1';
+function switchNd(idx){
+  _activeNdIdx=idx;
+  document.querySelectorAll('.panel-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.querySelectorAll('.panel-body').forEach((b,i)=>b.classList.toggle('active',i===idx));
+  // v5 FIX: panel phải (đang đấu/ticker) phụ thuộc tab → cập nhật lại khi đổi tab
+  renderLive(); renderTicker(); renderStats(); renderUpcoming();
+  notifyScrollReset(); // tab mới → báo scroll detect element mới
+  // v5 FIX: lưu lại nội dung đang xem để giữ nguyên sau khi reload
+  const ndList=[...new Set(_groups.map(g=>g.nd))];
+  if(ndList[idx]){try{localStorage.setItem(ACTIVE_ND_KEY,ndList[idx]);}catch(e){}}
+  resetRotate();
+}
+
+// ── AUTO ROTATE NOIDUNG ──
+function startRotate(){ /* v10: TẮT auto-rotate — giữ nguyên nội dung đang xem */ }
+function resetRotate(){ /* no-op */ }
+
+// ── POLLING ──
+function startPolling(){
+  startRotate();
+  _pollTimer=setInterval(fetchAll, POLL_SEC*1000);
+  // Auto-scroll khởi động 1 lần duy nhất tại đây sau khi data sẵn sàng
+  // (initAutoScroll trong render() sẽ xử lý, không cần gọi thêm)
+}
+
+// ── UTILS ──
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function shortName(s,maxW){
+  if(!s)return s;
+  // Ước tính ký tự vừa theo maxW (trung bình ~6.5px/char ở font-size 11px)
+  const limit=maxW?Math.floor(maxW/6):24;
+  if(s.length<=limit)return s;
+  const parts=s.split(/\s*-\s*/);
+  if(parts.length>=2){
+    // v4 FIX: giữ dấu " - " giống tên gốc (không đổi thành "/")
+    const abbr=parts.map(p=>{
+      const ws=p.trim().split(' ');
+      if(maxW&&maxW<=80)return ws[ws.length-1]; // chỉ tên cuối khi rất nhỏ
+      return ws.slice(-2).join(' '); // 2 từ cuối bình thường
+    }).join(' - ');
+    if(abbr.length<=limit+4)return abbr;
+    return parts.map(p=>p.trim().split(' ').pop()).join(' - ');
+  }
+  return s.slice(0,limit)+'…';
+}
+
+// ── RESTORE SESSION (tự động đăng nhập lại nếu đã login trước đó) ──
+(function restoreSession(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(SESS_KEY)||'null');
+    if(saved && saved.giai && saved.giai.length){
+      SESS_NAME=saved.name||'';
+      SESS_GIAI=saved.giai||[];
+      SESS_ND=saved.nd||[];
+      enterDisplay();
+      return;
+    }
+  }catch(e){}
+  // Chưa đăng nhập → hiện màn hình login
+  document.getElementById('login-screen').style.display='flex';
+})();
+
+// Enter để đăng nhập nhanh
+document.getElementById('login-phone')?.addEventListener('keydown',e=>{
+  if(e.key==='Enter')doLogin();
+});
+</script>
+</body>
+</html>
