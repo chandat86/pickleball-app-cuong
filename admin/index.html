@@ -11017,11 +11017,21 @@ function bkRender() {
     tree = JSON.parse(JSON.stringify(_bkCurrentTree));
     tree = _bkApplyOverrides(tree);
     tree = _bkResolveAdvancers(tree, koMatches);
-  } else {
-    // Chưa Apply: rebuild từ seeds (chế độ preview/chỉnh sửa tự do)
-    tree = _bkBuildTree(seeds, bangs, koMatches, bangDone);
+  } else if (_bkCurrentTree) {
+    // Có cây tạm (user đã nhấn Tạo cây nhưng chưa Apply) → giữ nguyên, không rebuild
+    tree = JSON.parse(JSON.stringify(_bkCurrentTree));
     tree = _bkApplyOverrides(tree);
     tree = _bkResolveAdvancers(tree, koMatches);
+  } else {
+    // Chưa có cây nào → hiện trạng thái chờ, KHÔNG tự động tạo
+    // v56 FIX: bỏ auto-rebuild — chỉ tạo khi user nhấn "🏗 Tạo cây"
+    const ndWrap = document.getElementById('nd-bk-wrap') || wrap;
+    ndWrap.innerHTML = `<div class="empty"><div class="ei">🏆</div>
+      <p>Nhấn <b>🏗 Tạo cây</b> để tạo cây thi đấu từ kết quả vòng bảng</p>
+      <p style="font-size:11px;color:var(--tx3);margin-top:4px">${bangs.length} bảng · ${seeds.length} đội được xếp hạng</p>
+    </div>`;
+    if (status) status.innerHTML = `<span>${bangs.length} bảng · ${seeds.length} đội</span>`;
+    return;
   }
 
   // Set _bkCurrentTree ngay sau build — không phụ thuộc UI elements
@@ -11536,7 +11546,14 @@ async function ndBkGenChart() {
 
     // Reset overrides để xem cây chuẩn (không bị ảnh hưởng bởi drag-drop cũ)
     _bkOverrides = {};
-    _bkCurrentTree = null;
+
+    // v56 FIX: Build cây ngay tại đây rồi gán vào _bkCurrentTree TRƯỚC khi render
+    // Tránh bkRender() thấy _bkCurrentTree=null → hiện màn chờ thay vì cây
+    const koMatchesNew = _M.filter(m=>String(m[0]||'')=== (_resolveGiaiName(_bkGiai)||_bkGiai) && String(m[1]||'')===_bkNd)
+      .filter(m=>{const v=String(m[9]||'');return v&&v!=='Vòng bảng'&&!v.includes('bảng');});
+    let newTree = _bkBuildTree(seeds, bangs, bangDone);
+    newTree = _bkResolveAdvancers(newTree, koMatchesNew);
+    _bkCurrentTree = newTree;
 
     // Render cây xem trước — chỉ hiển thị, không lưu
     await _swapBkWrap('nd-bk-wrap', () => Promise.resolve(bkRender()));
