@@ -4763,6 +4763,10 @@ async function pollMatches() {
     // v21 FIX: thêm rule vào hasChange — khi admin đổi rule không thêm trận/điểm → cũ bị bỏ qua
     const oldRules  = matchList.map(m=>`${m.key}:${m.rule||''}`).join('|');
     const newRules  = newMatches.map(m=>`${m.key}:${m.rule||''}`).join('|');
+    // FIX: thêm tên đội vào hasChange — đổi tên VĐV (không đổi điểm/bảng/rule) trước đây
+    // bị bỏ qua hoàn toàn → matchList không cập nhật, phải reload trang mới thấy tên mới
+    const oldTeams  = matchList.map(m=>`${m.key}:${m.teamA}§${m.teamB}`).join('|');
+    const newTeams  = newMatches.map(m=>`${m.key}:${m.teamA}§${m.teamB}`).join('|');
 
     // v21 FIX REALTIME: nếu trận đang chấm có rule mới → áp ngay, KHÔNG chờ hasChange
     if (S.currentMatch?.key) {
@@ -4778,7 +4782,8 @@ async function pollMatches() {
                    || oldBangs !== newBangs
                    || oldNDs   !== newNDs
                    || oldScores !== newScores
-                   || oldRules  !== newRules; // v21: thêm rule
+                   || oldRules  !== newRules  // v21: thêm rule
+                   || oldTeams  !== newTeams; // FIX: thêm tên đội
 
     if (!hasChange) return; // không có gì thay đổi → bỏ qua
 
