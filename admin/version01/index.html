@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<!-- Pickleball Admin v89 2026-06-12: FIX saveEditMatch — áp dụng optimistic update như v12: cập nhật _M local + render ngay TRƯỚC await GAS (user thấy sân/TT/giờ/tên mới tức thì); GAS chạy nền; nếu lỗi rollback _M + re-render; giữ try/catch + lưu localStorage | v88 2026-06-12: FIX sân/TT không hiện sau reload — loadMatchesCache lưu _M vào localStorage ngay sau fetch từ server (sân/TT/tên mới persist qua reload); applyEditBang lưu localStorage sau update _M local | v87 2026-06-12: FIX applyEditBang — đảo thứ tự: cập nhật _M local + renderBangList NGAY TRƯỚC await GAS (không chờ 2-3s GAS mới hiện sân/TT); GAS assignCourtToBang + updateMatch chạy nền sau khi UI đã cập nhật | v86 2026-06-12: FIX 11 vấn đề ổn định — (1) saveEditMatch: try/catch bọc gPost + snapshot giaiId cho extraUpdates; (2) saveMatch: finally reset btn.disabled; (3) _bkDoSyncToSchedule: try/catch toàn hàm; (4) _startBgCacheWatcher: GS→_curGiaiId; (5) _startResultsPolling + _startFirebaseRestPoll: clearInterval trước khi start tránh double interval; (6) saveTournament + savePlayer: finally reset btn.disabled; (7) delPlayer: backup + rollback _P nếu GAS lỗi | v85 2026-06-12: FIX saveMatch + delMatch — cập nhật _M local + invalidateCache + renderBangList ngay lập tức trước khi await GAS, sau GAS xong render lại đảm bảo đồng bộ | v84 2026-06-12: RESTORE luồng bảng đấu về v20 — openNdDetail luôn mở tab Bảng đấu (bỏ activeTab logic), render ngay từ _M local + fetch nền; switchNdTab('bangs') chỉ renderBangList từ _M (không fetch server khi click tab) — giống hệt v20 | v83 2026-06-12: FIX hiển thị tức thì — renamePlayer bước 5 tự switchNdTab('bangs') + renderBangList ngay → bảng đấu + BXH cập nhật lập tức không cần click tab (giống v20); bước 7 simplify | v82 2026-06-12: FIX RACE CONDITION đổi tên VĐV — (1) switchNdTab('bangs') không fetch server khi _renameOverrides còn active (server chưa có tên mới → tránh overwrite _M đúng); (2) renamePlayer bước 7 render đúng vào panel đang hiển thị (bangs visible → renderBangList, ẩn → _renderBangListDirect) | v81 2026-06-12: switchNdTab bangs fetch fresh + re-render | v80 2026-06-12: RESTORE renamePlayer về luồng v20 — gName/nd khai báo trong if(matchChanged) (đúng scope v20), toast "⏳" trước try, bỏ gName/nd khai báo ngoài try; giữ toàn bộ fix v78-v79: _renameOverrides, _renderBangListDirect, bracket patch, _invalidateMatchCache, localStorage _M | v79 2026-06-12: FIX renamePlayer — sau khi GAS renameTeamInMatches thành công, gọi _invalidateMatchCache() ngay → cache cũ bị xóa → poll nền tiếp theo fetch fresh từ server (tên mới) thay vì restore tên cũ từ cache; rút ngắn _renameOverrides TTL 60s→30s vì cache đã invalidated | v78 2026-06-11: FIX TRIỆT ĐỂ hiển thị tức thì — (1) xóa stale-guard khỏi renderBangList (y chang v20, không block render); (2) openNdDetail render NGAY từ _M local trước khi fetch GAS (y chang v20); (3) renamePlayer dùng _renderBangListDirect force-render + lưu localStorage ngay; (4) _renameOverrides bảo vệ tên mới khi GAS prefetch về | Pickleball Admin v57 2026-06-09: Redesign form Thêm TT — vai trò lên đầu, active=SĐT, manager/player=mã, nội dung hiện dạng chip sau khi chọn giải | v56 2026-06-09: FIX CRITICAL _syncResultCache nhận newRow[5/6] stale từ _M khi chỉ đổi rule → trận pending bị gán điểm cũ thành Hoàn thành — giờ truyền score tường minh từ saRaw/sbRaw | v55 2026-06-09: FIX saveEditMatch — hasAnyInput thêm rule, dùng ruleVal tránh đọc DOM 2 lần — cho phép lưu khi chỉ đổi quy tắc điểm trận | v54 2026-06-09: (1) FIX rule không đẩy xuống TT — normalizeMatchRow giờ đủ 13 cột, openEditMatchMo chỉ hiện điểm khi done; (2) FIX A3/A4 tự điền điểm — openEditMatchMo+renderBangList không đọc _dkScores khi pending | v51 2026-06-09: FIX TRIỆT ĐỂ popup Sửa bảng+trận — bỏ async/await getUsers khỏi openEditMatchMo+openEditBangMo (block 8s → modal không xuất hiện); load _U ngầm sau khi modal đã mở | v50 2026-06-09: FIX (1) popup Sửa bảng+trận không mở — xóa code lỗi matches[0] bị chèn nhầm vào openEditMatchMo; (2) FIX tỉ số hiển thị sai khi reload — chỉ tra _dkScores khi isMatchDone=true, pending→null | v49 2026-06-09: ADD Quy tắc điểm vào modal Sửa bảng (vòng bảng + KO) — openEditBangMo hiện select Chạm 11/15/21/24/25; applyEditBang lưu rule→col[12]→GAS+local _M | v48 2026-06-09: FIX tab nội dung — openNdDetail giữ tab đang active khi chuyển nội dung (Danh sách/Bảng đấu/Cây thi đấu); _getActiveNdTab() helper | v47 2026-06-09: FIX "Đang đấu" stale TRIỆT ĐỂ — REST poll /liveScores 2s song song SDK: detect node bị DELETE mà SDK WebSocket miss; rest-cleanup source tránh ghi đè điểm SDK fresh <3s; guard keep-fresh-key cho rest-cleanup | v46 2026-06-09: FIX Firebase liveScores listener lọc status≠playing; _onLiveData trigger loadDash khi rows=0 | v108 — v57 2026-06-09: Quy tắc điểm từ Admin — (1) Admin chọn rule khi tạo bảng (bang-rule); (2) Rule lưu vào Matches col[12]; (3) Modal Sửa trận có select rule; (4) Referee tự động load rule từ match → TT không cần chọn | v107 — v56 2026-06-09: (1) _bkCrossSeededSlots v2 — random shuffle fair-play, phân nhánh chẵn/lẻ, BYE ưu tiên Nhất>Nhì, TL ưu tiên Nhất vs Nhì, xen kẽ BYE-TL; (2) bỏ REST liveScores poll + gas-safety poll (race condition); (3) fix render sig bao gồm live score | v105 — FIX RACE CONDITION 2026-06-08: v53 — (1) _buildLiveFromRows MERGE THEO TIMESTAMP — không cho GAS stale overwrite Firebase fresh; (2) Source tracking: firebase/rest > gas; (3) GAS safety poll chỉ chạy khi REST/SDK đã silent > 8s; (4) Force re-render every 2s while Firebase active để đảm bảo DOM sync với _liveScores | v104 v52 REST POLL: ADD Firebase REST poll 2s SONG SONG với SDK listener — bypass SDK disconnect silent;  v103 FIX renderBangList giaiId 2026-06-08: v50 REALTIME ALL FLOWS — (1) Firebase /results onValue → _dkScores cập nhật &lt;1s khi TT Lưu; (2) Firebase /matches onValue → sân/TT cập nhật &lt;1s; (3) _onLiveData patch DOM trực tiếp không gọi loadDash(); (4) _syncFinishedMatches dùng Firebase data thay vì poll GAS |  FIX pill — đã có đội thật → tra BXH lấy rank+bảng (1E,2G); chưa có → mã trận (V162,TK1) | v90 2026-06-07: FIX pill label KO — "Thắng V162"→"V162", "Thắng TK1"→"TK1" thay vì W chung chung | v89 2026-06-07: FIX cây thi đấu gọn — card width 200px cố định; tên đôi tách 2 dòng (VĐV1/VĐV2); tên dài viết tắt họ; row/pill/sbox nhỏ hơn | v88 2026-06-07: FIX bkEditMatch — TK1 đã có tên VĐV hiển thị tên thật (card A/B); chờ vòng trước hiện "Thắng VXX"; phân biệt 3 case rõ ràng | v87 2026-06-07: Ẩn hoàn toàn scrollbar native của nd-bk-wrap — chỉ dùng nd-bk-scrollbar-wrap fixed | v86 2026-06-07: FIX TRIỆT ĐỂ scroll — nd-bk-wrap (scroll container) không bao giờ bị swap innerHTML; chỉ swap nd-bk-content (con bên trong) → scrollLeft tự nhiên giữ nguyên vĩnh viễn; drag chuột+touch đơn giản sạch | v85 2026-06-07: FIX TRIỆT ĐỂ scroll cây thi đấu — flag _bkRestoring block scroll event khi restore (không bị reset về 0); drag chuột+touch dùng clientX thay pageX; MutationObserver chỉ update width, không restore; restore 3 lần delay tăng dần | v84 2026-06-07: FIX đăng nhập lỗi 10M ô — hiển thị hướng dẫn xóa EventLog/LoginLog/LiveScore thay vì "Mã không hợp lệ"; Máy chủ không tạo sheet mới khi login | v83 2026-06-07: FIX scroll cây thi đấu — dùng biến global _bkScrollX/Y thay DOM (DOM reset về 0 sau render); MutationObserver restore scroll sau mỗi DOM change; drag chuột+touch đa chiều ngang+dọc; guard flag tránh sync loop | v82 2026-06-07: FIX (1) card cây thi đấu hiện "Thắng VXX" khi chưa có tên đội; (2) scroll ngang giữ nguyên vị trí sau render, bỏ loop sync; (3) drag-to-scroll chuột trên nd-bk-wrap | v81 2026-06-07: FIX cây thi đấu — bkEditMatch ẩn dropdown BYE khi trận đang chờ winner ("Thắng VXX"); bkSaveEditNew không ghi đè TBD khi chỉ lưu sân/giờ/TT; tạo mới Matches nếu chưa tồn tại | v80 2026-06-07: FIX saveEditMatch cho phép lưu khi chưa có tên đội — phân sân/giờ/TT trước, tên đội cập nhật sau; giữ nguyên tên đội cũ nếu field để trống | v79 2026-06-07: FIX bkApplyAndSave bỏ upsert:true (nguy hiểm — xóa toàn bộ trận KO kể cả đã có điểm); thêm scoreCleared:false khi update tên đội KO | v78 2026-06-07: FIX mất kết quả khi sửa tên VĐV — (1) openEditMatchMo đọc curSA/curSB từ getFinalScore(KetQua) thay vì Matches col[5/6]; (2) flag scoreCleared phân biệt "trống chưa có điểm" vs "chủ động xóa"; (3) chỉ gửi empty score lên Máy chủ khi scoreCleared=true | v77 2026-06-07: FIX data integrity — bkApplyAndSave+saveRR thêm upsert:true; importCSV toast cảnh báo skip; v76 2026-06-07: FIX nút Sửa tràn khỏi bảng — dùng table-layout:auto, bỏ min-width cứng, giảm padding td, bỏ white-space:nowrap cột Sân → nút Sửa luôn nằm trong khung | v75 2026-06-07: FIX _buildLiveFromRows — index cả key 4 phần (giai|nd|bang|code) lẫn key 3 phần (nd|bang|code) vào _lK và _liveScores; admin render dùng key 3 phần nên bị miss khi Máy chủ ghi key 4 phần | v73 2026-06-07: FIX — _lK hỗ trợ key mới 4 phần "giai|nd|bang|code" từ Máy chủ v40; _buildLiveMatchData dùng key mới; cold-start _lK thêm cả key 3 phần để backward-compat | v72 2026-06-04: FIX Xóa tất cả bảng dùng 1 request deleteAllBangs thay vì N requests tuần tự — nhanh gấp 15x; bỏ confirm() dùng double-tap | v71 2026-06-04: FIX saveBang+importMultiBang gửi upsert=true → Máy chủ xóa bảng cũ trước khi tạo lại, tránh dedup skip trận | v70 2026-06-04: FIX bkDeleteTree dùng double-tap thay confirm() bị browser block; Máy chủ v37 fix giaiName undefined trong deleteBracketTree | v69 2026-06-04: FIX confirm() trong bkApplyAndSave bị browser block → return sớm không save BracketTree; thay bằng toast cảnh báo tiếp tục luôn | v68 2026-06-04: FIX saveBracketTree bị bỏ qua khi Apply lần 2 (toCreate=0, toUpdate=0 → return sớm trước khi save SRV) | v67 2026-06-03: v6 FIX NGUỒN DUY NHẤT — buildDkFromResults/isMatchDone/getFinalScore/_syncResultCache/_buildLiveFromRows đều dùng key 4 trường "TênGiải|NộiDung|Bảng|MãTrận"; bỏ fallback Matches col[5/6] trong getFinalScore; bỏ giaiId duplicate trong _dK; bỏ fallback giaiId trong isMatchDone — badge Hoàn thành/Chưa đấu/Đang đấu giờ chính xác 100% từ KetQua | v66 2026-06-03: FIX v32 referee bugs — assignCourtToRef/assignRef/atrAssignDirect không xóa noidung cũ; _matchAllowed normalize dấu; renderMatchGrid hiển thị khi có trận phân tên | v65 2026-06-01: FIX bracket overflow + nút tràn màn hình PC | v25 | FIX: Login detailed errors, Test Máy chủ button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) Máy chủ dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên SRV | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (SRV renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) Máy chủ v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang -->
+<!-- Pickleball Admin v92 2026-06-12: ADD đồng bộ 2 chiều — saveEditMatch (Sửa trận ở Bảng đấu) khi đổi tên VĐV/đội: thêm _syncRenameToPlayersList() cập nhật ngay _players (Danh sách VĐV) + _bocThamGroups (Bốc thăm chia bảng), lưu localStorage + render lại tab Danh sách nếu đang mở; nếu danh sách đã "Đã lưu" lên Sheets thì đồng bộ ngầm lên Sheets luôn (saveDanhSachVDV+saveDanhSachBang) — trước đây chỉ có chiều Danh sách→Bảng đấu (renamePlayer), giờ thêm chiều Bảng đấu→Danh sách |
+     Pickleball Admin v90 2026-06-12: FIX TRIỆT ĐỂ saveEditMatch + applyEditBang hiển thị NGAY (y chang v20) — (1) saveEditMatch khi đổi tên VĐV/đội: đăng ký _renameOverrides[oldName]=newName NGAY (bảo vệ tên mới khỏi bị loadMatchesCache nền ghi đè bằng tên cũ từ Sheet chưa kịp lưu — trước đây chỉ renamePlayer có cơ chế này, saveEditMatch (Sửa trận trong Bảng đấu) thì KHÔNG → các trận liên quan A2/A3/A6 không cập nhật ngay, phải F5 mới thấy); (2) saveEditMatch + applyEditBang lưu localStorage pb_adm_M_ ngay sau khi sửa _M; (3) saveEditMatch + applyEditBang dùng _renderBangListDirect (force render, bỏ qua mọi guard) thay vì renderBangList; (4) cleanup _renameOverrides sau 60s đủ thời gian Máy chủ commit + prefetch tới |
+     Pickleball Admin v78 2026-06-11: FIX TRIỆT ĐỂ hiển thị tức thì — (1) xóa stale-guard khỏi renderBangList (y chang v20, không block render); (2) openNdDetail render NGAY từ _M local trước khi fetch GAS (y chang v20); (3) renamePlayer dùng _renderBangListDirect force-render + lưu localStorage ngay; (4) _renameOverrides bảo vệ tên mới khi GAS prefetch về | Pickleball Admin v57 2026-06-09: Redesign form Thêm TT — vai trò lên đầu, active=SĐT, manager/player=mã, nội dung hiện dạng chip sau khi chọn giải | v56 2026-06-09: FIX CRITICAL _syncResultCache nhận newRow[5/6] stale từ _M khi chỉ đổi rule → trận pending bị gán điểm cũ thành Hoàn thành — giờ truyền score tường minh từ saRaw/sbRaw | v55 2026-06-09: FIX saveEditMatch — hasAnyInput thêm rule, dùng ruleVal tránh đọc DOM 2 lần — cho phép lưu khi chỉ đổi quy tắc điểm trận | v54 2026-06-09: (1) FIX rule không đẩy xuống TT — normalizeMatchRow giờ đủ 13 cột, openEditMatchMo chỉ hiện điểm khi done; (2) FIX A3/A4 tự điền điểm — openEditMatchMo+renderBangList không đọc _dkScores khi pending | v51 2026-06-09: FIX TRIỆT ĐỂ popup Sửa bảng+trận — bỏ async/await getUsers khỏi openEditMatchMo+openEditBangMo (block 8s → modal không xuất hiện); load _U ngầm sau khi modal đã mở | v50 2026-06-09: FIX (1) popup Sửa bảng+trận không mở — xóa code lỗi matches[0] bị chèn nhầm vào openEditMatchMo; (2) FIX tỉ số hiển thị sai khi reload — chỉ tra _dkScores khi isMatchDone=true, pending→null | v49 2026-06-09: ADD Quy tắc điểm vào modal Sửa bảng (vòng bảng + KO) — openEditBangMo hiện select Chạm 11/15/21/24/25; applyEditBang lưu rule→col[12]→GAS+local _M | v48 2026-06-09: FIX tab nội dung — openNdDetail giữ tab đang active khi chuyển nội dung (Danh sách/Bảng đấu/Cây thi đấu); _getActiveNdTab() helper | v47 2026-06-09: FIX "Đang đấu" stale TRIỆT ĐỂ — REST poll /liveScores 2s song song SDK: detect node bị DELETE mà SDK WebSocket miss; rest-cleanup source tránh ghi đè điểm SDK fresh <3s; guard keep-fresh-key cho rest-cleanup | v46 2026-06-09: FIX Firebase liveScores listener lọc status≠playing; _onLiveData trigger loadDash khi rows=0 | v108 — v57 2026-06-09: Quy tắc điểm từ Admin — (1) Admin chọn rule khi tạo bảng (bang-rule); (2) Rule lưu vào Matches col[12]; (3) Modal Sửa trận có select rule; (4) Referee tự động load rule từ match → TT không cần chọn | v107 — v56 2026-06-09: (1) _bkCrossSeededSlots v2 — random shuffle fair-play, phân nhánh chẵn/lẻ, BYE ưu tiên Nhất>Nhì, TL ưu tiên Nhất vs Nhì, xen kẽ BYE-TL; (2) bỏ REST liveScores poll + gas-safety poll (race condition); (3) fix render sig bao gồm live score | v105 — FIX RACE CONDITION 2026-06-08: v53 — (1) _buildLiveFromRows MERGE THEO TIMESTAMP — không cho GAS stale overwrite Firebase fresh; (2) Source tracking: firebase/rest > gas; (3) GAS safety poll chỉ chạy khi REST/SDK đã silent > 8s; (4) Force re-render every 2s while Firebase active để đảm bảo DOM sync với _liveScores | v104 v52 REST POLL: ADD Firebase REST poll 2s SONG SONG với SDK listener — bypass SDK disconnect silent;  v103 FIX renderBangList giaiId 2026-06-08: v50 REALTIME ALL FLOWS — (1) Firebase /results onValue → _dkScores cập nhật &lt;1s khi TT Lưu; (2) Firebase /matches onValue → sân/TT cập nhật &lt;1s; (3) _onLiveData patch DOM trực tiếp không gọi loadDash(); (4) _syncFinishedMatches dùng Firebase data thay vì poll GAS |  FIX pill — đã có đội thật → tra BXH lấy rank+bảng (1E,2G); chưa có → mã trận (V162,TK1) | v90 2026-06-07: FIX pill label KO — "Thắng V162"→"V162", "Thắng TK1"→"TK1" thay vì W chung chung | v89 2026-06-07: FIX cây thi đấu gọn — card width 200px cố định; tên đôi tách 2 dòng (VĐV1/VĐV2); tên dài viết tắt họ; row/pill/sbox nhỏ hơn | v88 2026-06-07: FIX bkEditMatch — TK1 đã có tên VĐV hiển thị tên thật (card A/B); chờ vòng trước hiện "Thắng VXX"; phân biệt 3 case rõ ràng | v87 2026-06-07: Ẩn hoàn toàn scrollbar native của nd-bk-wrap — chỉ dùng nd-bk-scrollbar-wrap fixed | v86 2026-06-07: FIX TRIỆT ĐỂ scroll — nd-bk-wrap (scroll container) không bao giờ bị swap innerHTML; chỉ swap nd-bk-content (con bên trong) → scrollLeft tự nhiên giữ nguyên vĩnh viễn; drag chuột+touch đơn giản sạch | v85 2026-06-07: FIX TRIỆT ĐỂ scroll cây thi đấu — flag _bkRestoring block scroll event khi restore (không bị reset về 0); drag chuột+touch dùng clientX thay pageX; MutationObserver chỉ update width, không restore; restore 3 lần delay tăng dần | v84 2026-06-07: FIX đăng nhập lỗi 10M ô — hiển thị hướng dẫn xóa EventLog/LoginLog/LiveScore thay vì "Mã không hợp lệ"; Máy chủ không tạo sheet mới khi login | v83 2026-06-07: FIX scroll cây thi đấu — dùng biến global _bkScrollX/Y thay DOM (DOM reset về 0 sau render); MutationObserver restore scroll sau mỗi DOM change; drag chuột+touch đa chiều ngang+dọc; guard flag tránh sync loop | v82 2026-06-07: FIX (1) card cây thi đấu hiện "Thắng VXX" khi chưa có tên đội; (2) scroll ngang giữ nguyên vị trí sau render, bỏ loop sync; (3) drag-to-scroll chuột trên nd-bk-wrap | v81 2026-06-07: FIX cây thi đấu — bkEditMatch ẩn dropdown BYE khi trận đang chờ winner ("Thắng VXX"); bkSaveEditNew không ghi đè TBD khi chỉ lưu sân/giờ/TT; tạo mới Matches nếu chưa tồn tại | v80 2026-06-07: FIX saveEditMatch cho phép lưu khi chưa có tên đội — phân sân/giờ/TT trước, tên đội cập nhật sau; giữ nguyên tên đội cũ nếu field để trống | v79 2026-06-07: FIX bkApplyAndSave bỏ upsert:true (nguy hiểm — xóa toàn bộ trận KO kể cả đã có điểm); thêm scoreCleared:false khi update tên đội KO | v78 2026-06-07: FIX mất kết quả khi sửa tên VĐV — (1) openEditMatchMo đọc curSA/curSB từ getFinalScore(KetQua) thay vì Matches col[5/6]; (2) flag scoreCleared phân biệt "trống chưa có điểm" vs "chủ động xóa"; (3) chỉ gửi empty score lên Máy chủ khi scoreCleared=true | v77 2026-06-07: FIX data integrity — bkApplyAndSave+saveRR thêm upsert:true; importCSV toast cảnh báo skip; v76 2026-06-07: FIX nút Sửa tràn khỏi bảng — dùng table-layout:auto, bỏ min-width cứng, giảm padding td, bỏ white-space:nowrap cột Sân → nút Sửa luôn nằm trong khung | v75 2026-06-07: FIX _buildLiveFromRows — index cả key 4 phần (giai|nd|bang|code) lẫn key 3 phần (nd|bang|code) vào _lK và _liveScores; admin render dùng key 3 phần nên bị miss khi Máy chủ ghi key 4 phần | v73 2026-06-07: FIX — _lK hỗ trợ key mới 4 phần "giai|nd|bang|code" từ Máy chủ v40; _buildLiveMatchData dùng key mới; cold-start _lK thêm cả key 3 phần để backward-compat | v72 2026-06-04: FIX Xóa tất cả bảng dùng 1 request deleteAllBangs thay vì N requests tuần tự — nhanh gấp 15x; bỏ confirm() dùng double-tap | v71 2026-06-04: FIX saveBang+importMultiBang gửi upsert=true → Máy chủ xóa bảng cũ trước khi tạo lại, tránh dedup skip trận | v70 2026-06-04: FIX bkDeleteTree dùng double-tap thay confirm() bị browser block; Máy chủ v37 fix giaiName undefined trong deleteBracketTree | v69 2026-06-04: FIX confirm() trong bkApplyAndSave bị browser block → return sớm không save BracketTree; thay bằng toast cảnh báo tiếp tục luôn | v68 2026-06-04: FIX saveBracketTree bị bỏ qua khi Apply lần 2 (toCreate=0, toUpdate=0 → return sớm trước khi save SRV) | v67 2026-06-03: v6 FIX NGUỒN DUY NHẤT — buildDkFromResults/isMatchDone/getFinalScore/_syncResultCache/_buildLiveFromRows đều dùng key 4 trường "TênGiải|NộiDung|Bảng|MãTrận"; bỏ fallback Matches col[5/6] trong getFinalScore; bỏ giaiId duplicate trong _dK; bỏ fallback giaiId trong isMatchDone — badge Hoàn thành/Chưa đấu/Đang đấu giờ chính xác 100% từ KetQua | v66 2026-06-03: FIX v32 referee bugs — assignCourtToRef/assignRef/atrAssignDirect không xóa noidung cũ; _matchAllowed normalize dấu; renderMatchGrid hiển thị khi có trận phân tên | v65 2026-06-01: FIX bracket overflow + nút tràn màn hình PC | v25 | FIX: Login detailed errors, Test Máy chủ button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) Máy chủ dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên SRV | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (SRV renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) Máy chủ v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang -->
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Admin v78 — Referee Pickleball / DA NANG ®</title>
+<title>Admin v90 — Referee Pickleball / DA NANG ®</title>
 <style>
 /* ═══════════════════════════════════════════════════════
    Pickleball Admin — Mobile-First Professional UI
@@ -3427,7 +3429,7 @@ function showApp() {
 let _resultsTimer = null;
 let _lastResultsCheck = 0;
 function _startResultsPolling() {
-  if (_resultsTimer) clearInterval(_resultsTimer); // tránh double interval nếu gọi nhiều lần
+  if (_resultsTimer) return;
   _resultsTimer = setInterval(async () => {
     try {
       if (!GS || _failCount > 3) return;
@@ -3733,7 +3735,7 @@ function _initFirebaseLive() {
 //  Dedup bằng JSON signature → không gọi _onLiveData khi data không đổi.
 // ══════════════════════════════════════════════════════════════
 function _startFirebaseRestPoll() {
-  if (_fbRestPollTimer) clearInterval(_fbRestPollTimer); // tránh double interval
+  if (_fbRestPollTimer) return;
   console.log('[FB REST] Bắt đầu polling 2s song song SDK');
   _fbRestPollTimer = setInterval(_fbRestPollTick, 2000);
   // Gọi lần đầu ngay để có data
@@ -3974,7 +3976,7 @@ function _startBgCacheWatcher() {
         _silentClearCache('permission_changed');
         MY_GIAI = d.giai;
         MY_GIAI_LIST = MY_GIAI.split(',').map(g=>g.trim()).filter(Boolean);
-        if (_curGiaiId) await loadMatchesCache(_curGiaiId, true); // reload ngầm (dùng giaiId, không phải GS URL)
+        await loadMatchesCache(GS, true); // reload ngầm
       }
     } catch(e) {
       // Timeout/network error — bỏ qua, không crash
@@ -5316,6 +5318,10 @@ function _renderLiveTable(matches) {
 
 // Render bảng trận đầy đủ (đã lọc) — có nút thu gọn + live score trong row
 let _collapsedBangs = new Set(); // Bảng đang thu gọn
+// v91 FIX: cờ buộc renderBangList rebuild TOÀN BỘ (bỏ qua smart partial-update)
+// Dùng sau khi Sửa trận/Sửa bảng — vì signature so sánh (doneM|liveM|totalM|liveScoreSig)
+// KHÔNG đổi khi chỉ đổi tên VĐV/sân/giờ/TT → cột trái (bảng đấu) không re-render → hiển thị tên cũ
+let _forceBangListRebuild = false;
 function _renderMatchTable(matches) {
   const byBang = {};
   matches.forEach(m => {
@@ -5950,7 +5956,7 @@ function switchNdTab(tab, _skipHash) {
     _bkStopSyncPoll();
   }
   if (tab === 'bangs') {
-    // Render ngay từ _M local — giống v20, không fetch thêm khi chỉ click tab
+    // Render bảng đấu ngay từ _M local khi user chuyển tab — tên VĐV mới hiện ngay
     if (_curGiaiId && _curNd) renderBangList(_curGiaiId, _curNd);
   }
   if (tab === 'players') {
@@ -6455,7 +6461,7 @@ async function renamePlayer(idx) {
   if (!newName || !newName.trim() || newName.trim() === oldName) return;
   const nn = newName.trim();
 
-  // Đăng ký override bảo vệ _M khỏi bị prefetch/bgCache overwrite tên cũ
+  // Đăng ký override để bảo vệ _M khỏi bị overwrite bởi prefetchAll/bgCache
   _renameOverrides[oldName] = nn;
 
   // 1. Cập nhật danh sách VĐV
@@ -6470,25 +6476,24 @@ async function renamePlayer(idx) {
     });
   });
 
-  // 3. Đồng bộ vào _M (trận đấu trong bộ nhớ) — cập nhật cột Đội A (index 4) và Đội B (index 7)
+  // 3. Đồng bộ vào _M (trận đấu trong bộ nhớ)
   let matchChanged = false;
   _M.forEach(row => {
     if (String(row[4]||'') === oldName) { row[4] = nn; matchChanged = true; }
     if (String(row[7]||'') === oldName) { row[7] = nn; matchChanged = true; }
   });
 
-  // 4. Lưu vào localStorage ngay (bao gồm _M để prefetch nền không restore tên cũ)
+  // 4. Lưu localStorage ngay để prefetch nền không restore tên cũ
   _lsSavePlayers(_playersCtxKey, _players, _bocThamGroups);
   _savePLayersCtx();
   try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
 
-  // 5. Render UI NGAY trước mọi await
+  // 5. Render NGAY — trước mọi await (theo luồng v20)
   renderPlayersPanel();
-  // Tự động switch sang tab Bảng đấu + render ngay — user thấy tên mới lập tức
-  // (giống v20: bảng đấu và BXH cập nhật ngay khi đổi tên, không cần click tab)
+  // Render bảng đấu trực tiếp vào DOM (không dùng helper có thể bị guard chặn)
   if (_curGiaiId && _curNd) {
-    switchNdTab('bangs', true); // hiện panel bangs + render từ _M đã đúng
-    renderBangList(_curGiaiId, _curNd); // force render lại ngay từ local (tránh race với fetch nền)
+    const _wBang = document.getElementById('bang-list');
+    if (_wBang) _renderBangListDirect(_curGiaiId, _curNd);
   }
   // Patch cây thi đấu nếu đang mở
   if (_bkCurrentTree && _bkCurrentTree.rounds) {
@@ -6496,32 +6501,30 @@ async function renamePlayer(idx) {
       if (m.teamA === oldName) m.teamA = nn;
       if (m.teamB === oldName) m.teamB = nn;
     }));
+    const bkPanel = document.getElementById('nd-panel-bracket');
+    if (bkPanel && bkPanel.style.display !== 'none' && typeof _ndBkRender === 'function') _ndBkRender();
   }
 
-  // 6. Nếu đã lưu → sync lên Máy Chủ (giống v20)
+  // 6. Sync lên GSheets (nền — không block UI)
   if (_playersSavedMap[_playersCtxKey]) {
     toast('⏳ Đang cập nhật lên Máy Chủ...', 'in');
+    const gName = _ctxGiaiName();
+    const nd    = _curNd || '';
     try {
-      // Lưu danh sách VĐV mới
+      // Lưu danh sách VĐV
       await _saveVDVToSheets();
-      // Lưu bảng bốc thăm mới (nếu có thay đổi)
+      // Lưu bảng bốc thăm
       if (bocThamChanged && Object.keys(_bocThamGroups).length > 0) {
         await _saveBangToSheets();
       }
-      // Đổi tên trong bảng đấu (matches) trên Máy Chủ
+      // Đổi tên trong Matches sheet
       if (matchChanged) {
-        const gName = _ctxGiaiName();
-        const nd = _curNd || '';
         const d = await gPost({ action: 'renameTeamInMatches', adminCode: CODE,
           giai: gName, nd, oldName, newName: nn });
         if (d && d.ok) {
-          // Invalidate cache ngay sau khi Máy Chủ đã ghi tên mới
-          // → lần loadMatchesCache tiếp theo fetch fresh, không restore tên cũ từ cache
-          _invalidateMatchCache(_curGiaiId || '');
-          try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
           toast(`✅ Đã đổi "${oldName}" → "${nn}" trong toàn bộ bảng đấu`, 'ok');
         } else {
-          toast('⚠️ Cập nhật bảng đấu Máy Chủ lỗi: ' + (d?.reason||''), 'er');
+          toast('⚠️ Cập nhật bảng đấu SRV lỗi: ' + (d?.reason||''), 'er');
         }
       } else {
         toast(`✅ Đã cập nhật tên đội`, 'ok');
@@ -6533,10 +6536,10 @@ async function renamePlayer(idx) {
     toast(`✅ Đã đổi "${oldName}" → "${nn}" (nhớ bấm Lưu danh sách)`, 'ok');
   }
 
-  // 7. Re-render bảng đấu + BXH sau khi Máy Chủ xong — đảm bảo đồng bộ
-  if (_curGiaiId && _curNd) renderBangList(_curGiaiId, _curNd);
-  // Cleanup _renameOverrides sau 30s
-  setTimeout(() => { delete _renameOverrides[oldName]; }, 30000);
+  // 7. Render lại sau khi GSheets xong (đảm bảo đồng bộ)
+  if (_curGiaiId && _curNd) _renderBangListDirect(_curGiaiId, _curNd);
+  // Cleanup _renameOverrides sau 60s
+  setTimeout(() => { delete _renameOverrides[oldName]; }, 60000);
 }
 async function clearAllPlayers() {
   if (!confirm(`Xóa tất cả ${_players.length} đội?`)) return;
@@ -7453,6 +7456,10 @@ function _getActiveNdTab() {
 }
 
 function openNdDetail(giaiId, nd) {
+  // Ghi nhớ tab đang active để giữ lại khi đổi nội dung (cây thi đấu)
+  const ndViewVisible = document.getElementById('tv-nd')?.style.display !== 'none';
+  const activeTab = ndViewVisible ? _getActiveNdTab() : 'bangs';
+
   // Xóa cache cây cũ khi chuyển sang nội dung khác
   if (_curNd !== nd || _curGiaiId !== giaiId) _bkCurrentTree = null;
   _curNd = nd; _curGiaiId = giaiId;
@@ -7466,18 +7473,35 @@ function openNdDetail(giaiId, nd) {
   renderNdSwitcher(giaiId, nd);
   showTournView('nd');
 
-  // Luôn mở tab Bảng đấu (giống v20 — tab mặc định là Bảng đấu)
-  switchNdTab('bangs', true);
+  // Switch tab đúng
+  if (activeTab === 'bracket') {
+    _bkGiai = giaiId;
+    _bkNd   = nd;
+    _bkGiaiName = _resolveGiaiName(giaiId) || giaiId;
+    switchNdTab('bracket', true);
+    loadMatchesCache(giaiId, true)
+      .then(async () => {
+        if (_curGiaiId !== giaiId || _curNd !== nd) return;
+        await _bkLoadOverridesFromGAS();
+        if (_curGiaiId !== giaiId || _curNd !== nd) return;
+        switchNdTab('bracket', true);
+        await new Promise(r => setTimeout(r, 300));
+        _syncBkScrollbar();
+      })
+      .catch(() => { if (_curGiaiId === giaiId && _curNd === nd) switchNdTab('bracket', true); });
+  } else {
+    switchNdTab(activeTab, true);
+  }
 
-  // Render ngay lập tức từ _M local — UX không bị block
+  // Render NGAY từ _M local (y chang v20 — không chờ GAS)
   renderBangList(giaiId, nd);
 
-  // Fetch fresh từ Máy Chủ nền — render lại khi có data mới
+  // Load GAS nền — dùng _renameOverrides bảo vệ tên mới
   loadMatchesCache(giaiId, true)
     .then(() => { if (_curGiaiId === giaiId && _curNd === nd) renderBangList(giaiId, nd); })
     .catch(() => {});
 
-  // Nếu localStorage chưa có VĐV/bảng → thử load từ Máy Chủ
+  // Nếu localStorage chưa có VĐV/bảng → thử load từ SRV
   const ctxKey = (giaiId||'') + '|' + (nd||'');
   const lsData = _lsLoadPlayers(ctxKey);
   if (!lsData.players || lsData.players.length === 0) {
@@ -7501,6 +7525,9 @@ function openNdDetail(giaiId, nd) {
 function _renderBangListDirect(giaiId, nd) {
   // Cập nhật _curGiaiId/_curNd nếu chưa khớp (đảm bảo context đúng)
   if (giaiId && nd) { _curGiaiId = giaiId; _curNd = nd; }
+  // v91 FIX: buộc rebuild toàn bộ — bỏ qua smart partial-update signature check
+  // (sig không đổi khi chỉ đổi tên/sân/giờ/TT → cột trái không cập nhật)
+  _forceBangListRebuild = true;
   renderBangList(giaiId, nd);
 }
 
@@ -7941,7 +7968,10 @@ function renderBangList(giaiId, nd) {
   // ══════════════════════════════════════════════════════
   // SMART PARTIAL UPDATE — tránh flash khi poll 3s/5s
   // ══════════════════════════════════════════════════════
-  const _existsGrid = wrap.querySelector('[data-bl-grid]');
+  // v91 FIX: nếu _forceBangListRebuild=true (sau Sửa trận/Sửa bảng) → bỏ qua smart
+  // partial-update, coi như chưa có grid → rebuild toàn bộ (y chang v20)
+  const _existsGrid = _forceBangListRebuild ? null : wrap.querySelector('[data-bl-grid]');
+  _forceBangListRebuild = false;
 
   if (!_existsGrid) {
     // ── Lần đầu: render toàn bộ ──
@@ -8450,6 +8480,40 @@ Hành động này không thể hoàn tác.`)) return;
   } catch(e) { toast('❌ Lỗi kết nối','er'); }
 }
 
+// v92 FIX: đồng bộ ngược — khi đổi tên đội/VĐV ở Bảng đấu (saveEditMatch) →
+// cập nhật luôn Danh sách VĐV (_players) + Bốc thăm chia bảng (_bocThamGroups)
+// để tab "Danh sách" hiển thị tên mới ngay, không cần qua lại tab mới thấy
+function _syncRenameToPlayersList(giaiId, nd, oldName, newName) {
+  if (!oldName || !newName || oldName === newName) return false;
+  // chỉ sync nếu _players/_bocThamGroups hiện tại đang đúng context với trận vừa sửa
+  if (_curGiaiId !== giaiId || _curNd !== nd) return false;
+  let changed = false;
+  (_players||[]).forEach(p => { if (p && p.name === oldName) { p.name = newName; changed = true; } });
+  Object.keys(_bocThamGroups||{}).forEach(bang => {
+    const arr = _bocThamGroups[bang];
+    (arr||[]).forEach((t, ti) => { if (t === oldName) { arr[ti] = newName; changed = true; } });
+  });
+  if (!changed) return false;
+  // Lưu memory cache + localStorage ngay (không mất khi chuyển tab/reload)
+  _savePLayersCtx();
+  _lsSavePlayers(_playersCtxKey, _players, _bocThamGroups);
+  // Render lại panel Danh sách nếu đang mở
+  const panel = document.getElementById('nd-panel-players');
+  if (panel && panel.style.display !== 'none' && typeof renderPlayersPanel === 'function') {
+    renderPlayersPanel();
+  }
+  // Nếu danh sách đã từng lưu lên Sheets → đồng bộ ngầm lên Sheets luôn
+  if (_playersSavedMap[_playersCtxKey]) {
+    Promise.allSettled([_saveVDVToSheets(), _saveBangToSheets()]).then(results => {
+      const failed = results.filter(r=>r.status==='rejected'||!r.value?.ok).length;
+      if (failed) toast('⚠️ Đồng bộ Danh sách VĐV lên Sheet lỗi', 'in');
+    });
+  } else {
+    _playersSavedMap[_playersCtxKey] = false;
+  }
+  return true;
+}
+
 async function saveEditMatch(giaiId, nd, bang, code) {
   const ta    = (document.getElementById('em-ta')?.value||'').trim();
   const tb    = (document.getElementById('em-tb')?.value||'').trim();
@@ -8517,105 +8581,100 @@ async function saveEditMatch(giaiId, nd, bang, code) {
   newRow[12] = rule;        // v52: Quy tắc điểm
   // Dùng bang từ _M (chính xác) thay vì bang tham số có thể mismatch
   const bangActual = String(m[2]||bang||'');
-
-  // ── BƯỚC 1: Cập nhật _M local NGAY (optimistic update — giống v12) ──
-  // User thấy sân/TT/giờ/tên mới tức thì, không chờ GAS
-  const mIdx = _M.indexOf(m);
-  const oldTA = String(m[4]||''), oldTB = String(m[7]||'');
-  const mBackup = [...m]; // backup để rollback nếu GAS lỗi
-  if (mIdx >= 0) _M[mIdx] = newRow;
-
-  // ── BƯỚC 2: Sync kết quả + render bảng đấu NGAY ──
-  const _syncSA = (saRaw !== '' && sbRaw !== '') ? Number(saRaw) : (scoreCleared ? '' : null);
-  const _syncSB = (saRaw !== '' && sbRaw !== '') ? Number(sbRaw) : (scoreCleared ? '' : null);
-  _syncResultCache(newRow, _syncSA, _syncSB, newRow[4], newRow[7], newRow[10]);
-
-  // Propagate đổi tên đội vào vòng bảng ngay
-  const renamedA = ta !== oldTA;
-  const renamedB = tb !== oldTB;
-  const extraUpdates = [];
-  if (renamedA || renamedB) {
-    const thisRound = String(newRow[9]||'');
-    const thisIsGroupStage = !thisRound || thisRound === 'Vòng bảng' || thisRound.includes('bảng');
-    if (thisIsGroupStage) {
-      _M.forEach((mr, mi) => {
-        if (mi === mIdx) return;
-        const sameGiai = String(mr[0]||'')===gName||String(mr[0]||'')===giaiId;
-        const sameBang = String(mr[2]||'')===bang;
-        if (!sameGiai || !sameBang) return;
-        const mrRound = String(mr[9]||'');
-        if (mrRound && mrRound !== 'Vòng bảng' && !mrRound.includes('bảng')) return;
-        let changed = false;
-        const nr = [...mr];
-        if (renamedA && String(mr[4]||'')===oldTA) { nr[4]=ta; changed=true; }
-        if (renamedA && String(mr[7]||'')===oldTA) { nr[7]=ta; changed=true; }
-        if (renamedB && String(mr[4]||'')===oldTB) { nr[4]=tb; changed=true; }
-        if (renamedB && String(mr[7]||'')===oldTB) { nr[7]=tb; changed=true; }
-        if (changed) {
-          _M[mi] = nr;
-          extraUpdates.push({ bang: String(mr[2]||''), code: String(mr[3]||''), row: nr });
-        }
-      });
-    }
+  toast('⏳ Đang lưu...','in');
+  let d = await gPost({action:'updateMatch',adminCode:CODE,
+    giai:gName||giaiId,giaiName:gName||giaiId,nd,bang:bangActual,code,row:newRow,
+    scoreCleared: scoreCleared});
+  if (d&&!d.ok&&gName&&gName!==giaiId) {
+    d = await gPost({action:'updateMatch',adminCode:CODE,giai:giaiId,giaiName:gName,nd,bang:bangActual,code,row:newRow});
   }
+  if (d?.ok) {
+    // ── Cập nhật local cache _M ngay lập tức ──
+    const mIdx = _M.indexOf(m);
+    const oldTA = String(m[4]||''), oldTB = String(m[7]||'');
+    if (mIdx>=0) _M[mIdx] = newRow;
 
-  // Lưu localStorage ngay
-  try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
+    // v4 FIX: Cập nhật _dkScores/_dkBangCode/_dK ngay (không chờ Máy chủ poll 30s)
+    // v56 FIX: truyền score TƯỜNG MINH từ saRaw/sbRaw — không dùng newRow[5/6] vì có thể
+    // mang giá trị cũ từ _M khi admin chỉ đổi rule/sân/TT mà không nhập điểm mới
+    // → tránh trận pending bị gán điểm sai và thành "Hoàn thành" nhầm
+    const _syncSA = (saRaw !== '' && sbRaw !== '') ? Number(saRaw) : (scoreCleared ? '' : null);
+    const _syncSB = (saRaw !== '' && sbRaw !== '') ? Number(sbRaw) : (scoreCleared ? '' : null);
+    _syncResultCache(newRow, _syncSA, _syncSB, newRow[4], newRow[7], newRow[10]);
 
-  // Render bảng đấu + cây thi đấu ngay lập tức
-  renderBangList(giaiId, nd);
-  if (_bkGiai && _bkNd === nd) bkRender();
-  if (typeof renderBracket === 'function') {
-    const bracketWrap = document.getElementById('bracket-wrap');
-    if (bracketWrap && bracketWrap.offsetParent !== null) {
-      try { renderBracket(); } catch(e) {}
-    }
-  }
+    // ── Nếu đổi tên đội: chỉ propagate cho VÒNG BẢNG, knockout độc lập ──
+    const renamedA = ta !== oldTA;
+    const renamedB = tb !== oldTB;
+    const extraUpdates = [];
 
-  const extraCount = extraUpdates.length;
-  toast(`✅ Đã cập nhật trận ${code}${extraCount?` + ${extraCount} trận liên quan`:''}`, 'ok');
+    // v90 FIX: đăng ký _renameOverrides + lưu localStorage NGAY — giống renamePlayer —
+    // để bảo vệ tên mới khỏi bị loadMatchesCache/poll nền ghi đè bằng tên cũ
+    // (Máy chủ/Sheet có thể chưa kịp lưu xong khi prefetch chạy lại)
+    if (renamedA && oldTA) _renameOverrides[oldTA] = ta;
+    if (renamedB && oldTB) _renameOverrides[oldTB] = tb;
+    // v92 FIX: đồng bộ tên mới sang Danh sách VĐV + Bốc thăm chia bảng
+    if (renamedA && oldTA) _syncRenameToPlayersList(giaiId, nd, oldTA, ta);
+    if (renamedB && oldTB) _syncRenameToPlayersList(giaiId, nd, oldTB, tb);
+    try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
 
-  // ── BƯỚC 3: Sync lên Máy Chủ nền — không block UI ──
-  ;(async () => {
-    let d;
-    try {
-      d = await gPost({action:'updateMatch',adminCode:CODE,
-        giai:gName||giaiId,giaiName:gName||giaiId,nd,bang:bangActual,code,row:newRow,
-        scoreCleared: scoreCleared});
-      if (d&&!d.ok&&gName&&gName!==giaiId) {
-        d = await gPost({action:'updateMatch',adminCode:CODE,giai:giaiId,giaiName:gName,nd,bang:bangActual,code,row:newRow});
+    if (renamedA || renamedB) {
+      const thisRound = String(newRow[9]||'');
+      const thisIsGroupStage = !thisRound || thisRound === 'Vòng bảng' || thisRound.includes('bảng');
+      if (thisIsGroupStage) {
+        _M.forEach((mr, mi) => {
+          if (mi === mIdx) return;
+          const sameGiai = String(mr[0]||'')===gName||String(mr[0]||'')===giaiId;
+          const sameBang = String(mr[2]||'')===bang;
+          if (!sameGiai || !sameBang) return;
+          const mrRound = String(mr[9]||'');
+          if (mrRound && mrRound !== 'Vòng bảng' && !mrRound.includes('bảng')) return;
+          let changed = false;
+          const nr = [...mr];
+          if (renamedA && String(mr[4]||'')===oldTA) { nr[4]=ta; changed=true; }
+          if (renamedA && String(mr[7]||'')===oldTA) { nr[7]=ta; changed=true; }
+          if (renamedB && String(mr[4]||'')===oldTB) { nr[4]=tb; changed=true; }
+          if (renamedB && String(mr[7]||'')===oldTB) { nr[7]=tb; changed=true; }
+          if (changed) {
+            _M[mi] = nr;
+            extraUpdates.push({ bang: String(mr[2]||''), code: String(mr[3]||''), row: nr });
+          }
+        });
       }
-    } catch(e) {
-      // Rollback _M nếu GAS thất bại
-      if (mIdx >= 0) _M[mIdx] = mBackup;
-      try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e2) {}
-      renderBangList(giaiId, nd);
-      toast('❌ Lỗi kết nối — đã hoàn tác: ' + e.message, 'er');
-      return;
-    }
-    if (!d?.ok) {
-      // Rollback nếu server báo lỗi
-      if (mIdx >= 0) _M[mIdx] = mBackup;
-      try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e2) {}
-      renderBangList(giaiId, nd);
-      toast('❌ ' + (d?.reason||'Lỗi cập nhật — đã hoàn tác'), 'er');
-      return;
+      // Knockout: không propagate — mỗi trận độc lập
     }
 
-    // Sync các trận đổi tên đội (nền)
+    // ── Re-render ngay với cache đã sửa (không cần chờ extra API) ──
+    // v90 FIX: dùng _renderBangListDirect (force, không guard) — y chang renamePlayer/v20
+    _renderBangListDirect(giaiId, nd);
+    // Sync cây thi đấu (nd-panel bracket)
+    if (_bkGiai && _bkNd === nd) bkRender();
+    if (typeof renderBracket === 'function') {
+      const bracketWrap = document.getElementById('bracket-wrap');
+      if (bracketWrap && bracketWrap.offsetParent !== null) {
+        try { renderBracket(); } catch(e) {}
+      }
+    }
+
+    const extraCount = extraUpdates.length;
+    toast(`✅ Đã cập nhật trận ${code}${extraCount?` + ${extraCount} trận vòng bảng liên quan`:''}`, 'ok');
+
+    // ── Cập nhật Máy chủ các trận khác có tên cũ (background, không block UI) ──
     if (extraUpdates.length > 0) {
-      const _snapGiaiEx = _curGiaiId;
       Promise.allSettled(extraUpdates.map(u =>
         gPost({action:'updateMatch', adminCode:CODE,
                giai:gName||giaiId, giaiName:gName||giaiId,
                nd, bang:u.bang, code:u.code, row:u.row})
       )).then(results => {
-        if (_curGiaiId !== _snapGiaiEx) return;
         const failed = results.filter(r=>r.status==='rejected'||!r.value?.ok).length;
         if (failed) toast(`⚠️ ${failed} trận chưa đồng bộ tên mới lên sheet`, 'in');
       });
     }
-  })();
+    // v90 FIX: cleanup _renameOverrides sau 60s — đủ thời gian cho Máy chủ commit + prefetch tới
+    if (renamedA && oldTA) setTimeout(() => { delete _renameOverrides[oldTA]; }, 60000);
+    if (renamedB && oldTB) setTimeout(() => { delete _renameOverrides[oldTB]; }, 60000);
+  } else {
+    toast('❌ '+(d?.reason||'Lỗi cập nhật'),'er');
+  }
 }
 
 
@@ -8966,68 +9025,62 @@ async function applyEditBang(giaiId, nd, oldBang) {
     return (v===giaiId||v===gName) && String(m[1]||'')===nd && String(m[2]||'')===oldBang;
   });
   if (!matches.length) { toast('Không tìm thấy trận','er'); return; }
+  toast('⏳ Đang cập nhật '+matches.length+' trận...','in');
 
-  // ── BƯỚC 1: Cập nhật _M local NGAY — không chờ GAS ──
-  // User thấy sân/TT/tên bảng mới tức thì trên bảng đấu
+  // Dùng assignCourtToBang API để ghi sân + referee cùng lúc (hiệu quả hơn loop)
+  try {
+    const d = await gPost({
+      action: 'assignCourtToBang', adminCode: CODE,
+      giai: giaiNameEB, nd, bang: oldBang,
+      court: newCourt, ref: newRef, rule: newRule // v49: cập nhật rule qua API
+    });
+    if (!d?.ok) throw new Error(d?.reason||'Lỗi API');
+  } catch(e) {
+    toast('❌ Lỗi ghi sân/TT: '+e.message,'er');
+    return;
+  }
+
+  // Nếu đổi tên bảng, cần updateMatch từng trận
+  let ok=0, fail=0;
+  if (newBang !== oldBang) {
+    for (const m of matches) {
+      const newRow=[...m];
+      newRow[2] = newBang;
+      if (newCourt) newRow[8]  = newCourt;
+      if (newRef)   newRow[10] = newRef;
+      if (newRule)  newRow[12] = newRule; // v49
+      if (newRow[0] === giaiId) newRow[0] = giaiNameEB;
+      try {
+        const d=await gPost({action:'updateMatch',adminCode:CODE,giai:giaiNameEB,giaiName:giaiNameEB,nd,bang:String(m[2]||''),code:String(m[3]||''),row:newRow});
+        d.ok?ok++:fail++;
+      } catch(e){fail++;}
+    }
+    toast('✅ Đổi tên bảng: '+ok+' trận'+(fail?', '+fail+' lỗi':''), ok?'ok':'er');
+  }
+
+  // Cập nhật local cache _M ngay lập tức
+  // Dùng key-based lookup thay vì indexOf() để tránh stale reference
+  // sau khi await gPost (polling nền có thể reassign _M = [...] trong lúc chờ)
   const matchKeys = new Set(matches.map(m =>
     String(m[0]||'') + '|' + String(m[1]||'') + '|' + String(m[2]||'') + '|' + String(m[3]||'')
   ));
   const gNameForKey = gName || giaiId;
   _M.forEach((mr, idx) => {
     const key1 = String(mr[0]||'') + '|' + String(mr[1]||'') + '|' + String(mr[2]||'') + '|' + String(mr[3]||'');
+    // Cũng match khi mr[0] là giaiId thay vì gName
     const key2 = gNameForKey + '|' + String(mr[1]||'') + '|' + String(mr[2]||'') + '|' + String(mr[3]||'');
     if (!matchKeys.has(key1) && !matchKeys.has(key2)) return;
-    if (newBang !== oldBang) _M[idx][2]  = newBang;
+    if (newBang  !== oldBang) _M[idx][2]  = newBang;
     if (newCourt) _M[idx][8]  = newCourt;
-    if (newRef !== undefined) _M[idx][10] = newRef;
-    if (newRule)  _M[idx][12] = newRule;
+    if (newRef !== undefined) _M[idx][10] = newRef; // cập nhật kể cả khi xóa TT (newRef='')
+    if (newRule)  _M[idx][12] = newRule;  // v49: cập nhật quy tắc điểm col[12]
   });
 
-  // ── BƯỚC 2: Render bảng đấu NGAY — trước khi gọi GAS ──
-  _invalidateMatchCache(_curGiaiId || '');
-  // Lưu localStorage ngay để reload tiếp theo có sân/TT mới
-  try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
-  renderBangList(giaiId, nd);
   const refMsg = newRef ? ` · TT: ${newRef}` : '';
   const courtMsg = newCourt ? ` · Sân: ${newCourt}` : '';
   toast(`✅ Bảng ${newBang}${courtMsg}${refMsg} — đã cập nhật`, 'ok');
-
-  // ── BƯỚC 3: Sync lên Máy Chủ nền — không block UI ──
-  ;(async () => {
-    try {
-      const d = await gPost({
-        action: 'assignCourtToBang', adminCode: CODE,
-        giai: giaiNameEB, nd, bang: oldBang,
-        court: newCourt, ref: newRef, rule: newRule
-      });
-      if (!d?.ok) { toast('⚠️ Lưu sân/TT lên Máy Chủ thất bại: '+(d?.reason||''),'er'); return; }
-    } catch(e) {
-      toast('⚠️ Lỗi kết nối khi lưu sân/TT: '+e.message,'er');
-      return;
-    }
-
-    // Nếu đổi tên bảng → updateMatch từng trận nền
-    if (newBang !== oldBang) {
-      let ok=0, fail=0;
-      for (const m of matches) {
-        const newRow=[...m];
-        newRow[2] = newBang;
-        if (newCourt) newRow[8]  = newCourt;
-        if (newRef)   newRow[10] = newRef;
-        if (newRule)  newRow[12] = newRule;
-        if (newRow[0] === giaiId) newRow[0] = giaiNameEB;
-        try {
-          const d=await gPost({action:'updateMatch',adminCode:CODE,giai:giaiNameEB,giaiName:giaiNameEB,nd,bang:String(m[2]||''),code:String(m[3]||''),row:newRow});
-          d.ok?ok++:fail++;
-        } catch(e){fail++;}
-      }
-      if (fail) toast(`⚠️ Đổi tên bảng: ${ok} trận OK, ${fail} lỗi`,'er');
-    }
-
-    // Render lại sau khi Máy Chủ xác nhận (đảm bảo đồng bộ hoàn toàn)
-    _invalidateMatchCache(_curGiaiId || '');
-    renderBangList(giaiId, nd);
-  })();
+  try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
+  _renderBangListDirect(giaiId, nd);
 }
 
 // ── Xóa toàn bộ trận của một bảng ──
@@ -9828,8 +9881,6 @@ async function loadMatchesCache(giaiId='', forceRefresh=false) {
       cacheSet(cKey, mergedRows);
       const others = _M.filter(m => String(m[0]||'') !== giaiName);
       _M = [...others, ...mergedRows];
-      // Lưu _M vào localStorage ngay sau fetch — sân/TT/tên mới có mặt lần reload tiếp
-      try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
     }
     if (rd.rows?.length > 1) buildDkFromResults(rd.rows.slice(1));
     if (ld.rows?.length > 1) {
@@ -13503,7 +13554,6 @@ function _bkAutoSyncToSchedule(immediate = false) {
 }
 
 async function _bkDoSyncToSchedule() {
-  try {
   const tree = _bkCurrentTree;
   if (!tree || !_bkGiai || !_bkNd) return;
   // v8: Dừng hoàn toàn khi cây đã bị xóa — không tự động tạo/update trận KO
@@ -13596,7 +13646,6 @@ async function _bkDoSyncToSchedule() {
     cacheSet(cKeySync, rowsSync);
     try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
   })().catch(() => {});
-  } catch(e) { console.warn('[_bkDoSyncToSchedule]', e); }
 }
 
 // Gọi sau bkRender để cập nhật seeding panel
@@ -14992,13 +15041,13 @@ async function saveTournament() {
   const isEdit = !!_editT;
   closeMo('mo-tourn');
   _editT = null; // reset ngay sau khi đóng
+  btn.disabled = false; // reset nút
   toast(`✅ ${isEdit?'Cập nhật':'Tạo'} giải ${name} (${id})...`,'ok');
   try{
     const d = await gPost({action:isEdit?'updateTournament':'addTournament',adminCode:CODE,tournament:tourn});
     if(!d.ok)toast('Lỗi: '+d.reason,'er');
     else loadTournaments();
   }catch(e){toast('Lỗi kết nối','er');}
-  finally { btn.disabled = false; } // luôn reset — tránh nút kẹt disabled
 }
 async function delTourn(id, name) {
   if(!confirm(`Xóa giải "${name}" (${id})?\nLịch thi đấu và kết quả KHÔNG bị xóa.`))return;
@@ -16194,23 +16243,6 @@ async function saveMatch() {
   ];
   closeMo('mo-match');
   toast(`✅ ${_editM?'Cập nhật':'Thêm'} trận ${code}...`,'ok');
-
-  // Cập nhật _M local NGAY — không chờ Máy Chủ (render bảng đấu tức thì)
-  if (_editM) {
-    const idx = _M.findIndex(r =>
-      String(r[0]||'')===giaiName && String(r[1]||'')===nd &&
-      String(r[2]||'')===bang     && String(r[3]||'')===code
-    );
-    if (idx >= 0) _M[idx] = row; else _M.push(row);
-  } else {
-    _M.push(row);
-  }
-  dedupM();
-  // Invalidate cache để lần fetch tiếp theo lấy fresh từ Máy Chủ
-  _invalidateMatchCache(_curGiaiId || '');
-  // Render bảng đấu + BXH ngay lập tức
-  if (_curGiaiId && _curNd === nd) renderBangList(_curGiaiId, nd);
-
   try {
     const payload = _editM
       ? { action:'updateMatch', adminCode:CODE, giai:giaiName, giaiName, nd, bang, code, row }
@@ -16218,24 +16250,14 @@ async function saveMatch() {
     const d = await gPost(payload);
     if (!d.ok) toast('Lỗi: '+d.reason,'er');
     loadMatches();
-    // Render lại sau khi Máy Chủ xác nhận — đảm bảo đồng bộ
-    if (_curGiaiId && _curNd === nd) renderBangList(_curGiaiId, nd);
-  } catch(e) {
-    toast('Lỗi kết nối','er');
-  } finally {
-    btn.disabled = false; // luôn reset — tránh nút bị kẹt disabled
-  }
+  } catch(e) { toast('Lỗi kết nối','er'); }
 }
 async function delMatch(g,nd,bg,code) { // FIX v3: thêm nd vào signature
   if (!confirm(`Xóa trận ${code}?`)) return;
   _M = _M.filter(r=>!(r[0]===g&&r[1]===nd&&r[2]===bg&&r[3]===code));
-  dedupM();
-  _invalidateMatchCache(_curGiaiId || '');
   filterMatches();
-  // Render bảng đấu + BXH ngay sau khi xóa
-  if (_curGiaiId && _curNd === nd) renderBangList(_curGiaiId, nd);
   toast(`🗑 Đã xóa ${code}`,'in');
-  try { await gPost({ action:'deleteMatch', adminCode:CODE, giai:g, nd, bang:bg, code }); }
+  try { await gPost({ action:'deleteMatch', adminCode:CODE, giai:g, nd, bang:bg, code }); } // FIX v3: thêm nd
   catch(e) {}
 }
 
@@ -17472,17 +17494,12 @@ async function savePlayer() {
   closeMo('mo-player'); toast(`✅ ${_editP?'Cập nhật':'Thêm'} ${name}...`,'ok');
   try{const d=await gPost({action:_editP?'updatePlayer':'addPlayer',adminCode:CODE,player});if(!d.ok)toast('Lỗi: '+d.reason,'er');loadPlayers();}
   catch(e){toast('Lỗi kết nối','er');}
-  finally { btn.disabled = false; } // luôn reset
 }
 async function delPlayer(id,name) {
   if(!confirm(`Xóa VĐV ${name}?`))return;
-  const _backup = [..._P]; // backup để rollback nếu GAS lỗi
   _P=_P.filter(r=>String(r[0]||'').toUpperCase()!==id.toUpperCase());
   filterPlayers(); toast(`🗑 Đã xóa ${name}`,'in');
-  try{
-    const d = await gPost({action:'deletePlayer',adminCode:CODE,id});
-    if(d && !d.ok) { _P = _backup; filterPlayers(); toast('⚠️ Xóa thất bại: '+d.reason,'er'); }
-  }catch(e){ _P = _backup; filterPlayers(); toast('❌ Lỗi kết nối — đã khôi phục','er'); }
+  try{await gPost({action:'deletePlayer',adminCode:CODE,id});}catch(e){}
 }
 function openImportPMo(){_csvP=[];document.getElementById('pp').style.display='none';document.getElementById('ip-btn').disabled=true;openMo('mo-ip');}
 function handlePCSV(inp){
