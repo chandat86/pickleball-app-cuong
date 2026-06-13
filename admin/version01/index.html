@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<!-- Pickleball Admin v92 2026-06-12: ADD đồng bộ 2 chiều — saveEditMatch (Sửa trận ở Bảng đấu) khi đổi tên VĐV/đội: thêm _syncRenameToPlayersList() cập nhật ngay _players (Danh sách VĐV) + _bocThamGroups (Bốc thăm chia bảng), lưu localStorage + render lại tab Danh sách nếu đang mở; nếu danh sách đã "Đã lưu" lên Sheets thì đồng bộ ngầm lên Sheets luôn (saveDanhSachVDV+saveDanhSachBang) — trước đây chỉ có chiều Danh sách→Bảng đấu (renamePlayer), giờ thêm chiều Bảng đấu→Danh sách |
+<!-- Pickleball Admin v97 2026-06-13: FIX xóa giờ trên Admin không xóa trên GSheet — Nguyên nhân: GAS updateMatch có guard "nếu col[11] rỗng → giữ nguyên giờ từ sheet" (tránh ghi đè vô tình), nên khi admin bấm ✕ Xóa giờ, GAS thấy row[11]='' nhưng vẫn khôi phục giờ cũ. Giải pháp: thêm flag timeCleared=true (y chang scoreCleared cho điểm) — (1) Admin: hidden field em-time-cleared; nút ✕ Xóa giờ set=1, nút preset giờ reset=0; saveEditMatch gửi timeCleared tới GAS; _stSaveAll cũng gửi timeCleared=true khi row[11]===''; (2) GAS v59: chỉ fallback giờ từ sheet nếu timeCleared!==true, còn nếu timeCleared=true thì ghi '' (xóa thật) + xóa Firebase /matches time. Không ảnh hưởng các chức năng khác. | v96 2026-06-13: FIX TRIỆT ĐỂ hiển thị giờ ngay sau "Lưu tất cả giờ" — Nguyên nhân: prefetchAll() chạy nền sau khi _stSaveAll lưu xong, merge server data về và KHÔNG bảo vệ col[11] (giờ) → giờ mới bị ghi đè bằng giá trị cũ từ GAS (chưa kịp commit). Giải pháp: thêm _timeOverrides{} (y chang _renameOverrides cho tên VĐV): đăng ký ngay trong _stSaveAll trước khi đóng overlay; prefetchAll merge áp dụng _timeOverrides giữ giờ local 90s; _applyTimeOverrides() helper dọn expired + protect col[11]. Không ảnh hưởng các chức năng khác. | v95 2026-06-13: COMPACT MOBILE trang Chi tiết nội dung — (1) Chuyển thanh "NỘI DUNG: ..." lên đầu trang (trên cả Header); (2) Ẩn tiêu đề Nội dung (tv-nd-title-wrap) trên mobile, giữ nút "← Quay lại"; (3) Toolbar 5 nút (Làm mới/Thêm bảng/Dọn trùng/Xóa Firebase Live/Xóa tất cả bảng) trên mobile: bỏ icon chỉ còn label, dồn 1 hàng cuộn ngang; (4) Khối Tổng quan (Tổng trận/Hoàn thành/Đang đấu/Chưa đấu) trên mobile gộp thành 1 hàng gọn "Label: value | Label: value" thay 4 thẻ rời | v94 2026-06-13: COMPACT POLISH responsive Mobile/Tablet — thu nhỏ đồng bộ font/icon/nút/khoảng cách toàn trang Admin (login, card, button, modal, table, tab, bottom-nav, stat-card, notification tray, bracket card), fix .cn max-width:100vw tránh tràn ngang trên điện thoại
+     Pickleball Admin v93 2026-06-12: FIX RESPONSIVE Tablet (641-1024px) + Mobile (≤640px) cho trang Chi tiết nội dung — (1) [data-bl-grid] (Bảng đấu: bảng trận + tình trạng sân/BXH 420px) → xếp dọc 1 cột, bỏ sticky; (2) [data-players-grid] (Danh sách VĐV + Bốc thăm chia bảng) → xếp dọc 1 cột; (3) #bang-list overflow-x:auto → bảng trận cuộn ngang thay vì bị cắt; (4) .stats (4-5 thẻ/dòng) → ép 2 cột trên tablet/mobile (!important đè inline repeat(4,1fr)/(5,1fr)); (5) form "Cấu hình bảng đấu" (2 bảng × 4 đội/bảng, Tên bảng/Phương thức) → xếp dọc trên mobile; (6) tab Danh sách/Bảng đấu/Cây thi đấu giảm padding trên tablet; (7) toolbar nút (Làm mới/Thêm bảng/Dọn trùng/Xóa Firebase Live/Xóa tất cả bảng) → 2 nút/dòng đều nhau trên mobile |
+     Pickleball Admin v92 2026-06-12: ADD đồng bộ 2 chiều — saveEditMatch (Sửa trận ở Bảng đấu) khi đổi tên VĐV/đội: thêm _syncRenameToPlayersList() cập nhật ngay _players (Danh sách VĐV) + _bocThamGroups (Bốc thăm chia bảng), lưu localStorage + render lại tab Danh sách nếu đang mở; nếu danh sách đã "Đã lưu" lên Sheets thì đồng bộ ngầm lên Sheets luôn (saveDanhSachVDV+saveDanhSachBang) — trước đây chỉ có chiều Danh sách→Bảng đấu (renamePlayer), giờ thêm chiều Bảng đấu→Danh sách |
      Pickleball Admin v90 2026-06-12: FIX TRIỆT ĐỂ saveEditMatch + applyEditBang hiển thị NGAY (y chang v20) — (1) saveEditMatch khi đổi tên VĐV/đội: đăng ký _renameOverrides[oldName]=newName NGAY (bảo vệ tên mới khỏi bị loadMatchesCache nền ghi đè bằng tên cũ từ Sheet chưa kịp lưu — trước đây chỉ renamePlayer có cơ chế này, saveEditMatch (Sửa trận trong Bảng đấu) thì KHÔNG → các trận liên quan A2/A3/A6 không cập nhật ngay, phải F5 mới thấy); (2) saveEditMatch + applyEditBang lưu localStorage pb_adm_M_ ngay sau khi sửa _M; (3) saveEditMatch + applyEditBang dùng _renderBangListDirect (force render, bỏ qua mọi guard) thay vì renderBangList; (4) cleanup _renameOverrides sau 60s đủ thời gian Máy chủ commit + prefetch tới |
      Pickleball Admin v78 2026-06-11: FIX TRIỆT ĐỂ hiển thị tức thì — (1) xóa stale-guard khỏi renderBangList (y chang v20, không block render); (2) openNdDetail render NGAY từ _M local trước khi fetch GAS (y chang v20); (3) renamePlayer dùng _renderBangListDirect force-render + lưu localStorage ngay; (4) _renameOverrides bảo vệ tên mới khi GAS prefetch về | Pickleball Admin v57 2026-06-09: Redesign form Thêm TT — vai trò lên đầu, active=SĐT, manager/player=mã, nội dung hiện dạng chip sau khi chọn giải | v56 2026-06-09: FIX CRITICAL _syncResultCache nhận newRow[5/6] stale từ _M khi chỉ đổi rule → trận pending bị gán điểm cũ thành Hoàn thành — giờ truyền score tường minh từ saRaw/sbRaw | v55 2026-06-09: FIX saveEditMatch — hasAnyInput thêm rule, dùng ruleVal tránh đọc DOM 2 lần — cho phép lưu khi chỉ đổi quy tắc điểm trận | v54 2026-06-09: (1) FIX rule không đẩy xuống TT — normalizeMatchRow giờ đủ 13 cột, openEditMatchMo chỉ hiện điểm khi done; (2) FIX A3/A4 tự điền điểm — openEditMatchMo+renderBangList không đọc _dkScores khi pending | v51 2026-06-09: FIX TRIỆT ĐỂ popup Sửa bảng+trận — bỏ async/await getUsers khỏi openEditMatchMo+openEditBangMo (block 8s → modal không xuất hiện); load _U ngầm sau khi modal đã mở | v50 2026-06-09: FIX (1) popup Sửa bảng+trận không mở — xóa code lỗi matches[0] bị chèn nhầm vào openEditMatchMo; (2) FIX tỉ số hiển thị sai khi reload — chỉ tra _dkScores khi isMatchDone=true, pending→null | v49 2026-06-09: ADD Quy tắc điểm vào modal Sửa bảng (vòng bảng + KO) — openEditBangMo hiện select Chạm 11/15/21/24/25; applyEditBang lưu rule→col[12]→GAS+local _M | v48 2026-06-09: FIX tab nội dung — openNdDetail giữ tab đang active khi chuyển nội dung (Danh sách/Bảng đấu/Cây thi đấu); _getActiveNdTab() helper | v47 2026-06-09: FIX "Đang đấu" stale TRIỆT ĐỂ — REST poll /liveScores 2s song song SDK: detect node bị DELETE mà SDK WebSocket miss; rest-cleanup source tránh ghi đè điểm SDK fresh <3s; guard keep-fresh-key cho rest-cleanup | v46 2026-06-09: FIX Firebase liveScores listener lọc status≠playing; _onLiveData trigger loadDash khi rows=0 | v108 — v57 2026-06-09: Quy tắc điểm từ Admin — (1) Admin chọn rule khi tạo bảng (bang-rule); (2) Rule lưu vào Matches col[12]; (3) Modal Sửa trận có select rule; (4) Referee tự động load rule từ match → TT không cần chọn | v107 — v56 2026-06-09: (1) _bkCrossSeededSlots v2 — random shuffle fair-play, phân nhánh chẵn/lẻ, BYE ưu tiên Nhất>Nhì, TL ưu tiên Nhất vs Nhì, xen kẽ BYE-TL; (2) bỏ REST liveScores poll + gas-safety poll (race condition); (3) fix render sig bao gồm live score | v105 — FIX RACE CONDITION 2026-06-08: v53 — (1) _buildLiveFromRows MERGE THEO TIMESTAMP — không cho GAS stale overwrite Firebase fresh; (2) Source tracking: firebase/rest > gas; (3) GAS safety poll chỉ chạy khi REST/SDK đã silent > 8s; (4) Force re-render every 2s while Firebase active để đảm bảo DOM sync với _liveScores | v104 v52 REST POLL: ADD Firebase REST poll 2s SONG SONG với SDK listener — bypass SDK disconnect silent;  v103 FIX renderBangList giaiId 2026-06-08: v50 REALTIME ALL FLOWS — (1) Firebase /results onValue → _dkScores cập nhật &lt;1s khi TT Lưu; (2) Firebase /matches onValue → sân/TT cập nhật &lt;1s; (3) _onLiveData patch DOM trực tiếp không gọi loadDash(); (4) _syncFinishedMatches dùng Firebase data thay vì poll GAS |  FIX pill — đã có đội thật → tra BXH lấy rank+bảng (1E,2G); chưa có → mã trận (V162,TK1) | v90 2026-06-07: FIX pill label KO — "Thắng V162"→"V162", "Thắng TK1"→"TK1" thay vì W chung chung | v89 2026-06-07: FIX cây thi đấu gọn — card width 200px cố định; tên đôi tách 2 dòng (VĐV1/VĐV2); tên dài viết tắt họ; row/pill/sbox nhỏ hơn | v88 2026-06-07: FIX bkEditMatch — TK1 đã có tên VĐV hiển thị tên thật (card A/B); chờ vòng trước hiện "Thắng VXX"; phân biệt 3 case rõ ràng | v87 2026-06-07: Ẩn hoàn toàn scrollbar native của nd-bk-wrap — chỉ dùng nd-bk-scrollbar-wrap fixed | v86 2026-06-07: FIX TRIỆT ĐỂ scroll — nd-bk-wrap (scroll container) không bao giờ bị swap innerHTML; chỉ swap nd-bk-content (con bên trong) → scrollLeft tự nhiên giữ nguyên vĩnh viễn; drag chuột+touch đơn giản sạch | v85 2026-06-07: FIX TRIỆT ĐỂ scroll cây thi đấu — flag _bkRestoring block scroll event khi restore (không bị reset về 0); drag chuột+touch dùng clientX thay pageX; MutationObserver chỉ update width, không restore; restore 3 lần delay tăng dần | v84 2026-06-07: FIX đăng nhập lỗi 10M ô — hiển thị hướng dẫn xóa EventLog/LoginLog/LiveScore thay vì "Mã không hợp lệ"; Máy chủ không tạo sheet mới khi login | v83 2026-06-07: FIX scroll cây thi đấu — dùng biến global _bkScrollX/Y thay DOM (DOM reset về 0 sau render); MutationObserver restore scroll sau mỗi DOM change; drag chuột+touch đa chiều ngang+dọc; guard flag tránh sync loop | v82 2026-06-07: FIX (1) card cây thi đấu hiện "Thắng VXX" khi chưa có tên đội; (2) scroll ngang giữ nguyên vị trí sau render, bỏ loop sync; (3) drag-to-scroll chuột trên nd-bk-wrap | v81 2026-06-07: FIX cây thi đấu — bkEditMatch ẩn dropdown BYE khi trận đang chờ winner ("Thắng VXX"); bkSaveEditNew không ghi đè TBD khi chỉ lưu sân/giờ/TT; tạo mới Matches nếu chưa tồn tại | v80 2026-06-07: FIX saveEditMatch cho phép lưu khi chưa có tên đội — phân sân/giờ/TT trước, tên đội cập nhật sau; giữ nguyên tên đội cũ nếu field để trống | v79 2026-06-07: FIX bkApplyAndSave bỏ upsert:true (nguy hiểm — xóa toàn bộ trận KO kể cả đã có điểm); thêm scoreCleared:false khi update tên đội KO | v78 2026-06-07: FIX mất kết quả khi sửa tên VĐV — (1) openEditMatchMo đọc curSA/curSB từ getFinalScore(KetQua) thay vì Matches col[5/6]; (2) flag scoreCleared phân biệt "trống chưa có điểm" vs "chủ động xóa"; (3) chỉ gửi empty score lên Máy chủ khi scoreCleared=true | v77 2026-06-07: FIX data integrity — bkApplyAndSave+saveRR thêm upsert:true; importCSV toast cảnh báo skip; v76 2026-06-07: FIX nút Sửa tràn khỏi bảng — dùng table-layout:auto, bỏ min-width cứng, giảm padding td, bỏ white-space:nowrap cột Sân → nút Sửa luôn nằm trong khung | v75 2026-06-07: FIX _buildLiveFromRows — index cả key 4 phần (giai|nd|bang|code) lẫn key 3 phần (nd|bang|code) vào _lK và _liveScores; admin render dùng key 3 phần nên bị miss khi Máy chủ ghi key 4 phần | v73 2026-06-07: FIX — _lK hỗ trợ key mới 4 phần "giai|nd|bang|code" từ Máy chủ v40; _buildLiveMatchData dùng key mới; cold-start _lK thêm cả key 3 phần để backward-compat | v72 2026-06-04: FIX Xóa tất cả bảng dùng 1 request deleteAllBangs thay vì N requests tuần tự — nhanh gấp 15x; bỏ confirm() dùng double-tap | v71 2026-06-04: FIX saveBang+importMultiBang gửi upsert=true → Máy chủ xóa bảng cũ trước khi tạo lại, tránh dedup skip trận | v70 2026-06-04: FIX bkDeleteTree dùng double-tap thay confirm() bị browser block; Máy chủ v37 fix giaiName undefined trong deleteBracketTree | v69 2026-06-04: FIX confirm() trong bkApplyAndSave bị browser block → return sớm không save BracketTree; thay bằng toast cảnh báo tiếp tục luôn | v68 2026-06-04: FIX saveBracketTree bị bỏ qua khi Apply lần 2 (toCreate=0, toUpdate=0 → return sớm trước khi save SRV) | v67 2026-06-03: v6 FIX NGUỒN DUY NHẤT — buildDkFromResults/isMatchDone/getFinalScore/_syncResultCache/_buildLiveFromRows đều dùng key 4 trường "TênGiải|NộiDung|Bảng|MãTrận"; bỏ fallback Matches col[5/6] trong getFinalScore; bỏ giaiId duplicate trong _dK; bỏ fallback giaiId trong isMatchDone — badge Hoàn thành/Chưa đấu/Đang đấu giờ chính xác 100% từ KetQua | v66 2026-06-03: FIX v32 referee bugs — assignCourtToRef/assignRef/atrAssignDirect không xóa noidung cũ; _matchAllowed normalize dấu; renderMatchGrid hiển thị khi có trận phân tên | v65 2026-06-01: FIX bracket overflow + nút tràn màn hình PC | v25 | FIX: Login detailed errors, Test Máy chủ button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) Máy chủ dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên SRV | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (SRV renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) Máy chủ v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang -->
 <meta charset="UTF-8">
@@ -9,7 +11,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Admin v90 — Referee Pickleball / DA NANG ®</title>
+<title>Admin v95 — Referee Pickleball / DA NANG ®</title>
 <style>
 /* ═══════════════════════════════════════════════════════
    Pickleball Admin — Mobile-First Professional UI
@@ -991,6 +993,52 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
   .bsm{padding:6px 10px;font-size:12px}
 }
 
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE — v93 FIX: trang Chi tiết nội dung
+   (Danh sách VĐV/Bốc thăm + Bảng đấu + Cây thi đấu)
+   trên TABLET (641–1024px) và MOBILE (≤640px)
+══════════════════════════════════════════════════════ */
+@media(max-width:1024px){
+  /* ── Bảng đấu: grid 2 cột (bảng trận | tình trạng sân + BXH 420px) → 1 cột ── */
+  [data-bl-grid]{display:flex!important;flex-direction:column!important}
+  [data-bl-left]{width:100%!important}
+  [data-bl-right]{position:relative!important;top:auto!important;width:100%!important;margin-top:14px}
+
+  /* ── Danh sách VĐV / Bốc thăm chia bảng: grid 2 cột → 1 cột ── */
+  [data-players-grid]{display:flex!important;flex-direction:column!important;gap:14px!important}
+  [data-players-grid] > div{width:100%!important;min-width:0!important}
+
+  /* ── Bảng trận: cho phép scroll ngang trong khung, không bị cắt ── */
+  #bang-list{overflow-x:auto!important}
+
+  /* ── Stat cards: 4-5 ô trên 1 dòng quá chật → 2 cột ── */
+  .stats{grid-template-columns:repeat(2,1fr)!important;gap:8px}
+  .sv{font-size:22px}
+  .sc{padding:10px}
+
+  /* ── Tab Danh sách/Bảng đấu/Cây thi đấu: bớt padding để 3 tab không tràn ── */
+  #nd-tab-players,#nd-tab-bangs,#nd-tab-bracket{padding:8px 12px!important;font-size:12px!important}
+}
+
+@media(max-width:640px){
+  /* ── Bảng đấu: bảng trận thu nhỏ font/padding để bớt phải scroll ngang ── */
+  #bang-list table{font-size:11px}
+  #bang-list td,#bang-list th{padding:5px 3px!important}
+
+  /* ── Header trang Chi tiết nội dung: nút bấm xuống dòng đều, full width ── */
+  #tv-nd .ph > div:last-child{display:flex;gap:6px;flex-wrap:wrap;width:100%}
+  #tv-nd .ph > div:last-child .btn,#tv-nd .ph > div:last-child .rfbtn{flex:1 1 auto;justify-content:center;font-size:11px;padding:7px 8px;white-space:nowrap}
+
+  /* ── Cấu hình bảng đấu (số bảng × số đội/bảng): xếp dọc cho dễ nhập ── */
+  [data-players-grid] [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  [data-players-grid] [style*="repeat(3,1fr)"]{grid-template-columns:1fr!important}
+
+  /* Stat cards: 2 cột vẫn vừa trên mobile nhỏ — nhưng cho nhỏ chữ thêm */
+  .stats{gap:6px}
+  .sv{font-size:20px}
+  .ss{font-size:10px}
+}
+
 /* Touch targets (all interactive) */
 @media(hover:none){
   .btn,.ni,.mni,.rfbtn,.sc{min-height:44px}
@@ -1017,6 +1065,195 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .bxh-scroll::-webkit-scrollbar { width:5px; }
 .bxh-scroll::-webkit-scrollbar-track { background:transparent; }
 .bxh-scroll::-webkit-scrollbar-thumb { background:var(--bdr2,rgba(255,255,255,.15));border-radius:3px; }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE — v94 2026-06-13: COMPACT POLISH cho Mobile & Tablet
+   Thu nhỏ đồng bộ font chữ / icon / nút / khoảng cách toàn trang Admin
+   để bố cục cân đối, gọn gàng, chuyên nghiệp; toàn bộ nằm trong khung
+   màn hình (không tràn ngang) trên điện thoại và máy tính bảng.
+══════════════════════════════════════════════════════ */
+
+/* ── TABLET (641–1024px): giảm nhẹ ── */
+@media(max-width:1024px) and (min-width:641px){
+  html{font-size:15px}
+  .ptitle{font-size:18px}
+  .psub{font-size:11.5px}
+  .mtt{font-size:15px}
+  .ct{font-size:9px}
+  .card{padding:14px}
+  .btn{font-size:12px;padding:7px 12px}
+  .bsm{padding:5px 8px;font-size:11px}
+  .rfbtn{font-size:11px;padding:6px 10px}
+  table.tbl{font-size:12px}
+  .tbl thead th{font-size:9px;padding:8px 10px}
+  .tbl tbody td{padding:9px 10px}
+  .sv{font-size:23px}
+  .ss{font-size:10.5px}
+  .bdg,.ptag{font-size:10px}
+  .tb{font-size:11.5px;padding:7px 8px}
+  .mbox>.mh{padding:14px 18px 12px}
+  .mbox>.mb{padding:14px 18px}
+  .mbox>.mf{padding:12px 18px}
+  .fg label{font-size:9.5px}
+  .fg input,.fg select,.fg textarea{font-size:12.5px;padding:9px 11px}
+}
+
+/* ── MOBILE (≤640px): thu nhỏ mạnh hơn, vừa khung màn hình ── */
+@media(max-width:640px){
+  html,body{font-size:13px}
+  body{max-width:100vw;overflow-x:hidden}
+  .cn{max-width:100vw}
+
+  /* Login */
+  .lw{max-width:100%}
+  .lc{padding:20px 16px 16px;border-radius:var(--r2)}
+  .li{width:44px;height:44px;border-radius:10px}
+  .lt1,.ab{font-size:8px}
+  .lt2{font-size:15px}
+  .lt3{font-size:10px}
+  .lbl{font-size:10px}
+  .fi,.btn-ln{padding:10px 12px;font-size:13px}
+  .lerr{font-size:11px}
+  .ldbg{font-size:10px;padding:10px}
+  .rb{padding:11px 12px;font-size:11px;line-height:1.7}
+
+  /* Page title / subtitle */
+  .ptitle{font-size:15.5px;letter-spacing:-.2px}
+  .psub{font-size:10.5px;margin-top:2px}
+
+  /* Cards */
+  .card{padding:10px;border-radius:var(--r)}
+  .ct{font-size:9px;letter-spacing:1px;margin-bottom:8px}
+
+  /* Buttons & badges */
+  .btn{padding:7px 10px;font-size:11.5px;gap:5px;border-radius:7px}
+  .bsm{padding:5px 8px;font-size:10.5px}
+  .rfbtn{padding:6px 9px;font-size:10.5px}
+  .bdg,.ptag,.ptago,.lbdg{font-size:9.5px;padding:2px 6px}
+  .mono,.score{font-size:11px}
+
+  /* Modal */
+  .mtt{font-size:13.5px}
+  .mc{width:26px;height:26px;font-size:13px;border-radius:6px}
+  .mbox{padding:16px 12px}
+  .mbox>.mh{padding:12px 14px 10px;margin-bottom:12px}
+  .mbox>.mb{padding:12px 14px}
+  .mbox>.mf{padding:10px 14px;gap:6px}
+  .mf .btn{font-size:11.5px;padding:9px 12px}
+
+  /* Forms */
+  .fg{gap:4px;margin-bottom:10px}
+  .fg label{font-size:9px;letter-spacing:.6px}
+  .fg input,.fg select,.fg textarea{font-size:13px;padding:9px 10px;border-radius:7px}
+  .hint{font-size:9.5px}
+
+  /* Tabs */
+  .tabs{padding:3px;border-radius:8px}
+  .tb{font-size:10.5px;padding:7px 5px;border-radius:6px}
+
+  /* Tables */
+  table.tbl{font-size:11px}
+  .tbl thead th{font-size:8.5px;padding:6px 6px;letter-spacing:.4px}
+  .tbl tbody td{padding:7px 6px}
+
+  /* Filter bar */
+  .fbar{padding:8px 10px;gap:6px}
+  .fbar label{font-size:9.5px}
+  .fbar select,.fsel{font-size:11px;padding:6px 8px;min-width:90px}
+  .farrow{font-size:12px}
+
+  /* Search */
+  .si{font-size:12px;padding:8px 10px}
+
+  /* Mobile bottom nav icons */
+  .mni{font-size:8px;padding:5px 2px}
+  .mni .mni-ic{font-size:16px;width:32px;height:24px;border-radius:7px}
+
+  /* Stat cards: giảm tiếp font cho cân đối trên 2 cột */
+  .sv{font-size:18px;letter-spacing:-.5px}
+  .slb{font-size:8.5px;letter-spacing:.8px}
+  .ss{font-size:9.5px}
+  .sc{padding:9px;border-radius:var(--r)}
+  .sc::after{font-size:9px;top:8px;right:8px}
+
+  /* Notification tray + bell — vừa khung điện thoại */
+  #cp-tray{width:calc(100vw - 24px);left:50%!important;gap:8px}
+  .cpn{border-radius:13px}
+  .cpn-bar{height:3px}
+  .cpn-inner{padding:11px 12px 10px}
+  .cpn-hdr{gap:9px;margin-bottom:8px}
+  .cpn-icon{width:34px;height:34px;font-size:17px;border-radius:10px}
+  .cpn-type{font-size:9px;margin-bottom:1px}
+  .cpn-match{font-size:12px}
+  .cpn-close{width:24px;height:24px;font-size:12px}
+  .cpn-player{padding:7px 9px;gap:7px;border-radius:8px}
+  .cpn-side{font-size:8px;padding:2px 6px}
+  .cpn-pname{font-size:12px}
+  .cpn-court{font-size:10px}
+  .cpn-time{font-size:9px}
+  .cpn-progress{margin-top:8px}
+
+  #cp-bell{width:46px;height:46px;font-size:18px;bottom:calc(var(--nav-h) + 14px);right:12px}
+  .cp-badge{min-width:18px;height:18px;font-size:9px}
+
+  .cp-modal-box{border-radius:14px;max-height:90vh}
+  .cp-modal-hdr{padding:14px 14px 10px;gap:10px}
+  .cp-modal-icon{width:36px;height:36px;font-size:17px;border-radius:10px}
+  .cp-modal-title div:first-child{font-size:13px}
+  .cp-modal-title div:last-child{font-size:10px}
+  .cp-modal-body{padding:10px 12px}
+  .cp-hist-row{padding:10px 11px;border-radius:10px;margin-bottom:7px}
+  .cp-hist-badge{font-size:8.5px;padding:2px 7px}
+  .cp-hist-match{font-size:11px}
+  .cp-hist-time{font-size:9px}
+  .cp-hist-ptag{font-size:10px;padding:2px 7px}
+  .cp-hist-detail{font-size:9.5px}
+
+  /* Cây thi đấu (bracket): card nhỏ hơn để vừa màn hình hẹp */
+  .bk-card{width:168px;min-width:168px;max-width:168px}
+  .bk-round{min-width:188px}
+  .bk-tname{font-size:9.5px}
+  .bk-tname .p2{font-size:8.5px}
+  .bk-sbox{font-size:11px;min-width:24px;height:20px}
+  .bk-pill{font-size:8.5px;width:20px;height:20px}
+  .bk-ft-chip{font-size:8.5px;max-width:74px}
+
+  /* ── Trang Chi tiết nội dung: ẩn tiêu đề (giữ nút Quay lại) ── */
+  .tv-nd-title-wrap{display:none}
+
+  /* ── Toolbar nút (Làm mới/Thêm bảng/Dọn trùng/Xóa Firebase Live/Xóa tất cả bảng):
+       bỏ icon, chỉ còn label, dồn về 1 hàng cuộn ngang ── */
+  #tv-nd .nd-toolbar-actions{
+    flex-wrap:nowrap!important;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    gap:5px;width:100%;padding-bottom:2px;scrollbar-width:none;
+  }
+  #tv-nd .nd-toolbar-actions::-webkit-scrollbar{display:none}
+  #tv-nd .nd-toolbar-actions .rfbtn,
+  #tv-nd .nd-toolbar-actions .btn{
+    flex:0 0 auto;font-size:10.5px!important;padding:6px 9px!important;white-space:nowrap;
+  }
+  #tv-nd .nd-toolbar-actions .nd-tb-ic{display:none}
+
+  /* ── Tổng quan trận đấu: thu thành 1 hàng "Label: value" thay cho 4 thẻ ── */
+  .nd-stats-cards{display:none!important}
+  .nd-stats-compact{display:flex!important}
+}
+</style>
+
+<style>
+/* Tổng quan trận đấu — hàng tóm tắt gọn cho mobile (ẩn trên desktop/tablet) */
+.nd-stats-compact{
+  display:none;align-items:center;gap:7px;flex-wrap:wrap;
+  background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r2);
+  padding:9px 12px;margin-bottom:12px;font-size:11px;font-weight:700;
+}
+.nd-stats-compact .nsc-it{color:var(--tx3);white-space:nowrap}
+.nd-stats-compact .nsc-it b{font-family:var(--mo);font-weight:800}
+.nd-stats-compact .nsc-it.b b{color:var(--ac)}
+.nd-stats-compact .nsc-it.g b{color:var(--gn)}
+.nd-stats-compact .nsc-it.o b{color:var(--or)}
+.nd-stats-compact .nsc-it.p b{color:var(--pu)}
+.nd-stats-compact .nsc-sep{color:var(--bdr3);font-size:10px}
 </style>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -1354,25 +1591,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 
       <!-- VIEW 3: Chi tiết nội dung (Bảng + Cây thi đấu) -->
       <div id="tv-nd" style="display:none">
-        <!-- Header -->
-        <div class="ph" style="margin-bottom:0">
-          <div style="display:flex;align-items:center;gap:10px">
-            <button class="rfbtn" onclick="showTournView('detail')" style="padding:6px 10px">← Quay lại</button>
-            <div>
-              <div class="ptitle" id="tv-nd-title">—</div>
-              <div class="psub" id="tv-nd-sub">—</div>
-            </div>
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-            <button class="rfbtn" onclick="ndRefresh()" id="nd-refresh-btn" title="Làm mới dữ liệu">↻ Làm mới</button>
-            <button class="btn bp bsm" onclick="openAddBangMo()" title="Thêm bảng đấu mới">＋ Thêm bảng</button>
-            <button id="btn-cleanup-dup" class="btn bsm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);font-size:12px" onclick="cleanupDuplicateMatches()" title="Xóa trận bị trùng">🧹 Dọn trùng</button>
-            <button id="btn-clear-fb-live" class="btn bsm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);font-size:12px" onclick="clearAllFirebaseLive()" title="Xóa toàn bộ live score đang kẹt trên Firebase RTDB">🔥 Xóa Firebase Live</button>
-            <button class="btn bsm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);font-size:12px" onclick="confirmDeleteAllBangs()" title="Xóa toàn bộ bảng đấu của nội dung này">🗑 Xóa tất cả bảng</button>
-          </div>
-        </div>
-
-        <!-- Nd switcher bar -->
+        <!-- Nd switcher bar (đặt lên đầu) -->
         <div id="nd-switcher-bar" style="display:none;align-items:center;gap:8px;padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--bdr);overflow-x:auto;scrollbar-width:none;flex-shrink:0">
           <span style="font-size:11px;font-weight:700;color:var(--tx4);white-space:nowrap;flex-shrink:0">NỘI DUNG:</span>
           <div id="nd-switcher-chips" style="display:flex;gap:6px;flex-wrap:nowrap"></div>
@@ -1383,6 +1602,25 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
           .nd-sw-chip:hover{border-color:var(--ac);color:var(--ac)}
           .nd-sw-chip.on{background:var(--ac3);border-color:var(--ac);color:#fff}
         </style>
+
+        <!-- Header -->
+        <div class="ph" style="margin-bottom:0;margin-top:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <button class="rfbtn" onclick="showTournView('detail')" style="padding:6px 10px">← Quay lại</button>
+            <div class="tv-nd-title-wrap">
+              <div class="ptitle" id="tv-nd-title">—</div>
+              <div class="psub" id="tv-nd-sub">—</div>
+            </div>
+          </div>
+          <div class="nd-toolbar-actions" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <button class="rfbtn" onclick="ndRefresh()" id="nd-refresh-btn" title="Làm mới dữ liệu"><span class="nd-tb-ic">↻</span> Làm mới</button>
+            <button class="btn bp bsm" onclick="openAddBangMo()" title="Thêm bảng đấu mới"><span class="nd-tb-ic">＋</span> Thêm bảng</button>
+            <button id="btn-cleanup-dup" class="btn bsm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);font-size:12px" onclick="cleanupDuplicateMatches()" title="Xóa trận bị trùng"><span class="nd-tb-ic">🧹</span> Dọn trùng</button>
+            <button id="btn-fix-time" class="btn bsm" style="background:rgba(245,158,11,.12);color:var(--or);border:1px solid rgba(245,158,11,.25);font-size:12px" onclick="fixMatchTimeFormatsAdmin()" title="Sửa các ô Giờ thi đấu bị Sheets convert sai (lệch ~25 phút)"><span class="nd-tb-ic">⏱</span> Sửa giờ</button>
+            <button id="btn-clear-fb-live" class="btn bsm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);font-size:12px" onclick="clearAllFirebaseLive()" title="Xóa toàn bộ live score đang kẹt trên Firebase RTDB"><span class="nd-tb-ic">🔥</span> Xóa Firebase Live</button>
+            <button class="btn bsm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);font-size:12px" onclick="confirmDeleteAllBangs()" title="Xóa toàn bộ bảng đấu của nội dung này"><span class="nd-tb-ic">🗑</span> Xóa tất cả bảng</button>
+          </div>
+        </div>
 
         <!-- Tab switcher -->
         <div style="display:flex;gap:0;border-bottom:2px solid var(--bdr);margin-bottom:16px;margin-top:14px">
@@ -2587,6 +2825,24 @@ let _T=[],_U=[],_M=[],_R=[],_P=[];                // dữ liệu cache
 // nhưng server chưa kịp propagate) → tránh race condition revert tên đã đổi
 // về tên cũ khi 1 poll nền chạy xen giữa lúc renameTeamInMatches đang chờ Máy chủ.
 let _renameOverrides = {};
+// v96 FIX: bảo vệ giờ thi đấu đã chỉnh local khỏi bị prefetchAll ghi đè bằng data cũ từ Máy chủ.
+// key = "giải|nd|bảng|mã" → giá trị giờ mới (HH:MM). Xóa sau 90s đủ thời gian GAS commit.
+let _timeOverrides = {}; // { "key": { time: "HH:MM", exp: timestamp } }
+function _setTimeOverride(giaiName, nd, bang, code, timeVal) {
+  const k = `${giaiName}|${nd}|${bang}|${code}`;
+  _timeOverrides[k] = { time: timeVal, exp: Date.now() + 90000 };
+}
+function _applyTimeOverrides(row) {
+  // Áp dụng _timeOverrides lên 1 row (col[11]) nếu còn trong hạn
+  const now = Date.now();
+  // Dọn expired
+  Object.keys(_timeOverrides).forEach(k => { if (_timeOverrides[k].exp < now) delete _timeOverrides[k]; });
+  const k = `${String(row[0]||'')}|${String(row[1]||'')}|${String(row[2]||'')}|${String(row[3]||'')}`;
+  if (_timeOverrides[k] && _timeOverrides[k].exp >= now) {
+    row[11] = _timeOverrides[k].time;
+  }
+  return row;
+}
 
 // ── So sánh mã/SĐT bất kể có/thiếu số 0 đầu (Google Sheets ép số) ──
 function _codeMatch(a, b) {
@@ -4196,12 +4452,21 @@ async function prefetchAll() {
           if (_renameOverrides[r[4]]) r[4] = _renameOverrides[r[4]];
           if (_renameOverrides[r[7]]) r[7] = _renameOverrides[r[7]];
         }
+        // v96 FIX: áp dụng _timeOverrides TRƯỚC khi merge — bảo vệ giờ đã chỉnh local
+        _applyTimeOverrides(r);
         if (!local) return r;
         const merged = [...r];
         if (!merged[4] && local[4]) merged[4] = local[4];
         if (!merged[7] && local[7]) merged[7] = local[7];
         if ((merged[5]===''||merged[5]===null||merged[5]===undefined) && local[5]!==''&&local[5]!==null&&local[5]!==undefined) merged[5]=local[5];
         if ((merged[6]===''||merged[6]===null||merged[6]===undefined) && local[6]!==''&&local[6]!==null&&local[6]!==undefined) merged[6]=local[6];
+        // v96 FIX: giữ giờ local nếu _timeOverrides còn hiệu lực (GAS chưa kịp lưu)
+        const tKey = `${String(r[0]||'')}|${String(r[1]||'')}|${String(r[2]||'')}|${String(r[3]||'')}`;
+        if (_timeOverrides[tKey] && _timeOverrides[tKey].exp >= Date.now()) {
+          merged[11] = _timeOverrides[tKey].time;
+        } else if (!merged[11] && local[11]) {
+          merged[11] = local[11];
+        }
         return merged;
       });
 
@@ -6176,7 +6441,7 @@ function renderPlayersPanel() {
   const existingBangs = [...new Set(existingMatches.map(m=>m[2]).filter(Boolean))];
 
   wrap.innerHTML = `
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 0;align-items:start">
+  <div data-players-grid style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 0;align-items:start">
 
     <!-- LEFT: Danh sách VĐV/Đội -->
     <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;overflow:hidden">
@@ -7938,12 +8203,20 @@ function renderBangList(giaiId, nd) {
 
 
 
-  // ── Stat cards ──
-  const statHtml = `<div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
-    <div class="sc b"><div class="slb">Tổng trận</div><div class="sv b">${totalM}</div><div class="ss">${allTeams.length} đội · ${poolBangs.length} bảng</div></div>
-    <div class="sc g"><div class="slb">Hoàn thành</div><div class="sv g">${doneM}</div><div class="ss">${pct}%</div></div>
-    <div class="sc o"><div class="slb">Đang đấu</div><div class="sv o">${liveM||'—'}</div><div class="ss">trận live</div></div>
-    <div class="sc p"><div class="slb">Chưa đấu</div><div class="sv p">${pendM}</div><div class="ss">${busyCourts.length}/${allCourts.length} sân dùng</div></div>
+  // ── Stat cards (desktop/tablet: 4 thẻ; mobile: 1 hàng gọn "Label: value") ──
+  const statHtml = `<div data-bl-stat>
+    <div class="stats nd-stats-cards" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
+      <div class="sc b"><div class="slb">Tổng trận</div><div class="sv b" data-sv="total">${totalM}</div><div class="ss">${allTeams.length} đội · ${poolBangs.length} bảng</div></div>
+      <div class="sc g"><div class="slb">Hoàn thành</div><div class="sv g" data-sv="done">${doneM}</div><div class="ss">${pct}%</div></div>
+      <div class="sc o"><div class="slb">Đang đấu</div><div class="sv o" data-sv="live">${liveM||'—'}</div><div class="ss">trận live</div></div>
+      <div class="sc p"><div class="slb">Chưa đấu</div><div class="sv p" data-sv="pend">${pendM}</div><div class="ss" data-sv-sub="pend">${busyCourts.length}/${allCourts.length} sân dùng</div></div>
+    </div>
+    <div class="nd-stats-compact">
+      <span class="nsc-it b">Tổng trận: <b data-sv="total">${totalM}</b></span><span class="nsc-sep">|</span>
+      <span class="nsc-it g">Hoàn thành: <b data-sv="done">${doneM}</b></span><span class="nsc-sep">|</span>
+      <span class="nsc-it o">Đang đấu: <b data-sv="live">${liveM||'—'}</b></span><span class="nsc-sep">|</span>
+      <span class="nsc-it p">Chưa đấu: <b data-sv="pend">${pendM}</b></span>
+    </div>
   </div>`;
 
   function secHdr(label,sub,withCollapse){
@@ -8287,6 +8560,19 @@ function openEditMatchMo(giaiId, nd, bang, code) {
     return '';
   };
   const curTime  = _parseTime(String(m[11]||''));
+  // v95 FIX: tách giờ/phút riêng — giờ 00-23, phút block 5 (00,05,...,55)
+  const [curTH, curTM] = curTime ? curTime.split(':') : ['',''];
+  const _emHourOpts = ['<option value="">--</option>'].concat(
+    Array.from({length:24},(_,i)=>String(i).padStart(2,'0'))
+      .map(h=>`<option value="${h}"${h===curTH?' selected':''}>${h}</option>`)
+  ).join('');
+  const _emMinOpts = (()=>{
+    const mins=[]; for(let i=0;i<60;i+=5) mins.push(String(i).padStart(2,'0'));
+    if (curTM && !mins.includes(curTM)) { mins.push(curTM); mins.sort(); }
+    return ['<option value="">--</option>'].concat(
+      mins.map(mm=>`<option value="${mm}"${mm===curTM?' selected':''}>${mm}</option>`)
+    ).join('');
+  })();
   const curRule  = String(m[12]||'11').trim() || '11'; // v52: Quy tắc điểm từ Matches col[12]
   // v54 FIX: CHỈ đọc điểm từ KetQua khi trận đã done — tránh hiện điểm sai cho trận pending
   // Trước đây dùng getFinalScore bất kể trạng thái → nếu _dkScores có data thừa → hiện nhầm
@@ -8367,31 +8653,31 @@ function openEditMatchMo(giaiId, nd, bang, code) {
       </div>
 
       <!-- Card Tỉ số -->
-      <div style="background:var(--bg3);border-radius:10px;padding:14px 16px">
+      <div style="background:var(--bg3);border-radius:10px;padding:10px 14px">
         <input type="hidden" id="em-score-cleared" value="0">
-        <div style="font-size:9px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">🏓 Tỉ số</div>
+        <div style="font-size:9px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">🏓 Tỉ số</div>
         <div style="display:grid;grid-template-columns:1fr 24px 1fr;gap:6px;align-items:center">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-            <div style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">${esc(String(m[4]||'').split(' ')[0].slice(0,10))}</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+            <div style="font-size:8.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-align:center;max-width:100%">${esc(String(m[4]||'').replace('TBD','').trim())}</div>
             <input id="em-sa" type="number" min="0" max="99" value="${curSA}" placeholder="—"
-              style="background:var(--bg2);border:1.5px solid var(--bdr);border-radius:7px;padding:8px 4px;font-size:22px;font-weight:900;color:var(--ac);text-align:center;font-family:var(--mo);width:100%;box-sizing:border-box">
+              style="background:var(--bg2);border:1.5px solid var(--bdr);border-radius:7px;padding:5px 4px;font-size:17px;font-weight:900;color:var(--ac);text-align:center;font-family:var(--mo);width:100%;box-sizing:border-box">
             <div style="display:flex;gap:4px;width:100%">
-              <button onclick="const el=document.getElementById('em-sa');el.value=Math.max(0,(+el.value||0)-1)" style="flex:1;height:24px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:15px;cursor:pointer">−</button>
-              <button onclick="const el=document.getElementById('em-sa');el.value=(+el.value||0)+1" style="flex:1;height:24px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:15px;cursor:pointer">+</button>
+              <button onclick="const el=document.getElementById('em-sa');el.value=Math.max(0,(+el.value||0)-1)" style="flex:1;height:19px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:13px;cursor:pointer">−</button>
+              <button onclick="const el=document.getElementById('em-sa');el.value=(+el.value||0)+1" style="flex:1;height:19px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:13px;cursor:pointer">+</button>
             </div>
           </div>
-          <div style="text-align:center;font-size:18px;color:var(--tx4);padding-top:20px">–</div>
-          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-            <div style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">${esc(String(m[7]||'').split(' ')[0].slice(0,10))}</div>
+          <div style="text-align:center;font-size:18px;color:var(--tx4);padding-top:16px">–</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+            <div style="font-size:8.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-align:center;max-width:100%">${esc(String(m[7]||'').replace('TBD','').trim())}</div>
             <input id="em-sb" type="number" min="0" max="99" value="${curSB}" placeholder="—"
-              style="background:var(--bg2);border:1.5px solid var(--bdr);border-radius:7px;padding:8px 4px;font-size:22px;font-weight:900;color:var(--gn);text-align:center;font-family:var(--mo);width:100%;box-sizing:border-box">
+              style="background:var(--bg2);border:1.5px solid var(--bdr);border-radius:7px;padding:5px 4px;font-size:17px;font-weight:900;color:var(--gn);text-align:center;font-family:var(--mo);width:100%;box-sizing:border-box">
             <div style="display:flex;gap:4px;width:100%">
-              <button onclick="const el=document.getElementById('em-sb');el.value=Math.max(0,(+el.value||0)-1)" style="flex:1;height:24px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:15px;cursor:pointer">−</button>
-              <button onclick="const el=document.getElementById('em-sb');el.value=(+el.value||0)+1" style="flex:1;height:24px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:15px;cursor:pointer">+</button>
+              <button onclick="const el=document.getElementById('em-sb');el.value=Math.max(0,(+el.value||0)-1)" style="flex:1;height:19px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:13px;cursor:pointer">−</button>
+              <button onclick="const el=document.getElementById('em-sb');el.value=(+el.value||0)+1" style="flex:1;height:19px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:13px;cursor:pointer">+</button>
             </div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:10px;padding-top:8px;border-top:1px solid var(--bdr)">
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:6px;padding-top:6px;border-top:1px solid var(--bdr)">
           ${(curSA!==''||curSB!=='')?`<button onclick="
             document.getElementById('em-sa').value='';document.getElementById('em-sb').value='';
             document.getElementById('em-done').checked=false;document.getElementById('em-score-cleared').value='1';
@@ -8420,16 +8706,21 @@ function openEditMatchMo(giaiId, nd, bang, code) {
         <!-- Giờ thi đấu (cuối cùng) -->
         <div>
           <label style="font-size:10px;font-weight:700;color:var(--or);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">⏱ Giờ thi đấu</label>
+          <input type="hidden" id="em-time-cleared" value="0">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <input id="em-time" type="time" value="${curTime}"
-              style="background:var(--bg2);border:1.5px solid rgba(245,158,11,.35);border-radius:8px;padding:6px 10px;font-size:14px;font-weight:700;color:var(--or);font-family:var(--mo);width:130px;outline:none;appearance:auto">
-            <button onclick="document.getElementById('em-time').value=''"
-              style="font-size:10px;color:var(--tx3);background:var(--bg2);border:1px solid var(--bdr);border-radius:5px;padding:4px 9px;cursor:pointer">✕ Xóa</button>
+            <select id="em-time-h"
+              style="background:var(--bg2);border:1.5px solid rgba(245,158,11,.35);border-radius:8px;padding:6px 8px;font-size:14px;font-weight:700;color:var(--or);font-family:var(--mo);outline:none">${_emHourOpts}</select>
+            <span style="color:var(--or);font-weight:700;font-size:14px">:</span>
+            <select id="em-time-m"
+              style="background:var(--bg2);border:1.5px solid rgba(245,158,11,.35);border-radius:8px;padding:6px 8px;font-size:14px;font-weight:700;color:var(--or);font-family:var(--mo);outline:none">${_emMinOpts}</select>
+            <button onclick="document.getElementById('em-time-h').value='';document.getElementById('em-time-m').value='';document.getElementById('em-time-cleared').value='1'"
+              style="font-size:10px;color:var(--rd);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:5px;padding:4px 9px;cursor:pointer">✕ Xóa giờ</button>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
-              ${['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30'].map(t=>
-                `<button onclick="document.getElementById('em-time').value='${t}'"
-                  style="font-size:10px;color:${curTime===t?'var(--or)':'var(--tx3)'};background:${curTime===t?'rgba(245,158,11,.12)':'var(--bg2)'};border:1px solid ${curTime===t?'rgba(245,158,11,.3)':'var(--bdr)'};border-radius:5px;padding:3px 7px;cursor:pointer;font-family:var(--mo)">${t}</button>`
-              ).join('')}
+              ${['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30'].map(t=>{
+                const [th,tm]=t.split(':');
+                return `<button onclick="document.getElementById('em-time-h').value='${th}';document.getElementById('em-time-m').value='${tm}';document.getElementById('em-time-cleared').value='0'"
+                  style="font-size:10px;color:${curTime===t?'var(--or)':'var(--tx3)'};background:${curTime===t?'rgba(245,158,11,.12)':'var(--bg2)'};border:1px solid ${curTime===t?'rgba(245,158,11,.3)':'var(--bdr)'};border-radius:5px;padding:3px 7px;cursor:pointer;font-family:var(--mo)">${t}</button>`;
+              }).join('')}
             </div>
           </div>
         </div>
@@ -8519,7 +8810,12 @@ async function saveEditMatch(giaiId, nd, bang, code) {
   const tb    = (document.getElementById('em-tb')?.value||'').trim();
   const court = (document.getElementById('em-court')?.value||'').trim();
   const ref   = (document.getElementById('em-ref')?.value||'').trim(); // comma-separated multi-ref
-  const time  = (document.getElementById('em-time')?.value||'').trim(); // giờ thi đấu HH:MM
+  const emTH  = (document.getElementById('em-time-h')?.value||'').trim();
+  const emTM  = (document.getElementById('em-time-m')?.value||'').trim();
+  const time  = emTH ? (emTH.padStart(2,'0')+':'+(emTM||'00').padStart(2,'0')) : ''; // giờ thi đấu HH:MM
+  // v97 FIX: phân biệt "chưa có giờ" vs "admin bấm ✕ Xóa giờ" — y chang scoreCleared
+  // timeCleared=true → GAS xóa col[11] trên sheet; false → GAS giữ nguyên nếu rỗng
+  const timeCleared = document.getElementById('em-time-cleared')?.value === '1';
   const saRaw = document.getElementById('em-sa')?.value;
   const sbRaw = document.getElementById('em-sb')?.value;
   const done  = document.getElementById('em-done')?.checked;
@@ -8531,7 +8827,7 @@ async function saveEditMatch(giaiId, nd, bang, code) {
   // Admin có thể phân sân, giờ, trọng tài trước — tên đội điền sau khi có kết quả vòng bảng
   // v55 FIX: thêm rule vào điều kiện — cho phép lưu khi chỉ đổi quy tắc điểm
   const ruleVal = (document.getElementById('em-rule')?.value||'11').trim();
-  const hasAnyInput = ta || tb || court || ref || time || ruleVal;
+  const hasAnyInput = ta || tb || court || ref || time || ruleVal || timeCleared;
   if (!hasAnyInput) { toast('Nhập ít nhất 1 thông tin để lưu','er'); return; }
 
   document.getElementById('edit-match-overlay')?.remove();
@@ -8584,9 +8880,10 @@ async function saveEditMatch(giaiId, nd, bang, code) {
   toast('⏳ Đang lưu...','in');
   let d = await gPost({action:'updateMatch',adminCode:CODE,
     giai:gName||giaiId,giaiName:gName||giaiId,nd,bang:bangActual,code,row:newRow,
-    scoreCleared: scoreCleared});
+    scoreCleared: scoreCleared, timeCleared: timeCleared});
   if (d&&!d.ok&&gName&&gName!==giaiId) {
-    d = await gPost({action:'updateMatch',adminCode:CODE,giai:giaiId,giaiName:gName,nd,bang:bangActual,code,row:newRow});
+    d = await gPost({action:'updateMatch',adminCode:CODE,giai:giaiId,giaiName:gName,nd,bang:bangActual,code,row:newRow,
+      scoreCleared: scoreCleared, timeCleared: timeCleared});
   }
   if (d?.ok) {
     // ── Cập nhật local cache _M ngay lập tức ──
@@ -8841,20 +9138,29 @@ async function _stSaveAll(giaiId, nd, bang, count) {
     // Cập nhật local cache
     const mIdx = _M.indexOf(m);
     if (mIdx>=0) _M[mIdx] = newRow;
+    // v96 FIX: đăng ký _timeOverrides ngay — bảo vệ giờ mới khỏi bị prefetchAll ghi đè
+    // bằng data cũ từ Máy chủ (GAS chưa kịp commit khi poll nền chạy lại)
+    _setTimeOverride(gName||giaiId, nd, String(m[2]||''), String(m[3]||''), timeVal);
     updates.push({ bang: String(m[2]||''), code: String(m[3]||''), row: newRow });
   }
 
   document.getElementById('sched-time-overlay')?.remove();
+  // FIX v95: render NGAY với cache _M đã sửa local — y chang saveEditMatch (_renderBangListDirect
+  // force rebuild, bỏ qua signature-check nên cột Giờ cập nhật ngay, không cần đợi GAS/refresh)
+  try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
+  _renderBangListDirect(giaiId, nd);
   toast(`⏳ Đang lưu giờ cho ${updates.length} trận...`,'in');
 
   try {
     await Promise.all(updates.map(u=>
       gPost({action:'updateMatch',adminCode:CODE,
              giai:gName||giaiId,giaiName:gName||giaiId,
-             nd,bang:u.bang,code:u.code,row:u.row})
+             nd,bang:u.bang,code:u.code,row:u.row,
+             // v97 FIX: timeCleared=true khi giờ bị xóa → GAS xóa col[11] trên sheet
+             timeCleared: (u.row[11]===''||u.row[11]===null||u.row[11]===undefined)})
     ));
     toast(`✅ Đã lưu giờ thi đấu cho ${updates.length} trận`,'ok');
-    renderBangList(giaiId, nd);
+    _renderBangListDirect(giaiId, nd);
   } catch(e) {
     toast('❌ Lỗi lưu giờ: '+e.message,'er');
   }
@@ -10152,6 +10458,28 @@ async function cleanupDuplicateMatches() {
     toast('❌ Lỗi kết nối: ' + e.message, 'er');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🧹 Dọn trùng'; }
+  }
+}
+
+// FIX v95: Sửa các ô Thời gian (cột L Matches) bị Google Sheets tự convert
+// thành Date/Time → gây lệch hiển thị ~25 phút. Chuyển lại về text "HH:mm".
+async function fixMatchTimeFormatsAdmin() {
+  const btn = document.getElementById('btn-fix-time');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang sửa...'; }
+  try {
+    const d = await gPost({ action: 'fixMatchTimeFormats', adminCode: CODE });
+    if (d.ok) {
+      toast(`✅ Đã sửa ${d.fixed} ô Giờ thi đấu bị sai`, 'ok');
+      _invalidateMatchCache(_curGiaiId||'');
+      if (_curTourn) await loadMatchesCache(String(_curTourn[0]||''), true);
+      renderBangList(_curGiaiId||'', _curNd||'');
+    } else {
+      toast('❌ ' + (d.reason||'Lỗi'), 'er');
+    }
+  } catch(e) {
+    toast('❌ Lỗi kết nối: ' + e.message, 'er');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span class="nd-tb-ic">⏱</span> Sửa giờ'; }
   }
 }
 
@@ -17124,12 +17452,55 @@ async function saveUser() {
   toast(`✅ ${_editU?'Cập nhật':'Thêm'} ${name}...`,'ok');
   try{
     const d=await gPost({action:_editU?'updateUser':'addUser',adminCode:CODE,user});
-    if(!d.ok)toast('Lỗi: '+d.reason,'er');
+    if(!d.ok){
+      toast('❌ Lỗi: '+(d.reason||'Không lưu được'),'er');
+      return; // FIX: lưu thất bại → không xoá cache/không sửa _U, giữ nguyên danh sách hiện tại
+    }
     delete _cache['users']; delete _cache['users_' + ROLE + '_' + CODE]; // invalidate cache
+
+    // FIX: cập nhật _U ngay (optimistic) để TT mới/sửa luôn hiện trong danh sách
+    // ngay lập tức, không phụ thuộc độ trễ hoặc bộ lọc đang chọn của loadUsers()
+    const newRow = [
+      effectiveCode, user.name, user.expire ? new Date(user.expire) : new Date('2099-12-31'),
+      user.courts||'', user.rounds||'', '', user.note||'', user.status,
+      user.giai||'', user.noidung||'', user.phone||'',
+      (_editU ? '' : (ROLE==='manager' ? CODE.toUpperCase() : ''))
+    ];
+    if (_editU) {
+      const selfCodeUp = (originalCode || effectiveCode).toUpperCase();
+      const idx = _U.findIndex(r => {
+        const rCode  = String(r[0]||'').trim().toUpperCase();
+        const rPhone = String(r[10]||'').trim().replace(/\D/g,'');
+        return rCode===selfCodeUp || (origPhone && rPhone===origPhone);
+      });
+      if (idx >= 0) {
+        newRow[11] = _U[idx][11] || newRow[11]; // giữ nguyên ownerCode hiện có
+        _U[idx] = newRow;
+      } else {
+        _U.push(newRow);
+      }
+    } else {
+      _U.push(newRow);
+    }
+
+    // FIX: khi vừa thêm mới — bỏ các bộ lọc đang áp dụng (giải/vai trò/tìm kiếm)
+    // để chắc chắn TT mới luôn hiển thị ngay, không bị bộ lọc đang chọn ẩn đi
+    if (!_editU) {
+      const giaiF = document.getElementById('u-giai-f');
+      const roleF = document.getElementById('u-role-f');
+      const qEl   = document.getElementById('uq');
+      if (giaiF) giaiF.value = '';
+      if (roleF) roleF.value = '';
+      if (qEl)   qEl.value = '';
+    }
+    _populateUserGiaiFilter();
+    filterUsers();
+
+    // Đồng bộ lại với Máy chủ ở nền (không chặn UI)
     loadUsers();
     // Sync player viewers tab if affected
     if(user.status==='player') { _PU=[]; loadPlayerUsers(); }
-  }catch(e){toast('Lỗi kết nối','er');}
+  }catch(e){toast('Lỗi kết nối: '+e.message,'er');}
 }
 async function delUser(phoneOrCode, name) {
   if (!confirm(`Xóa trọng tài ${name}?`)) return;
