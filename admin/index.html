@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<!-- Pickleball Admin v56 2026-06-09: FIX CRITICAL _syncResultCache nhận newRow[5/6] stale từ _M khi chỉ đổi rule → trận pending bị gán điểm cũ thành Hoàn thành — giờ truyền score tường minh từ saRaw/sbRaw | v55 2026-06-09: FIX saveEditMatch — hasAnyInput thêm rule, dùng ruleVal tránh đọc DOM 2 lần — cho phép lưu khi chỉ đổi quy tắc điểm trận | v54 2026-06-09: (1) FIX rule không đẩy xuống TT — normalizeMatchRow giờ đủ 13 cột, openEditMatchMo chỉ hiện điểm khi done; (2) FIX A3/A4 tự điền điểm — openEditMatchMo+renderBangList không đọc _dkScores khi pending | v51 2026-06-09: FIX TRIỆT ĐỂ popup Sửa bảng+trận — bỏ async/await getUsers khỏi openEditMatchMo+openEditBangMo (block 8s → modal không xuất hiện); load _U ngầm sau khi modal đã mở | v50 2026-06-09: FIX (1) popup Sửa bảng+trận không mở — xóa code lỗi matches[0] bị chèn nhầm vào openEditMatchMo; (2) FIX tỉ số hiển thị sai khi reload — chỉ tra _dkScores khi isMatchDone=true, pending→null | v49 2026-06-09: ADD Quy tắc điểm vào modal Sửa bảng (vòng bảng + KO) — openEditBangMo hiện select Chạm 11/15/21/24/25; applyEditBang lưu rule→col[12]→GAS+local _M | v48 2026-06-09: FIX tab nội dung — openNdDetail giữ tab đang active khi chuyển nội dung (Danh sách/Bảng đấu/Cây thi đấu); _getActiveNdTab() helper | v47 2026-06-09: FIX "Đang đấu" stale TRIỆT ĐỂ — REST poll /liveScores 2s song song SDK: detect node bị DELETE mà SDK WebSocket miss; rest-cleanup source tránh ghi đè điểm SDK fresh <3s; guard keep-fresh-key cho rest-cleanup | v46 2026-06-09: FIX Firebase liveScores listener lọc status≠playing; _onLiveData trigger loadDash khi rows=0 | v108 — v57 2026-06-09: Quy tắc điểm từ Admin — (1) Admin chọn rule khi tạo bảng (bang-rule); (2) Rule lưu vào Matches col[12]; (3) Modal Sửa trận có select rule; (4) Referee tự động load rule từ match → TT không cần chọn | v107 — v56 2026-06-09: (1) _bkCrossSeededSlots v2 — random shuffle fair-play, phân nhánh chẵn/lẻ, BYE ưu tiên Nhất>Nhì, TL ưu tiên Nhất vs Nhì, xen kẽ BYE-TL; (2) bỏ REST liveScores poll + gas-safety poll (race condition); (3) fix render sig bao gồm live score | v105 — FIX RACE CONDITION 2026-06-08: v53 — (1) _buildLiveFromRows MERGE THEO TIMESTAMP — không cho GAS stale overwrite Firebase fresh; (2) Source tracking: firebase/rest > gas; (3) GAS safety poll chỉ chạy khi REST/SDK đã silent > 8s; (4) Force re-render every 2s while Firebase active để đảm bảo DOM sync với _liveScores | v104 v52 REST POLL: ADD Firebase REST poll 2s SONG SONG với SDK listener — bypass SDK disconnect silent;  v103 FIX renderBangList giaiId 2026-06-08: v50 REALTIME ALL FLOWS — (1) Firebase /results onValue → _dkScores cập nhật &lt;1s khi TT Lưu; (2) Firebase /matches onValue → sân/TT cập nhật &lt;1s; (3) _onLiveData patch DOM trực tiếp không gọi loadDash(); (4) _syncFinishedMatches dùng Firebase data thay vì poll GAS |  FIX pill — đã có đội thật → tra BXH lấy rank+bảng (1E,2G); chưa có → mã trận (V162,TK1) | v90 2026-06-07: FIX pill label KO — "Thắng V162"→"V162", "Thắng TK1"→"TK1" thay vì W chung chung | v89 2026-06-07: FIX cây thi đấu gọn — card width 200px cố định; tên đôi tách 2 dòng (VĐV1/VĐV2); tên dài viết tắt họ; row/pill/sbox nhỏ hơn | v88 2026-06-07: FIX bkEditMatch — TK1 đã có tên VĐV hiển thị tên thật (card A/B); chờ vòng trước hiện "Thắng VXX"; phân biệt 3 case rõ ràng | v87 2026-06-07: Ẩn hoàn toàn scrollbar native của nd-bk-wrap — chỉ dùng nd-bk-scrollbar-wrap fixed | v86 2026-06-07: FIX TRIỆT ĐỂ scroll — nd-bk-wrap (scroll container) không bao giờ bị swap innerHTML; chỉ swap nd-bk-content (con bên trong) → scrollLeft tự nhiên giữ nguyên vĩnh viễn; drag chuột+touch đơn giản sạch | v85 2026-06-07: FIX TRIỆT ĐỂ scroll cây thi đấu — flag _bkRestoring block scroll event khi restore (không bị reset về 0); drag chuột+touch dùng clientX thay pageX; MutationObserver chỉ update width, không restore; restore 3 lần delay tăng dần | v84 2026-06-07: FIX đăng nhập lỗi 10M ô — hiển thị hướng dẫn xóa EventLog/LoginLog/LiveScore thay vì "Mã không hợp lệ"; Máy chủ không tạo sheet mới khi login | v83 2026-06-07: FIX scroll cây thi đấu — dùng biến global _bkScrollX/Y thay DOM (DOM reset về 0 sau render); MutationObserver restore scroll sau mỗi DOM change; drag chuột+touch đa chiều ngang+dọc; guard flag tránh sync loop | v82 2026-06-07: FIX (1) card cây thi đấu hiện "Thắng VXX" khi chưa có tên đội; (2) scroll ngang giữ nguyên vị trí sau render, bỏ loop sync; (3) drag-to-scroll chuột trên nd-bk-wrap | v81 2026-06-07: FIX cây thi đấu — bkEditMatch ẩn dropdown BYE khi trận đang chờ winner ("Thắng VXX"); bkSaveEditNew không ghi đè TBD khi chỉ lưu sân/giờ/TT; tạo mới Matches nếu chưa tồn tại | v80 2026-06-07: FIX saveEditMatch cho phép lưu khi chưa có tên đội — phân sân/giờ/TT trước, tên đội cập nhật sau; giữ nguyên tên đội cũ nếu field để trống | v79 2026-06-07: FIX bkApplyAndSave bỏ upsert:true (nguy hiểm — xóa toàn bộ trận KO kể cả đã có điểm); thêm scoreCleared:false khi update tên đội KO | v78 2026-06-07: FIX mất kết quả khi sửa tên VĐV — (1) openEditMatchMo đọc curSA/curSB từ getFinalScore(KetQua) thay vì Matches col[5/6]; (2) flag scoreCleared phân biệt "trống chưa có điểm" vs "chủ động xóa"; (3) chỉ gửi empty score lên Máy chủ khi scoreCleared=true | v77 2026-06-07: FIX data integrity — bkApplyAndSave+saveRR thêm upsert:true; importCSV toast cảnh báo skip; v76 2026-06-07: FIX nút Sửa tràn khỏi bảng — dùng table-layout:auto, bỏ min-width cứng, giảm padding td, bỏ white-space:nowrap cột Sân → nút Sửa luôn nằm trong khung | v75 2026-06-07: FIX _buildLiveFromRows — index cả key 4 phần (giai|nd|bang|code) lẫn key 3 phần (nd|bang|code) vào _lK và _liveScores; admin render dùng key 3 phần nên bị miss khi Máy chủ ghi key 4 phần | v73 2026-06-07: FIX — _lK hỗ trợ key mới 4 phần "giai|nd|bang|code" từ Máy chủ v40; _buildLiveMatchData dùng key mới; cold-start _lK thêm cả key 3 phần để backward-compat | v72 2026-06-04: FIX Xóa tất cả bảng dùng 1 request deleteAllBangs thay vì N requests tuần tự — nhanh gấp 15x; bỏ confirm() dùng double-tap | v71 2026-06-04: FIX saveBang+importMultiBang gửi upsert=true → Máy chủ xóa bảng cũ trước khi tạo lại, tránh dedup skip trận | v70 2026-06-04: FIX bkDeleteTree dùng double-tap thay confirm() bị browser block; Máy chủ v37 fix giaiName undefined trong deleteBracketTree | v69 2026-06-04: FIX confirm() trong bkApplyAndSave bị browser block → return sớm không save BracketTree; thay bằng toast cảnh báo tiếp tục luôn | v68 2026-06-04: FIX saveBracketTree bị bỏ qua khi Apply lần 2 (toCreate=0, toUpdate=0 → return sớm trước khi save SRV) | v67 2026-06-03: v6 FIX NGUỒN DUY NHẤT — buildDkFromResults/isMatchDone/getFinalScore/_syncResultCache/_buildLiveFromRows đều dùng key 4 trường "TênGiải|NộiDung|Bảng|MãTrận"; bỏ fallback Matches col[5/6] trong getFinalScore; bỏ giaiId duplicate trong _dK; bỏ fallback giaiId trong isMatchDone — badge Hoàn thành/Chưa đấu/Đang đấu giờ chính xác 100% từ KetQua | v66 2026-06-03: FIX v32 referee bugs — assignCourtToRef/assignRef/atrAssignDirect không xóa noidung cũ; _matchAllowed normalize dấu; renderMatchGrid hiển thị khi có trận phân tên | v65 2026-06-01: FIX bracket overflow + nút tràn màn hình PC | v25 | FIX: Login detailed errors, Test Máy chủ button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) Máy chủ dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên SRV | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (SRV renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) Máy chủ v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang -->
+<!-- Pickleball Admin v96 2026-06-13: FIX TRIỆT ĐỂ hiển thị giờ ngay sau "Lưu tất cả giờ" — Nguyên nhân: prefetchAll() chạy nền sau khi _stSaveAll lưu xong, merge server data về và KHÔNG bảo vệ col[11] (giờ) → giờ mới bị ghi đè bằng giá trị cũ từ GAS (chưa kịp commit). Giải pháp: thêm _timeOverrides{} (y chang _renameOverrides cho tên VĐV): đăng ký ngay trong _stSaveAll trước khi đóng overlay; prefetchAll merge áp dụng _timeOverrides giữ giờ local 90s; _applyTimeOverrides() helper dọn expired + protect col[11]. Không ảnh hưởng các chức năng khác. | v95 2026-06-13: COMPACT MOBILE trang Chi tiết nội dung — (1) Chuyển thanh "NỘI DUNG: ..." lên đầu trang (trên cả Header); (2) Ẩn tiêu đề Nội dung (tv-nd-title-wrap) trên mobile, giữ nút "← Quay lại"; (3) Toolbar 5 nút (Làm mới/Thêm bảng/Dọn trùng/Xóa Firebase Live/Xóa tất cả bảng) trên mobile: bỏ icon chỉ còn label, dồn 1 hàng cuộn ngang; (4) Khối Tổng quan (Tổng trận/Hoàn thành/Đang đấu/Chưa đấu) trên mobile gộp thành 1 hàng gọn "Label: value | Label: value" thay 4 thẻ rời | v94 2026-06-13: COMPACT POLISH responsive Mobile/Tablet — thu nhỏ đồng bộ font/icon/nút/khoảng cách toàn trang Admin (login, card, button, modal, table, tab, bottom-nav, stat-card, notification tray, bracket card), fix .cn max-width:100vw tránh tràn ngang trên điện thoại
+     Pickleball Admin v93 2026-06-12: FIX RESPONSIVE Tablet (641-1024px) + Mobile (≤640px) cho trang Chi tiết nội dung — (1) [data-bl-grid] (Bảng đấu: bảng trận + tình trạng sân/BXH 420px) → xếp dọc 1 cột, bỏ sticky; (2) [data-players-grid] (Danh sách VĐV + Bốc thăm chia bảng) → xếp dọc 1 cột; (3) #bang-list overflow-x:auto → bảng trận cuộn ngang thay vì bị cắt; (4) .stats (4-5 thẻ/dòng) → ép 2 cột trên tablet/mobile (!important đè inline repeat(4,1fr)/(5,1fr)); (5) form "Cấu hình bảng đấu" (2 bảng × 4 đội/bảng, Tên bảng/Phương thức) → xếp dọc trên mobile; (6) tab Danh sách/Bảng đấu/Cây thi đấu giảm padding trên tablet; (7) toolbar nút (Làm mới/Thêm bảng/Dọn trùng/Xóa Firebase Live/Xóa tất cả bảng) → 2 nút/dòng đều nhau trên mobile |
+     Pickleball Admin v92 2026-06-12: ADD đồng bộ 2 chiều — saveEditMatch (Sửa trận ở Bảng đấu) khi đổi tên VĐV/đội: thêm _syncRenameToPlayersList() cập nhật ngay _players (Danh sách VĐV) + _bocThamGroups (Bốc thăm chia bảng), lưu localStorage + render lại tab Danh sách nếu đang mở; nếu danh sách đã "Đã lưu" lên Sheets thì đồng bộ ngầm lên Sheets luôn (saveDanhSachVDV+saveDanhSachBang) — trước đây chỉ có chiều Danh sách→Bảng đấu (renamePlayer), giờ thêm chiều Bảng đấu→Danh sách |
+     Pickleball Admin v90 2026-06-12: FIX TRIỆT ĐỂ saveEditMatch + applyEditBang hiển thị NGAY (y chang v20) — (1) saveEditMatch khi đổi tên VĐV/đội: đăng ký _renameOverrides[oldName]=newName NGAY (bảo vệ tên mới khỏi bị loadMatchesCache nền ghi đè bằng tên cũ từ Sheet chưa kịp lưu — trước đây chỉ renamePlayer có cơ chế này, saveEditMatch (Sửa trận trong Bảng đấu) thì KHÔNG → các trận liên quan A2/A3/A6 không cập nhật ngay, phải F5 mới thấy); (2) saveEditMatch + applyEditBang lưu localStorage pb_adm_M_ ngay sau khi sửa _M; (3) saveEditMatch + applyEditBang dùng _renderBangListDirect (force render, bỏ qua mọi guard) thay vì renderBangList; (4) cleanup _renameOverrides sau 60s đủ thời gian Máy chủ commit + prefetch tới |
+     Pickleball Admin v78 2026-06-11: FIX TRIỆT ĐỂ hiển thị tức thì — (1) xóa stale-guard khỏi renderBangList (y chang v20, không block render); (2) openNdDetail render NGAY từ _M local trước khi fetch GAS (y chang v20); (3) renamePlayer dùng _renderBangListDirect force-render + lưu localStorage ngay; (4) _renameOverrides bảo vệ tên mới khi GAS prefetch về | Pickleball Admin v57 2026-06-09: Redesign form Thêm TT — vai trò lên đầu, active=SĐT, manager/player=mã, nội dung hiện dạng chip sau khi chọn giải | v56 2026-06-09: FIX CRITICAL _syncResultCache nhận newRow[5/6] stale từ _M khi chỉ đổi rule → trận pending bị gán điểm cũ thành Hoàn thành — giờ truyền score tường minh từ saRaw/sbRaw | v55 2026-06-09: FIX saveEditMatch — hasAnyInput thêm rule, dùng ruleVal tránh đọc DOM 2 lần — cho phép lưu khi chỉ đổi quy tắc điểm trận | v54 2026-06-09: (1) FIX rule không đẩy xuống TT — normalizeMatchRow giờ đủ 13 cột, openEditMatchMo chỉ hiện điểm khi done; (2) FIX A3/A4 tự điền điểm — openEditMatchMo+renderBangList không đọc _dkScores khi pending | v51 2026-06-09: FIX TRIỆT ĐỂ popup Sửa bảng+trận — bỏ async/await getUsers khỏi openEditMatchMo+openEditBangMo (block 8s → modal không xuất hiện); load _U ngầm sau khi modal đã mở | v50 2026-06-09: FIX (1) popup Sửa bảng+trận không mở — xóa code lỗi matches[0] bị chèn nhầm vào openEditMatchMo; (2) FIX tỉ số hiển thị sai khi reload — chỉ tra _dkScores khi isMatchDone=true, pending→null | v49 2026-06-09: ADD Quy tắc điểm vào modal Sửa bảng (vòng bảng + KO) — openEditBangMo hiện select Chạm 11/15/21/24/25; applyEditBang lưu rule→col[12]→GAS+local _M | v48 2026-06-09: FIX tab nội dung — openNdDetail giữ tab đang active khi chuyển nội dung (Danh sách/Bảng đấu/Cây thi đấu); _getActiveNdTab() helper | v47 2026-06-09: FIX "Đang đấu" stale TRIỆT ĐỂ — REST poll /liveScores 2s song song SDK: detect node bị DELETE mà SDK WebSocket miss; rest-cleanup source tránh ghi đè điểm SDK fresh <3s; guard keep-fresh-key cho rest-cleanup | v46 2026-06-09: FIX Firebase liveScores listener lọc status≠playing; _onLiveData trigger loadDash khi rows=0 | v108 — v57 2026-06-09: Quy tắc điểm từ Admin — (1) Admin chọn rule khi tạo bảng (bang-rule); (2) Rule lưu vào Matches col[12]; (3) Modal Sửa trận có select rule; (4) Referee tự động load rule từ match → TT không cần chọn | v107 — v56 2026-06-09: (1) _bkCrossSeededSlots v2 — random shuffle fair-play, phân nhánh chẵn/lẻ, BYE ưu tiên Nhất>Nhì, TL ưu tiên Nhất vs Nhì, xen kẽ BYE-TL; (2) bỏ REST liveScores poll + gas-safety poll (race condition); (3) fix render sig bao gồm live score | v105 — FIX RACE CONDITION 2026-06-08: v53 — (1) _buildLiveFromRows MERGE THEO TIMESTAMP — không cho GAS stale overwrite Firebase fresh; (2) Source tracking: firebase/rest > gas; (3) GAS safety poll chỉ chạy khi REST/SDK đã silent > 8s; (4) Force re-render every 2s while Firebase active để đảm bảo DOM sync với _liveScores | v104 v52 REST POLL: ADD Firebase REST poll 2s SONG SONG với SDK listener — bypass SDK disconnect silent;  v103 FIX renderBangList giaiId 2026-06-08: v50 REALTIME ALL FLOWS — (1) Firebase /results onValue → _dkScores cập nhật &lt;1s khi TT Lưu; (2) Firebase /matches onValue → sân/TT cập nhật &lt;1s; (3) _onLiveData patch DOM trực tiếp không gọi loadDash(); (4) _syncFinishedMatches dùng Firebase data thay vì poll GAS |  FIX pill — đã có đội thật → tra BXH lấy rank+bảng (1E,2G); chưa có → mã trận (V162,TK1) | v90 2026-06-07: FIX pill label KO — "Thắng V162"→"V162", "Thắng TK1"→"TK1" thay vì W chung chung | v89 2026-06-07: FIX cây thi đấu gọn — card width 200px cố định; tên đôi tách 2 dòng (VĐV1/VĐV2); tên dài viết tắt họ; row/pill/sbox nhỏ hơn | v88 2026-06-07: FIX bkEditMatch — TK1 đã có tên VĐV hiển thị tên thật (card A/B); chờ vòng trước hiện "Thắng VXX"; phân biệt 3 case rõ ràng | v87 2026-06-07: Ẩn hoàn toàn scrollbar native của nd-bk-wrap — chỉ dùng nd-bk-scrollbar-wrap fixed | v86 2026-06-07: FIX TRIỆT ĐỂ scroll — nd-bk-wrap (scroll container) không bao giờ bị swap innerHTML; chỉ swap nd-bk-content (con bên trong) → scrollLeft tự nhiên giữ nguyên vĩnh viễn; drag chuột+touch đơn giản sạch | v85 2026-06-07: FIX TRIỆT ĐỂ scroll cây thi đấu — flag _bkRestoring block scroll event khi restore (không bị reset về 0); drag chuột+touch dùng clientX thay pageX; MutationObserver chỉ update width, không restore; restore 3 lần delay tăng dần | v84 2026-06-07: FIX đăng nhập lỗi 10M ô — hiển thị hướng dẫn xóa EventLog/LoginLog/LiveScore thay vì "Mã không hợp lệ"; Máy chủ không tạo sheet mới khi login | v83 2026-06-07: FIX scroll cây thi đấu — dùng biến global _bkScrollX/Y thay DOM (DOM reset về 0 sau render); MutationObserver restore scroll sau mỗi DOM change; drag chuột+touch đa chiều ngang+dọc; guard flag tránh sync loop | v82 2026-06-07: FIX (1) card cây thi đấu hiện "Thắng VXX" khi chưa có tên đội; (2) scroll ngang giữ nguyên vị trí sau render, bỏ loop sync; (3) drag-to-scroll chuột trên nd-bk-wrap | v81 2026-06-07: FIX cây thi đấu — bkEditMatch ẩn dropdown BYE khi trận đang chờ winner ("Thắng VXX"); bkSaveEditNew không ghi đè TBD khi chỉ lưu sân/giờ/TT; tạo mới Matches nếu chưa tồn tại | v80 2026-06-07: FIX saveEditMatch cho phép lưu khi chưa có tên đội — phân sân/giờ/TT trước, tên đội cập nhật sau; giữ nguyên tên đội cũ nếu field để trống | v79 2026-06-07: FIX bkApplyAndSave bỏ upsert:true (nguy hiểm — xóa toàn bộ trận KO kể cả đã có điểm); thêm scoreCleared:false khi update tên đội KO | v78 2026-06-07: FIX mất kết quả khi sửa tên VĐV — (1) openEditMatchMo đọc curSA/curSB từ getFinalScore(KetQua) thay vì Matches col[5/6]; (2) flag scoreCleared phân biệt "trống chưa có điểm" vs "chủ động xóa"; (3) chỉ gửi empty score lên Máy chủ khi scoreCleared=true | v77 2026-06-07: FIX data integrity — bkApplyAndSave+saveRR thêm upsert:true; importCSV toast cảnh báo skip; v76 2026-06-07: FIX nút Sửa tràn khỏi bảng — dùng table-layout:auto, bỏ min-width cứng, giảm padding td, bỏ white-space:nowrap cột Sân → nút Sửa luôn nằm trong khung | v75 2026-06-07: FIX _buildLiveFromRows — index cả key 4 phần (giai|nd|bang|code) lẫn key 3 phần (nd|bang|code) vào _lK và _liveScores; admin render dùng key 3 phần nên bị miss khi Máy chủ ghi key 4 phần | v73 2026-06-07: FIX — _lK hỗ trợ key mới 4 phần "giai|nd|bang|code" từ Máy chủ v40; _buildLiveMatchData dùng key mới; cold-start _lK thêm cả key 3 phần để backward-compat | v72 2026-06-04: FIX Xóa tất cả bảng dùng 1 request deleteAllBangs thay vì N requests tuần tự — nhanh gấp 15x; bỏ confirm() dùng double-tap | v71 2026-06-04: FIX saveBang+importMultiBang gửi upsert=true → Máy chủ xóa bảng cũ trước khi tạo lại, tránh dedup skip trận | v70 2026-06-04: FIX bkDeleteTree dùng double-tap thay confirm() bị browser block; Máy chủ v37 fix giaiName undefined trong deleteBracketTree | v69 2026-06-04: FIX confirm() trong bkApplyAndSave bị browser block → return sớm không save BracketTree; thay bằng toast cảnh báo tiếp tục luôn | v68 2026-06-04: FIX saveBracketTree bị bỏ qua khi Apply lần 2 (toCreate=0, toUpdate=0 → return sớm trước khi save SRV) | v67 2026-06-03: v6 FIX NGUỒN DUY NHẤT — buildDkFromResults/isMatchDone/getFinalScore/_syncResultCache/_buildLiveFromRows đều dùng key 4 trường "TênGiải|NộiDung|Bảng|MãTrận"; bỏ fallback Matches col[5/6] trong getFinalScore; bỏ giaiId duplicate trong _dK; bỏ fallback giaiId trong isMatchDone — badge Hoàn thành/Chưa đấu/Đang đấu giờ chính xác 100% từ KetQua | v66 2026-06-03: FIX v32 referee bugs — assignCourtToRef/assignRef/atrAssignDirect không xóa noidung cũ; _matchAllowed normalize dấu; renderMatchGrid hiển thị khi có trận phân tên | v65 2026-06-01: FIX bracket overflow + nút tràn màn hình PC | v25 | FIX: Login detailed errors, Test Máy chủ button, Seeding cross-group verified | 2026-05-23 | Fix: s-done không nhảy loạn, _gasLastDone source-of-truth, stale localStorage invalidated | 2026-05-22 | v44 FIX: Cross-seeding cùng bảng + BYE trao đúng thành tích tốt nhất (nb=3,5,6,7) 2026-05-25 | v47 FIX: Phân công TT lỗi "Không xác định giải đấu"; Bracket full height; Toolbar nút đồng màu xanh dương, Thủ công/Tự động sáng xanh lá khi active | v49 FIX 2026-05-28: (1) Players persist localStorage — không mất khi navigate; (2) Máy chủ dedup tính noidung | v54 2026-05-28: (3) Mỗi nội dung có danh sách VĐV độc lập (localStorage namespace by GS URL); (4) Nút Lưu danh sách / Sửa danh sách; (5) Chế độ read-only khi đã lưu | v51: Popup bốc thăm 5s + quản lý bảng | v52: Quy tắc cố định 4 đội/bảng | v53: Lưu DanhSachVDV+DanhSachBang lên SRV | v54: skeleton loading cards, nút xóa nội dung, pre-cache, TTL 5 phút | v61 2026-06-01: (A) Nút ✏️ Sửa từng đội trong danh sách VĐV — đổi tên đồng bộ sang _bocThamGroups + Matches (SRV renameTeamInMatches); (B) Badge bảng A/B/... hiển thị ngay trong danh sách VĐV; (C) Máy chủ v28: action renameTeamInMatches cập nhật Matches+DanhSachVDV+DanhSachBang -->
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Admin v52 — Referee Pickleball / DA NANG ®</title>
+<title>Admin v95 — Referee Pickleball / DA NANG ®</title>
 <style>
 /* ═══════════════════════════════════════════════════════
    Pickleball Admin — Mobile-First Professional UI
@@ -69,15 +73,15 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);
   box-shadow:var(--shadow-lg),0 0 0 1px rgba(14,165,233,.05);
 }
 /* Logo */
-.lo{display:flex;align-items:center;gap:14px;margin-bottom:26px}
+.lo{display:flex;align-items:center;gap:14px;margin-bottom:26px;justify-content:center}
 .li{
-  width:52px;height:52px;border-radius:14px;flex-shrink:0;
-  background:linear-gradient(135deg,var(--ac3),var(--ac));
-  display:flex;align-items:center;justify-content:center;font-size:26px;
-  box-shadow:0 6px 20px rgba(14,165,233,.35);
+  width:56px;height:56px;border-radius:12px;flex-shrink:0;
+  overflow:hidden;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 20px rgba(0,0,0,.4);
 }
-.lt1{font-size:9px;font-weight:800;letter-spacing:2.5px;color:var(--ac);text-transform:uppercase}
-.lt2{font-size:18px;font-weight:900;color:var(--tx);line-height:1.1;margin-top:2px}
+.li img{width:100%;height:100%;object-fit:cover;display:block}
+.lt1{font-size:9px;font-weight:800;letter-spacing:2.5px;color:#22d374;text-transform:uppercase}
+.lt2{font-size:18px;font-weight:900;color:#22d374;line-height:1.1;margin-top:2px}
 .lt3{font-size:11px;color:var(--tx3);margin-top:3px}
 .ab{
   display:inline-flex;align-items:center;gap:4px;
@@ -139,11 +143,11 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);
 .sbt{padding:16px 14px 14px;border-bottom:1px solid var(--bdr);flex-shrink:0}
 .sbr{display:flex;align-items:center;gap:10px}
 .sbic{
-  width:36px;height:36px;border-radius:9px;flex-shrink:0;
-  background:linear-gradient(135deg,var(--ac3),var(--ac));
-  display:flex;align-items:center;justify-content:center;font-size:18px;
-  box-shadow:0 3px 10px rgba(14,165,233,.3);
+  width:38px;height:38px;border-radius:9px;flex-shrink:0;
+  overflow:hidden;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 10px rgba(0,0,0,.35);
 }
+.sbic img{width:100%;height:100%;object-fit:cover;display:block}
 .sbt1{font-size:8px;font-weight:800;letter-spacing:2px;color:var(--ac);text-transform:uppercase}
 .sbt2{font-size:14px;font-weight:900;color:var(--tx);line-height:1.2}
 .sbt3{font-size:9px;color:var(--tx3)}
@@ -989,6 +993,52 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
   .bsm{padding:6px 10px;font-size:12px}
 }
 
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE — v93 FIX: trang Chi tiết nội dung
+   (Danh sách VĐV/Bốc thăm + Bảng đấu + Cây thi đấu)
+   trên TABLET (641–1024px) và MOBILE (≤640px)
+══════════════════════════════════════════════════════ */
+@media(max-width:1024px){
+  /* ── Bảng đấu: grid 2 cột (bảng trận | tình trạng sân + BXH 420px) → 1 cột ── */
+  [data-bl-grid]{display:flex!important;flex-direction:column!important}
+  [data-bl-left]{width:100%!important}
+  [data-bl-right]{position:relative!important;top:auto!important;width:100%!important;margin-top:14px}
+
+  /* ── Danh sách VĐV / Bốc thăm chia bảng: grid 2 cột → 1 cột ── */
+  [data-players-grid]{display:flex!important;flex-direction:column!important;gap:14px!important}
+  [data-players-grid] > div{width:100%!important;min-width:0!important}
+
+  /* ── Bảng trận: cho phép scroll ngang trong khung, không bị cắt ── */
+  #bang-list{overflow-x:auto!important}
+
+  /* ── Stat cards: 4-5 ô trên 1 dòng quá chật → 2 cột ── */
+  .stats{grid-template-columns:repeat(2,1fr)!important;gap:8px}
+  .sv{font-size:22px}
+  .sc{padding:10px}
+
+  /* ── Tab Danh sách/Bảng đấu/Cây thi đấu: bớt padding để 3 tab không tràn ── */
+  #nd-tab-players,#nd-tab-bangs,#nd-tab-bracket{padding:8px 12px!important;font-size:12px!important}
+}
+
+@media(max-width:640px){
+  /* ── Bảng đấu: bảng trận thu nhỏ font/padding để bớt phải scroll ngang ── */
+  #bang-list table{font-size:11px}
+  #bang-list td,#bang-list th{padding:5px 3px!important}
+
+  /* ── Header trang Chi tiết nội dung: nút bấm xuống dòng đều, full width ── */
+  #tv-nd .ph > div:last-child{display:flex;gap:6px;flex-wrap:wrap;width:100%}
+  #tv-nd .ph > div:last-child .btn,#tv-nd .ph > div:last-child .rfbtn{flex:1 1 auto;justify-content:center;font-size:11px;padding:7px 8px;white-space:nowrap}
+
+  /* ── Cấu hình bảng đấu (số bảng × số đội/bảng): xếp dọc cho dễ nhập ── */
+  [data-players-grid] [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  [data-players-grid] [style*="repeat(3,1fr)"]{grid-template-columns:1fr!important}
+
+  /* Stat cards: 2 cột vẫn vừa trên mobile nhỏ — nhưng cho nhỏ chữ thêm */
+  .stats{gap:6px}
+  .sv{font-size:20px}
+  .ss{font-size:10px}
+}
+
 /* Touch targets (all interactive) */
 @media(hover:none){
   .btn,.ni,.mni,.rfbtn,.sc{min-height:44px}
@@ -1015,6 +1065,195 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .bxh-scroll::-webkit-scrollbar { width:5px; }
 .bxh-scroll::-webkit-scrollbar-track { background:transparent; }
 .bxh-scroll::-webkit-scrollbar-thumb { background:var(--bdr2,rgba(255,255,255,.15));border-radius:3px; }
+
+/* ══════════════════════════════════════════════════════
+   RESPONSIVE — v94 2026-06-13: COMPACT POLISH cho Mobile & Tablet
+   Thu nhỏ đồng bộ font chữ / icon / nút / khoảng cách toàn trang Admin
+   để bố cục cân đối, gọn gàng, chuyên nghiệp; toàn bộ nằm trong khung
+   màn hình (không tràn ngang) trên điện thoại và máy tính bảng.
+══════════════════════════════════════════════════════ */
+
+/* ── TABLET (641–1024px): giảm nhẹ ── */
+@media(max-width:1024px) and (min-width:641px){
+  html{font-size:15px}
+  .ptitle{font-size:18px}
+  .psub{font-size:11.5px}
+  .mtt{font-size:15px}
+  .ct{font-size:9px}
+  .card{padding:14px}
+  .btn{font-size:12px;padding:7px 12px}
+  .bsm{padding:5px 8px;font-size:11px}
+  .rfbtn{font-size:11px;padding:6px 10px}
+  table.tbl{font-size:12px}
+  .tbl thead th{font-size:9px;padding:8px 10px}
+  .tbl tbody td{padding:9px 10px}
+  .sv{font-size:23px}
+  .ss{font-size:10.5px}
+  .bdg,.ptag{font-size:10px}
+  .tb{font-size:11.5px;padding:7px 8px}
+  .mbox>.mh{padding:14px 18px 12px}
+  .mbox>.mb{padding:14px 18px}
+  .mbox>.mf{padding:12px 18px}
+  .fg label{font-size:9.5px}
+  .fg input,.fg select,.fg textarea{font-size:12.5px;padding:9px 11px}
+}
+
+/* ── MOBILE (≤640px): thu nhỏ mạnh hơn, vừa khung màn hình ── */
+@media(max-width:640px){
+  html,body{font-size:13px}
+  body{max-width:100vw;overflow-x:hidden}
+  .cn{max-width:100vw}
+
+  /* Login */
+  .lw{max-width:100%}
+  .lc{padding:20px 16px 16px;border-radius:var(--r2)}
+  .li{width:44px;height:44px;border-radius:10px}
+  .lt1,.ab{font-size:8px}
+  .lt2{font-size:15px}
+  .lt3{font-size:10px}
+  .lbl{font-size:10px}
+  .fi,.btn-ln{padding:10px 12px;font-size:13px}
+  .lerr{font-size:11px}
+  .ldbg{font-size:10px;padding:10px}
+  .rb{padding:11px 12px;font-size:11px;line-height:1.7}
+
+  /* Page title / subtitle */
+  .ptitle{font-size:15.5px;letter-spacing:-.2px}
+  .psub{font-size:10.5px;margin-top:2px}
+
+  /* Cards */
+  .card{padding:10px;border-radius:var(--r)}
+  .ct{font-size:9px;letter-spacing:1px;margin-bottom:8px}
+
+  /* Buttons & badges */
+  .btn{padding:7px 10px;font-size:11.5px;gap:5px;border-radius:7px}
+  .bsm{padding:5px 8px;font-size:10.5px}
+  .rfbtn{padding:6px 9px;font-size:10.5px}
+  .bdg,.ptag,.ptago,.lbdg{font-size:9.5px;padding:2px 6px}
+  .mono,.score{font-size:11px}
+
+  /* Modal */
+  .mtt{font-size:13.5px}
+  .mc{width:26px;height:26px;font-size:13px;border-radius:6px}
+  .mbox{padding:16px 12px}
+  .mbox>.mh{padding:12px 14px 10px;margin-bottom:12px}
+  .mbox>.mb{padding:12px 14px}
+  .mbox>.mf{padding:10px 14px;gap:6px}
+  .mf .btn{font-size:11.5px;padding:9px 12px}
+
+  /* Forms */
+  .fg{gap:4px;margin-bottom:10px}
+  .fg label{font-size:9px;letter-spacing:.6px}
+  .fg input,.fg select,.fg textarea{font-size:13px;padding:9px 10px;border-radius:7px}
+  .hint{font-size:9.5px}
+
+  /* Tabs */
+  .tabs{padding:3px;border-radius:8px}
+  .tb{font-size:10.5px;padding:7px 5px;border-radius:6px}
+
+  /* Tables */
+  table.tbl{font-size:11px}
+  .tbl thead th{font-size:8.5px;padding:6px 6px;letter-spacing:.4px}
+  .tbl tbody td{padding:7px 6px}
+
+  /* Filter bar */
+  .fbar{padding:8px 10px;gap:6px}
+  .fbar label{font-size:9.5px}
+  .fbar select,.fsel{font-size:11px;padding:6px 8px;min-width:90px}
+  .farrow{font-size:12px}
+
+  /* Search */
+  .si{font-size:12px;padding:8px 10px}
+
+  /* Mobile bottom nav icons */
+  .mni{font-size:8px;padding:5px 2px}
+  .mni .mni-ic{font-size:16px;width:32px;height:24px;border-radius:7px}
+
+  /* Stat cards: giảm tiếp font cho cân đối trên 2 cột */
+  .sv{font-size:18px;letter-spacing:-.5px}
+  .slb{font-size:8.5px;letter-spacing:.8px}
+  .ss{font-size:9.5px}
+  .sc{padding:9px;border-radius:var(--r)}
+  .sc::after{font-size:9px;top:8px;right:8px}
+
+  /* Notification tray + bell — vừa khung điện thoại */
+  #cp-tray{width:calc(100vw - 24px);left:50%!important;gap:8px}
+  .cpn{border-radius:13px}
+  .cpn-bar{height:3px}
+  .cpn-inner{padding:11px 12px 10px}
+  .cpn-hdr{gap:9px;margin-bottom:8px}
+  .cpn-icon{width:34px;height:34px;font-size:17px;border-radius:10px}
+  .cpn-type{font-size:9px;margin-bottom:1px}
+  .cpn-match{font-size:12px}
+  .cpn-close{width:24px;height:24px;font-size:12px}
+  .cpn-player{padding:7px 9px;gap:7px;border-radius:8px}
+  .cpn-side{font-size:8px;padding:2px 6px}
+  .cpn-pname{font-size:12px}
+  .cpn-court{font-size:10px}
+  .cpn-time{font-size:9px}
+  .cpn-progress{margin-top:8px}
+
+  #cp-bell{width:46px;height:46px;font-size:18px;bottom:calc(var(--nav-h) + 14px);right:12px}
+  .cp-badge{min-width:18px;height:18px;font-size:9px}
+
+  .cp-modal-box{border-radius:14px;max-height:90vh}
+  .cp-modal-hdr{padding:14px 14px 10px;gap:10px}
+  .cp-modal-icon{width:36px;height:36px;font-size:17px;border-radius:10px}
+  .cp-modal-title div:first-child{font-size:13px}
+  .cp-modal-title div:last-child{font-size:10px}
+  .cp-modal-body{padding:10px 12px}
+  .cp-hist-row{padding:10px 11px;border-radius:10px;margin-bottom:7px}
+  .cp-hist-badge{font-size:8.5px;padding:2px 7px}
+  .cp-hist-match{font-size:11px}
+  .cp-hist-time{font-size:9px}
+  .cp-hist-ptag{font-size:10px;padding:2px 7px}
+  .cp-hist-detail{font-size:9.5px}
+
+  /* Cây thi đấu (bracket): card nhỏ hơn để vừa màn hình hẹp */
+  .bk-card{width:168px;min-width:168px;max-width:168px}
+  .bk-round{min-width:188px}
+  .bk-tname{font-size:9.5px}
+  .bk-tname .p2{font-size:8.5px}
+  .bk-sbox{font-size:11px;min-width:24px;height:20px}
+  .bk-pill{font-size:8.5px;width:20px;height:20px}
+  .bk-ft-chip{font-size:8.5px;max-width:74px}
+
+  /* ── Trang Chi tiết nội dung: ẩn tiêu đề (giữ nút Quay lại) ── */
+  .tv-nd-title-wrap{display:none}
+
+  /* ── Toolbar nút (Làm mới/Thêm bảng/Dọn trùng/Xóa Firebase Live/Xóa tất cả bảng):
+       bỏ icon, chỉ còn label, dồn về 1 hàng cuộn ngang ── */
+  #tv-nd .nd-toolbar-actions{
+    flex-wrap:nowrap!important;overflow-x:auto;-webkit-overflow-scrolling:touch;
+    gap:5px;width:100%;padding-bottom:2px;scrollbar-width:none;
+  }
+  #tv-nd .nd-toolbar-actions::-webkit-scrollbar{display:none}
+  #tv-nd .nd-toolbar-actions .rfbtn,
+  #tv-nd .nd-toolbar-actions .btn{
+    flex:0 0 auto;font-size:10.5px!important;padding:6px 9px!important;white-space:nowrap;
+  }
+  #tv-nd .nd-toolbar-actions .nd-tb-ic{display:none}
+
+  /* ── Tổng quan trận đấu: thu thành 1 hàng "Label: value" thay cho 4 thẻ ── */
+  .nd-stats-cards{display:none!important}
+  .nd-stats-compact{display:flex!important}
+}
+</style>
+
+<style>
+/* Tổng quan trận đấu — hàng tóm tắt gọn cho mobile (ẩn trên desktop/tablet) */
+.nd-stats-compact{
+  display:none;align-items:center;gap:7px;flex-wrap:wrap;
+  background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r2);
+  padding:9px 12px;margin-bottom:12px;font-size:11px;font-weight:700;
+}
+.nd-stats-compact .nsc-it{color:var(--tx3);white-space:nowrap}
+.nd-stats-compact .nsc-it b{font-family:var(--mo);font-weight:800}
+.nd-stats-compact .nsc-it.b b{color:var(--ac)}
+.nd-stats-compact .nsc-it.g b{color:var(--gn)}
+.nd-stats-compact .nsc-it.o b{color:var(--or)}
+.nd-stats-compact .nsc-it.p b{color:var(--pu)}
+.nd-stats-compact .nsc-sep{color:var(--bdr3);font-size:10px}
 </style>
 
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -1031,7 +1270,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
     <div class="lc">
       <!-- Logo giống app trọng tài -->
       <div class="lo">
-        <div class="li">🏓</div>
+        <div class="li"><img src="data:image/png;base64,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" alt="DA NANG"></div>
         <div>
           <div class="lt1">Referee Pickleball</div>
           <div class="lt2">DA NANG <span style="color:var(--ac)">®</span></div>
@@ -1109,7 +1348,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
   <nav class="sb">
     <div class="sbt">
       <div class="sbr">
-        <div class="sbic">🏓</div>
+        <div class="sbic"><img src="data:image/png;base64,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" alt="DA NANG"></div>
         <div>
           <div class="sbt1">Referee Pickleball</div>
           <div class="sbt2">DA NANG ®</div>
@@ -1352,25 +1591,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 
       <!-- VIEW 3: Chi tiết nội dung (Bảng + Cây thi đấu) -->
       <div id="tv-nd" style="display:none">
-        <!-- Header -->
-        <div class="ph" style="margin-bottom:0">
-          <div style="display:flex;align-items:center;gap:10px">
-            <button class="rfbtn" onclick="showTournView('detail')" style="padding:6px 10px">← Quay lại</button>
-            <div>
-              <div class="ptitle" id="tv-nd-title">—</div>
-              <div class="psub" id="tv-nd-sub">—</div>
-            </div>
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-            <button class="rfbtn" onclick="ndRefresh()" id="nd-refresh-btn" title="Làm mới dữ liệu">↻ Làm mới</button>
-            <button class="btn bp bsm" onclick="openAddBangMo()" title="Thêm bảng đấu mới">＋ Thêm bảng</button>
-            <button id="btn-cleanup-dup" class="btn bsm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);font-size:12px" onclick="cleanupDuplicateMatches()" title="Xóa trận bị trùng">🧹 Dọn trùng</button>
-            <button id="btn-clear-fb-live" class="btn bsm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);font-size:12px" onclick="clearAllFirebaseLive()" title="Xóa toàn bộ live score đang kẹt trên Firebase RTDB">🔥 Xóa Firebase Live</button>
-            <button class="btn bsm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);font-size:12px" onclick="confirmDeleteAllBangs()" title="Xóa toàn bộ bảng đấu của nội dung này">🗑 Xóa tất cả bảng</button>
-          </div>
-        </div>
-
-        <!-- Nd switcher bar -->
+        <!-- Nd switcher bar (đặt lên đầu) -->
         <div id="nd-switcher-bar" style="display:none;align-items:center;gap:8px;padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--bdr);overflow-x:auto;scrollbar-width:none;flex-shrink:0">
           <span style="font-size:11px;font-weight:700;color:var(--tx4);white-space:nowrap;flex-shrink:0">NỘI DUNG:</span>
           <div id="nd-switcher-chips" style="display:flex;gap:6px;flex-wrap:nowrap"></div>
@@ -1381,6 +1602,25 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
           .nd-sw-chip:hover{border-color:var(--ac);color:var(--ac)}
           .nd-sw-chip.on{background:var(--ac3);border-color:var(--ac);color:#fff}
         </style>
+
+        <!-- Header -->
+        <div class="ph" style="margin-bottom:0;margin-top:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <button class="rfbtn" onclick="showTournView('detail')" style="padding:6px 10px">← Quay lại</button>
+            <div class="tv-nd-title-wrap">
+              <div class="ptitle" id="tv-nd-title">—</div>
+              <div class="psub" id="tv-nd-sub">—</div>
+            </div>
+          </div>
+          <div class="nd-toolbar-actions" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <button class="rfbtn" onclick="ndRefresh()" id="nd-refresh-btn" title="Làm mới dữ liệu"><span class="nd-tb-ic">↻</span> Làm mới</button>
+            <button class="btn bp bsm" onclick="openAddBangMo()" title="Thêm bảng đấu mới"><span class="nd-tb-ic">＋</span> Thêm bảng</button>
+            <button id="btn-cleanup-dup" class="btn bsm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);font-size:12px" onclick="cleanupDuplicateMatches()" title="Xóa trận bị trùng"><span class="nd-tb-ic">🧹</span> Dọn trùng</button>
+            <button id="btn-fix-time" class="btn bsm" style="background:rgba(245,158,11,.12);color:var(--or);border:1px solid rgba(245,158,11,.25);font-size:12px" onclick="fixMatchTimeFormatsAdmin()" title="Sửa các ô Giờ thi đấu bị Sheets convert sai (lệch ~25 phút)"><span class="nd-tb-ic">⏱</span> Sửa giờ</button>
+            <button id="btn-clear-fb-live" class="btn bsm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);font-size:12px" onclick="clearAllFirebaseLive()" title="Xóa toàn bộ live score đang kẹt trên Firebase RTDB"><span class="nd-tb-ic">🔥</span> Xóa Firebase Live</button>
+            <button class="btn bsm" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);font-size:12px" onclick="confirmDeleteAllBangs()" title="Xóa toàn bộ bảng đấu của nội dung này"><span class="nd-tb-ic">🗑</span> Xóa tất cả bảng</button>
+          </div>
+        </div>
 
         <!-- Tab switcher -->
         <div style="display:flex;gap:0;border-bottom:2px solid var(--bdr);margin-bottom:16px;margin-top:14px">
@@ -1992,29 +2232,40 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
   <div class="mh"><div class="mtt" id="user-tt">Thêm Trọng tài</div><button class="mc" onclick="closeMo('mo-user')">✕</button></div>
   <div class="mb">
   <div class="fgrid">
-    <div class="fg"><label>📞 Điện thoại <span style="color:var(--rd)">*</span></label>
-      <input type="tel" id="u-phone" placeholder="0901234567" oninput="this.value=this.value.replace(/[^0-9+]/g,'')">
-      <span class="hint" style="color:var(--tx3)">Bắt buộc và phải là số duy nhất — dùng để đăng nhập.</span></div>
-    <div class="fg"><label>Họ tên <span style="color:var(--rd)">*</span></label><input type="text" id="u-name" placeholder="Nguyễn Văn An"></div>
-    <!-- Mã đăng nhập — ẩn, tự sinh hoặc để trống -->
-    <div class="fg" style="display:none"><label>Mã đăng nhập</label>
-      <input type="text" id="u-code" placeholder="ref001" style="font-family:var(--mo)">
-      <span class="hint">Không bắt buộc. Để trống hệ thống sẽ dùng SĐT làm mã.</span></div>
-    <div class="fg"><label>Vai trò</label>
-      <select id="u-status">
+    <!-- ① VAI TRÒ — lên đầu -->
+    <div class="fg full"><label>Vai trò <span style="color:var(--rd)">*</span></label>
+      <select id="u-status" onchange="_updateUserRoleFields()">
         <option value="active">🟢 Trọng tài (active)</option>
         <option value="player">👁 Player viewer</option>
         <option value="manager">🔵 Manager giải</option>
         <option value="admin">👑 Admin</option>
         <option value="khóa">🔒 Khóa tài khoản</option>
       </select></div>
-    <div class="fg"><label>Hết hạn *</label>
+
+    <!-- ② SĐT — chỉ active -->
+    <div class="fg" id="fg-phone" style="display:none">
+      <label>📞 Số điện thoại <span style="color:var(--rd)">*</span></label>
+      <input type="tel" id="u-phone" placeholder="0901234567" oninput="this.value=this.value.replace(/[^0-9+]/g,'')">
+      <span class="hint">Dùng để đăng nhập. Phải là số duy nhất.</span></div>
+
+    <!-- ③ MÃ — manager, player, admin -->
+    <div class="fg" id="fg-code" style="display:none">
+      <label>🔑 Mã đăng nhập <span style="color:var(--rd)">*</span></label>
+      <input type="text" id="u-code" placeholder="MGR001 hoặc pl001" style="font-family:var(--mo)" autocomplete="off">
+      <span class="hint">Dùng để đăng nhập. Nên đặt dễ nhớ.</span></div>
+
+    <!-- ④ TÊN -->
+    <div class="fg"><label>Họ tên <span style="color:var(--rd)">*</span></label>
+      <input type="text" id="u-name" placeholder="Nguyễn Văn An"></div>
+
+    <!-- ⑤ HẾT HẠN -->
+    <div class="fg"><label>Hết hạn</label>
       <input type="date" id="u-exp">
-      <span class="hint">Bắt buộc. Để trống = tài khoản hết hạn ngay.</span></div>
+      <span class="hint">Để trống = không hết hạn.</span></div>
+
+    <!-- ⑥ GIẢI — manager: multi-picker -->
     <div class="fg full" id="fg-giai-manager" style="display:none">
-      <label>🏆 Giải đấu được phép quản lý <span style="color:var(--rd)">*</span>
-        <span style="font-size:10px;color:var(--tx3);font-weight:400;margin-left:4px">(Manager thấy đúng các giải được tích)</span>
-      </label>
+      <label>🏆 Giải đấu được phép quản lý <span style="color:var(--rd)">*</span></label>
       <div id="u-giai-pills" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg3);border:1.5px solid var(--bdr2);border-radius:var(--r);min-height:44px;cursor:pointer" onclick="document.getElementById('u-giai-dropdown').classList.toggle('open')">
         <span id="u-giai-placeholder" style="color:var(--tx4);font-size:12px;align-self:center">— Chọn giải —</span>
       </div>
@@ -2023,14 +2274,26 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
       </div>
       <input type="hidden" id="u-giai">
     </div>
-    <div class="fg" id="fg-giai-ref" style="display:none">
-      <label>Giải đấu phân công</label>
-      <select id="u-giai-ref-sel"><option value="">— Chọn giải —</option></select>
+
+    <!-- ⑦ GIẢI — active/player: dropdown đơn, khi chọn hiện nội dung -->
+    <div class="fg full" id="fg-giai-ref" style="display:none">
+      <label id="u-giai-ref-label">Giải đấu <span style="color:var(--rd)">*</span></label>
+      <select id="u-giai-ref-sel" onchange="_onUGiaiRefChange()">
+        <option value="">— Chọn giải —</option>
+      </select>
     </div>
-    <input type="hidden" id="u-nd" value="">
+
+    <!-- ⑧ NỘI DUNG — hiện ra khi chọn giải (active & player) -->
+    <div class="fg full" id="fg-nd-ref" style="display:none">
+      <label>Nội dung thi đấu <span style="font-size:10px;color:var(--tx3);font-weight:400">(để trống = tất cả)</span></label>
+      <div id="u-nd-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;min-height:32px;padding:6px 0"></div>
+      <input type="hidden" id="u-nd" value="">
+    </div>
+
     <input type="hidden" id="u-courts" value="">
     <input type="hidden" id="u-rounds" value="">
-    <div class="fg full"><label>Ghi chú</label><input type="text" id="u-note" placeholder=""></div>
+    <!-- Ghi chú ẩn (không hiện cho active) — lưu nội bộ -->
+    <input type="hidden" id="u-note" value="">
   </div>
   </div><!-- /mb -->
   <div class="mf">
@@ -2557,6 +2820,29 @@ function _filterTournsForRole(rows) {
   });
 }
 let _T=[],_U=[],_M=[],_R=[],_P=[];                // dữ liệu cache
+// FIX: map oldName→newName cho các lần đổi tên VĐV trong session này.
+// loadMatchesCache áp dụng map này lên MỌI dữ liệu (cache cũ hoặc fresh-fetch
+// nhưng server chưa kịp propagate) → tránh race condition revert tên đã đổi
+// về tên cũ khi 1 poll nền chạy xen giữa lúc renameTeamInMatches đang chờ Máy chủ.
+let _renameOverrides = {};
+// v96 FIX: bảo vệ giờ thi đấu đã chỉnh local khỏi bị prefetchAll ghi đè bằng data cũ từ Máy chủ.
+// key = "giải|nd|bảng|mã" → giá trị giờ mới (HH:MM). Xóa sau 90s đủ thời gian GAS commit.
+let _timeOverrides = {}; // { "key": { time: "HH:MM", exp: timestamp } }
+function _setTimeOverride(giaiName, nd, bang, code, timeVal) {
+  const k = `${giaiName}|${nd}|${bang}|${code}`;
+  _timeOverrides[k] = { time: timeVal, exp: Date.now() + 90000 };
+}
+function _applyTimeOverrides(row) {
+  // Áp dụng _timeOverrides lên 1 row (col[11]) nếu còn trong hạn
+  const now = Date.now();
+  // Dọn expired
+  Object.keys(_timeOverrides).forEach(k => { if (_timeOverrides[k].exp < now) delete _timeOverrides[k]; });
+  const k = `${String(row[0]||'')}|${String(row[1]||'')}|${String(row[2]||'')}|${String(row[3]||'')}`;
+  if (_timeOverrides[k] && _timeOverrides[k].exp >= now) {
+    row[11] = _timeOverrides[k].time;
+  }
+  return row;
+}
 
 // ── So sánh mã/SĐT bất kể có/thiếu số 0 đầu (Google Sheets ép số) ──
 function _codeMatch(a, b) {
@@ -2580,6 +2866,7 @@ let _dkBangCode=new Map();                         // Map "bang|code" → Set(gi
 let _dkScores={};                                  // { "bang|code": {scoreA,scoreB,...} }
 let _curGiaiId='', _curNd='', _curPage='dashboard'; // navigation state
 let _bkGiai='', _bkNd='', _bkGiaiName='';          // bracket state
+let _bkLastRenderKey=''; // FIX: track (giai|nd) đã render lần trước — KHÔNG bị openNdDetail ghi đè trước khi _ndBkRender chạy
 let _bkOverrides={};                               // bracket manual overrides
 let _bkByeMapGlobal = {};                            // map matchCode → {byeA,byeB} cho Lucky check
 let _bkDragMode = false;
@@ -3025,15 +3312,18 @@ window.onload = () => {
   if (s) {
     try {
       const j = JSON.parse(s);
-      // Nếu session lưu URL khác với URL của trang này → clear toàn bộ, về màn đăng nhập
+      // v57 FIX: so sánh URL session với DEFAULT_GAS_URL (hardcode trong file)
+      // Khi deploy file mới với URL mới → session cũ bị clear tự động, không cần f12
       const sessionUrl = (j.u||'').replace(/\/+$/,'').toLowerCase();
       const pageUrl    = DEFAULT_GAS_URL.replace(/\/+$/,'').toLowerCase();
-      if (sessionUrl && pageUrl && sessionUrl !== pageUrl) {
-        localStorage.removeItem('pb_adm3');
-        localStorage.removeItem('pb_gs_url');
-        localStorage.removeItem('pb_adm_code');
+      const urlMismatch = sessionUrl && pageUrl && sessionUrl !== pageUrl;
+      if (urlMismatch) {
+        // URL đã đổi → clear session cũ hoàn toàn
+        ['pb_adm3','pb_gs_url','pb_adm_code'].forEach(k=>localStorage.removeItem(k));
+        // Xóa luôn toàn bộ cache data cũ (trận, kết quả...) để tránh hiện nhầm data
+        Object.keys(localStorage).filter(k=>k.startsWith('pb_')).forEach(k=>localStorage.removeItem(k));
         if (urlEl) urlEl.value = DEFAULT_GAS_URL;
-        return; // về màn đăng nhập với URL mới
+        return; // về màn đăng nhập sạch
       }
       GS=j.u; CODE=j.c; NAME=j.n; ROLE=j.r||'admin'; MY_GIAI=j.g||'';
       MY_GIAI_LIST = MY_GIAI ? MY_GIAI.split(',').map(g=>g.trim()).filter(Boolean) : [];
@@ -4014,6 +4304,7 @@ function _invalidateMatchCache(giaiId) {
 function _showGasError(msg) {
   _gasConnected = false;
   _failCount++;
+  _reconnectToastShown = false; // reset để lần reconnect tiếp theo hiện toast 1 lần
   const bar = document.getElementById('gas-status-bar');
   const msgEl = document.getElementById('gas-status-msg');
   if (bar)   bar.style.display = 'flex';
@@ -4022,15 +4313,28 @@ function _showGasError(msg) {
   console.warn('[Máy chủ]', _failCount, 'lần thất bại:', msg);
 }
 
+let _reconnectToastShown = false;
+let _showOkTimer = null; // debounce nhiều call cùng lúc
 function _showGasOk() {
-  if (!_gasConnected || _failCount > 0) {
-    const bar = document.getElementById('gas-status-bar');
-    if (bar) bar.style.display = 'none';
-    if (_failCount > 0) toast('✅ Đã kết nối lại Máy chủ', 'in');
-  }
+  const wasDisconnected = !_gasConnected || _failCount > 0;
+  const failSnapshot = _failCount;
   _gasConnected = true;
   _failCount    = 0;
   _prefetchFailed = false;
+  if (wasDisconnected) {
+    const bar = document.getElementById('gas-status-bar');
+    if (bar) bar.style.display = 'none';
+  }
+  // Debounce: chờ 200ms để các call song song settle, chỉ toast 1 lần
+  if (wasDisconnected && failSnapshot >= 2 && !_reconnectToastShown) {
+    clearTimeout(_showOkTimer);
+    _showOkTimer = setTimeout(() => {
+      if (!_reconnectToastShown) {
+        toast('✅ Đã kết nối lại Máy chủ', 'in');
+        _reconnectToastShown = true;
+      }
+    }, 200);
+  }
 }
 
 function _showUrlUpdate() {
@@ -4141,12 +4445,28 @@ async function prefetchAll() {
       const mergedAll = allRows.map(nr => {
         const k = `${String(nr[0]||'')}|${String(nr[1]||'')}|${String(nr[2]||'')}|${String(nr[3]||'')}`;
         const local = localByKeyPF[k];
-        if (!local) return nr;
-        const merged = [...nr];
+        // FIX: áp dụng _renameOverrides TRƯỚC — nếu GAS chưa commit tên mới,
+        // _renameOverrides dịch tên cũ → tên mới, tránh overwrite _M local đúng
+        let r = [...nr];
+        if (Object.keys(_renameOverrides).length) {
+          if (_renameOverrides[r[4]]) r[4] = _renameOverrides[r[4]];
+          if (_renameOverrides[r[7]]) r[7] = _renameOverrides[r[7]];
+        }
+        // v96 FIX: áp dụng _timeOverrides TRƯỚC khi merge — bảo vệ giờ đã chỉnh local
+        _applyTimeOverrides(r);
+        if (!local) return r;
+        const merged = [...r];
         if (!merged[4] && local[4]) merged[4] = local[4];
         if (!merged[7] && local[7]) merged[7] = local[7];
         if ((merged[5]===''||merged[5]===null||merged[5]===undefined) && local[5]!==''&&local[5]!==null&&local[5]!==undefined) merged[5]=local[5];
         if ((merged[6]===''||merged[6]===null||merged[6]===undefined) && local[6]!==''&&local[6]!==null&&local[6]!==undefined) merged[6]=local[6];
+        // v96 FIX: giữ giờ local nếu _timeOverrides còn hiệu lực (GAS chưa kịp lưu)
+        const tKey = `${String(r[0]||'')}|${String(r[1]||'')}|${String(r[2]||'')}|${String(r[3]||'')}`;
+        if (_timeOverrides[tKey] && _timeOverrides[tKey].exp >= Date.now()) {
+          merged[11] = _timeOverrides[tKey].time;
+        } else if (!merged[11] && local[11]) {
+          merged[11] = local[11];
+        }
         return merged;
       });
 
@@ -4455,7 +4775,13 @@ async function gPost(b, timeout=20000) {
 // ════════════════════════════════════════════════════════════════
 //  UI HELPERS
 // ════════════════════════════════════════════════════════════════
+const _toastRecent = new Map(); // dedup: msg → timestamp
 function toast(msg, t='in') {
+  const now = Date.now();
+  // Bỏ qua nếu cùng msg đã hiện trong vòng 4s
+  if (_toastRecent.has(msg) && now - _toastRecent.get(msg) < 4000) return;
+  _toastRecent.set(msg, now);
+  setTimeout(() => _toastRecent.delete(msg), 4200);
   const w = document.getElementById('toast');
   const el = document.createElement('div');
   el.className = `ti ${t==='ok'?'ok':t==='er'?'er':'in'}`;
@@ -5257,6 +5583,10 @@ function _renderLiveTable(matches) {
 
 // Render bảng trận đầy đủ (đã lọc) — có nút thu gọn + live score trong row
 let _collapsedBangs = new Set(); // Bảng đang thu gọn
+// v91 FIX: cờ buộc renderBangList rebuild TOÀN BỘ (bỏ qua smart partial-update)
+// Dùng sau khi Sửa trận/Sửa bảng — vì signature so sánh (doneM|liveM|totalM|liveScoreSig)
+// KHÔNG đổi khi chỉ đổi tên VĐV/sân/giờ/TT → cột trái (bảng đấu) không re-render → hiển thị tên cũ
+let _forceBangListRebuild = false;
 function _renderMatchTable(matches) {
   const byBang = {};
   matches.forEach(m => {
@@ -5813,10 +6143,14 @@ async function ndRefresh() {
 // ── Tab switcher trong nd view ──
 function _bkStartSyncPoll() {
   if (_bkGasPollTimer) clearInterval(_bkGasPollTimer);
+  // FIX: snapshot key lúc khởi động poll — nếu user đổi nd trước khi 1 lượt poll
+  // hoàn tất (network chậm), bỏ qua kết quả thay vì apply nhầm vào nd hiện tại
+  const _pollKey = _bkGiai + '|' + _bkNd;
   _bkGasPollTimer = setInterval(async () => {
     if (!_bkGiai || !_bkNd || !GS) return;
     if (_bkIsEmpty) return;
     if (_bkDeletedAt && Date.now() - _bkDeletedAt < 5000) return;
+    if (_bkLastRenderKey !== _pollKey) { _bkStopSyncPoll(); return; } // nd đã đổi → tự dừng
     try {
       // v37: Poll nhẹ bằng GET bracketVersion — không cần adminCode
       const giaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
@@ -5828,13 +6162,16 @@ function _bkStartSyncPoll() {
       const r = await fetch(url.toString(), { cache: 'no-store' });
       const vRes = await r.json();
       if (!vRes.ok) return;
+      if (_bkLastRenderKey !== _pollKey) return; // FIX: guard sau await — nd đã đổi trong lúc fetch
       const remoteVer = vRes.version || 0;
       if (remoteVer <= _bkLastVersion) return;
       console.log('[BK SYNC] SRV BracketTree mới (v', remoteVer, '>', _bkLastVersion, ') — đang tải...');
       // Có phiên bản mới → load cây từ SRV
       const loaded = await _bkLoadTreeFromSheet();
+      if (_bkLastRenderKey !== _pollKey) return; // FIX: guard sau await thứ 2
       if (loaded) {
-        _bkCurrentTree = null; // force bkRender dùng tree mới từ SRV
+        // _bkLoadTreeFromSheet() đã set _bkCurrentTree = d.tree + _bkApplied = true.
+        // KHÔNG null lại ở đây — trước đây làm bkRender rơi về branch "chưa có cây" (placeholder)
         await _swapBkWrap('nd-bk-wrap', () => Promise.resolve(bkRender()));
         toast('🔄 Cây thi đấu đã được cập nhật từ SRV', 'in', 2500);
       }
@@ -5882,6 +6219,10 @@ function switchNdTab(tab, _skipHash) {
     if (sb) sb.style.display = 'none';
     // Dừng sync khi rời tab bracket
     _bkStopSyncPoll();
+  }
+  if (tab === 'bangs') {
+    // Render bảng đấu ngay từ _M local khi user chuyển tab — tên VĐV mới hiện ngay
+    if (_curGiaiId && _curNd) renderBangList(_curGiaiId, _curNd);
   }
   if (tab === 'players') {
     _switchPlayersCtx(_curGiaiId||'', _curNd||''); // đảm bảo context đúng trước khi render
@@ -6100,7 +6441,7 @@ function renderPlayersPanel() {
   const existingBangs = [...new Set(existingMatches.map(m=>m[2]).filter(Boolean))];
 
   wrap.innerHTML = `
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 0;align-items:start">
+  <div data-players-grid style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px 0;align-items:start">
 
     <!-- LEFT: Danh sách VĐV/Đội -->
     <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;overflow:hidden">
@@ -6385,6 +6726,9 @@ async function renamePlayer(idx) {
   if (!newName || !newName.trim() || newName.trim() === oldName) return;
   const nn = newName.trim();
 
+  // Đăng ký override để bảo vệ _M khỏi bị overwrite bởi prefetchAll/bgCache
+  _renameOverrides[oldName] = nn;
+
   // 1. Cập nhật danh sách VĐV
   _players[idx].name = nn;
 
@@ -6397,33 +6741,49 @@ async function renamePlayer(idx) {
     });
   });
 
-  // 3. Đồng bộ vào _M (trận đấu trong bộ nhớ) — cập nhật cột Đội A (index 4) và Đội B (index 7)
+  // 3. Đồng bộ vào _M (trận đấu trong bộ nhớ)
   let matchChanged = false;
   _M.forEach(row => {
     if (String(row[4]||'') === oldName) { row[4] = nn; matchChanged = true; }
     if (String(row[7]||'') === oldName) { row[7] = nn; matchChanged = true; }
   });
 
-  // 4. Lưu lại vào localStorage
+  // 4. Lưu localStorage ngay để prefetch nền không restore tên cũ
   _lsSavePlayers(_playersCtxKey, _players, _bocThamGroups);
   _savePLayersCtx();
+  try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
 
+  // 5. Render NGAY — trước mọi await (theo luồng v20)
   renderPlayersPanel();
+  // Render bảng đấu trực tiếp vào DOM (không dùng helper có thể bị guard chặn)
+  if (_curGiaiId && _curNd) {
+    const _wBang = document.getElementById('bang-list');
+    if (_wBang) _renderBangListDirect(_curGiaiId, _curNd);
+  }
+  // Patch cây thi đấu nếu đang mở
+  if (_bkCurrentTree && _bkCurrentTree.rounds) {
+    _bkCurrentTree.rounds.forEach(rd => (rd.matches||[]).forEach(m => {
+      if (m.teamA === oldName) m.teamA = nn;
+      if (m.teamB === oldName) m.teamB = nn;
+    }));
+    const bkPanel = document.getElementById('nd-panel-bracket');
+    if (bkPanel && bkPanel.style.display !== 'none' && typeof _ndBkRender === 'function') _ndBkRender();
+  }
 
-  // 5. Nếu đã lưu → sync lên SRV
+  // 6. Sync lên GSheets (nền — không block UI)
   if (_playersSavedMap[_playersCtxKey]) {
     toast('⏳ Đang cập nhật lên Máy Chủ...', 'in');
+    const gName = _ctxGiaiName();
+    const nd    = _curNd || '';
     try {
-      // Lưu danh sách VĐV mới
+      // Lưu danh sách VĐV
       await _saveVDVToSheets();
-      // Lưu bảng bốc thăm mới (nếu có thay đổi)
+      // Lưu bảng bốc thăm
       if (bocThamChanged && Object.keys(_bocThamGroups).length > 0) {
         await _saveBangToSheets();
       }
-      // Đổi tên trong bảng đấu (matches) trên SRV
+      // Đổi tên trong Matches sheet
       if (matchChanged) {
-        const gName = _ctxGiaiName();
-        const nd = _curNd || '';
         const d = await gPost({ action: 'renameTeamInMatches', adminCode: CODE,
           giai: gName, nd, oldName, newName: nn });
         if (d && d.ok) {
@@ -6441,9 +6801,10 @@ async function renamePlayer(idx) {
     toast(`✅ Đã đổi "${oldName}" → "${nn}" (nhớ bấm Lưu danh sách)`, 'ok');
   }
 
-  // 6. Re-render bảng đấu (tab Bảng đấu) nếu đang xem
-  if (typeof renderBangDau === 'function') renderBangDau();
-  if (typeof _refreshMatchesUI === 'function') _refreshMatchesUI();
+  // 7. Render lại sau khi GSheets xong (đảm bảo đồng bộ)
+  if (_curGiaiId && _curNd) _renderBangListDirect(_curGiaiId, _curNd);
+  // Cleanup _renameOverrides sau 60s
+  setTimeout(() => { delete _renameOverrides[oldName]; }, 60000);
 }
 async function clearAllPlayers() {
   if (!confirm(`Xóa tất cả ${_players.length} đội?`)) return;
@@ -7098,7 +7459,6 @@ async function _ndBkRender() {
     console.log('[BK] _ndBkRender blocked (just deleted, ' + Math.round((Date.now()-_bkDeletedAt)/1000) + 's ago)');
     return;
   }
-  const prevGiai = _bkGiai, prevNd = _bkNd;
   _bkGiai = _curGiaiId || _bkGiai;
   _bkNd   = _curNd     || _bkNd;
   _bkGiaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
@@ -7114,9 +7474,45 @@ async function _ndBkRender() {
     return;
   }
 
-  const ndChanged = (prevGiai !== _bkGiai || prevNd !== _bkNd);
-  // v37: Không reset khi _bkApplied=true — cây đã khóa, chỉ resolve winners
-  if (ndChanged && !_bkApplied) _bkCurrentTree = null;
+  // FIX BUG: trước đây dùng prevGiai=_bkGiai/prevNd=_bkNd CHỤP ngay đầu hàm — nhưng
+  // openNdDetail() đã set _bkGiai/_bkNd = giá trị MỚI TRƯỚC KHI gọi _ndBkRender(),
+  // nên prev luôn === current → ndChanged luôn false → cây của nd cũ bị giữ lại
+  // và hiển thị nhầm cho nd mới. Dùng _bkLastRenderKey (chỉ _ndBkRender ghi) để so sánh đúng.
+  const _curKey = _bkGiai + '|' + _bkNd;
+  const ndChanged = (_bkLastRenderKey !== _curKey);
+  _bkLastRenderKey = _curKey;
+  // FIX: Khi đổi nội dung/giải → LUÔN reset toàn bộ state cây (kể cả khi _bkApplied=true của nd cũ),
+  // tránh hiện nhầm cây của nội dung trước đó. _bkLoadTreeFromSheet() sẽ load lại đúng cây
+  // cho nd mới nếu server đã có (set lại _bkApplied=true), nếu chưa có thì hiện "Nhấn Tạo cây".
+  if (ndChanged) {
+    _bkCurrentTree = null;
+    _bkApplied     = false;
+    _bkLastVersion = 0;
+
+    // FIX: _bkAutoTimer (8s) + _bkLastKoDoneKeys là GLOBAL, không reset khi đổi nd.
+    // Nếu nd cũ đang ở chế độ tự động (_bkAutoMode=true sau khi Apply), timer cũ vẫn
+    // chạy ngầm, đọc _bkGiai/_bkNd LIVE (đã là nd MỚI) nhưng _bkLastKoDoneKeys vẫn
+    // chứa key của nd CŨ → tưởng nd mới "có kết quả mới" → tự resolve/lưu lại tree
+    // của nd mới sau vài giây, gây hiệu ứng "tự thay đổi/giật" mà user thấy.
+    // Dừng timer cũ + reset key set; sẽ được bật lại đúng ngữ cảnh nếu cần (Apply).
+    _bkStopAutoPolling();
+    _bkLastKoDoneKeys = new Set();
+
+    // FIX TỐC ĐỘ: build ngay 1 cây PREVIEW từ _M cache local (không cần mạng) → hiển thị
+    // tức thì khi đổi nd, giống v56. Nếu server có cây đã Apply, _bkLoadTreeFromSheet (300ms
+    // sau) sẽ THAY THẾ bằng cây thật. Đây là build 1 LẦN DUY NHẤT khi đổi nd — không lặp lại
+    // khi poll, không vi phạm yêu cầu "giữ nguyên, không tự tạo cây mới mỗi vài giây".
+    try {
+      const { seeds: pvSeeds, bangs: pvBangs, bangDone: pvBangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
+      if (pvBangs.length) {
+        const pvKoMatches = _M.filter(m=>String(m[0]||'')===_bkGiaiName && String(m[1]||'')===_bkNd)
+          .filter(m=>{const v=String(m[9]||'');return v&&v!=='Vòng bảng'&&!v.includes('bảng');});
+        let pvTree = _bkBuildTree(pvSeeds, pvBangs, pvKoMatches, pvBangDone);
+        pvTree = _bkResolveAdvancers(pvTree, pvKoMatches);
+        _bkCurrentTree = pvTree; // preview tạm — sẽ bị thay bằng cây thật từ server nếu có
+      }
+    } catch(e) { console.warn('[BK] preview build error:', e); }
+  }
 
   // FIX: Khi switch nội dung → clear cây ngay, không để cây cũ hiện trong khi load
   if (ndChanged) {
@@ -7182,10 +7578,26 @@ async function _ndBkRender() {
   if (hasCacheData && ndChanged) {
     // Đổi nội dung nhưng data đã có → render ngay rồi smart-merge từ Máy chủ nền
     _renderNow();
-    // Fetch ngầm: smart merge Máy chủ + local, re-render nếu có thay đổi thực
+    // Fetch ngầm: cập nhật _M mới nhất, re-resolve winners trên cây ĐANG CÓ (không xóa cây)
     loadMatchesCache(_snapBkGiai, true).then(() => {
       if (_isBkStale()) return; // FIX: guard stale
-      _bkCurrentTree = null;
+      // FIX: KHÔNG set _bkCurrentTree=null ở đây — trước đây làm rơi về branch
+      // "chưa có cây" (placeholder) ngay cả khi vừa hiển thị cây thật từ server
+      // hoặc preview hợp lệ, gây hiệu ứng "hiện vài giây rồi mất".
+      // Nếu đã có _bkCurrentTree (preview hoặc tree thật) → giữ nguyên, bkRender
+      // tự re-resolve advancers với _M mới. Chỉ rebuild khi THỰC SỰ chưa có gì.
+      if (!_bkCurrentTree) {
+        try {
+          const { seeds: pvSeeds2, bangs: pvBangs2, bangDone: pvBangDone2 } = _bkCalcSeeds(_bkGiai, _bkNd);
+          if (pvBangs2.length) {
+            const pvKo2 = _M.filter(m=>String(m[0]||'')===_bkGiaiName && String(m[1]||'')===_bkNd)
+              .filter(m=>{const v=String(m[9]||'');return v&&v!=='Vòng bảng'&&!v.includes('bảng');});
+            let pvTree2 = _bkBuildTree(pvSeeds2, pvBangs2, pvKo2, pvBangDone2);
+            pvTree2 = _bkResolveAdvancers(pvTree2, pvKo2);
+            _bkCurrentTree = pvTree2;
+          }
+        } catch(e) { console.warn('[BK] smart-merge preview error:', e); }
+      }
       _renderNow();
     }).catch(() => {});
     return;
@@ -7309,10 +7721,9 @@ function _getActiveNdTab() {
 }
 
 function openNdDetail(giaiId, nd) {
-  // ── v48 FIX: Ghi nhớ tab đang active (bangs/players/bracket) để giữ lại khi đổi nội dung ──
-  // Khi user đang xem Cây thi đấu NN rồi click sang ĐN → vào đúng Cây thi đấu ĐN
+  // Ghi nhớ tab đang active để giữ lại khi đổi nội dung (cây thi đấu)
   const ndViewVisible = document.getElementById('tv-nd')?.style.display !== 'none';
-  const activeTab = ndViewVisible ? _getActiveNdTab() : 'bangs'; // lần đầu vào → bangs
+  const activeTab = ndViewVisible ? _getActiveNdTab() : 'bangs';
 
   // Xóa cache cây cũ khi chuyển sang nội dung khác
   if (_curNd !== nd || _curGiaiId !== giaiId) _bkCurrentTree = null;
@@ -7327,55 +7738,42 @@ function openNdDetail(giaiId, nd) {
   renderNdSwitcher(giaiId, nd);
   showTournView('nd');
 
-  // FIX: Clear bang-list ngay khi switch nội dung — không để nội dung cũ flash
-  const bangListEl = document.getElementById('bang-list');
-  if (bangListEl) bangListEl.innerHTML = '<div class="empty"><span class="spin"></span></div>';
-  _lastLiveSigForBangList = ''; // reset để lần poll đầu luôn re-render
-
-  // FIX: Chụp snapshot nd/giaiId lúc click — dùng để guard callback async
-  const _snapGiai = giaiId, _snapNd = nd;
-  const _isStale = () => _curGiaiId !== _snapGiai || _curNd !== _snapNd;
-
-  // ── v48: Switch đúng tab, load data tương ứng ──
+  // Switch tab đúng
   if (activeTab === 'bracket') {
-    // Tab Cây thi đấu — cần load matches + overrides trước khi render
     _bkGiai = giaiId;
     _bkNd   = nd;
     _bkGiaiName = _resolveGiaiName(giaiId) || giaiId;
-    switchNdTab('bracket', true); // show panel ngay (loading state)
+    switchNdTab('bracket', true);
     loadMatchesCache(giaiId, true)
       .then(async () => {
-        if (_isStale()) return;
+        if (_curGiaiId !== giaiId || _curNd !== nd) return;
         await _bkLoadOverridesFromGAS();
-        if (_isStale()) return;
-        switchNdTab('bracket', true); // re-render sau khi data sẵn sàng
+        if (_curGiaiId !== giaiId || _curNd !== nd) return;
+        switchNdTab('bracket', true);
         await new Promise(r => setTimeout(r, 300));
         _syncBkScrollbar();
       })
-      .catch(() => { if (!_isStale()) switchNdTab('bracket', true); });
+      .catch(() => { if (_curGiaiId === giaiId && _curNd === nd) switchNdTab('bracket', true); });
   } else {
-    // Tab Bảng đấu hoặc Danh sách — switch ngay
     switchNdTab(activeTab, true);
-
-    // Render ngay từ cache nếu có
-    const giaiNameCheck = String((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||giaiId);
-    const hasCachedData = _M.some(m => (String(m[0]||'')===giaiNameCheck||String(m[0]||'')===giaiId) && String(m[1]||'')===nd);
-    if (hasCachedData) renderBangList(giaiId, nd);
-
-    // forceRefresh từ Máy chủ
-    loadMatchesCache(giaiId, true)
-      .then(() => { if (!_isStale()) renderBangList(_snapGiai, _snapNd); })
-      .catch(() => { if (!_isStale()) renderBangList(_snapGiai, _snapNd); });
   }
+
+  // Render NGAY từ _M local (y chang v20 — không chờ GAS)
+  renderBangList(giaiId, nd);
+
+  // Load GAS nền — dùng _renameOverrides bảo vệ tên mới
+  loadMatchesCache(giaiId, true)
+    .then(() => { if (_curGiaiId === giaiId && _curNd === nd) renderBangList(giaiId, nd); })
+    .catch(() => {});
 
   // Nếu localStorage chưa có VĐV/bảng → thử load từ SRV
   const ctxKey = (giaiId||'') + '|' + (nd||'');
   const lsData = _lsLoadPlayers(ctxKey);
   if (!lsData.players || lsData.players.length === 0) {
     _loadVDVBangFromSheets(giaiId, nd).then(changed => {
-      if (_isStale()) return;
+      if (_curGiaiId !== giaiId || _curNd !== nd) return;
       if (changed) {
-        _switchPlayersCtx(_snapGiai, _snapNd);
+        _switchPlayersCtx(giaiId, nd);
         const playerPanel = document.getElementById('nd-panel-players');
         if (playerPanel && playerPanel.style.display !== 'none') renderPlayersPanel();
       }
@@ -7386,11 +7784,21 @@ function openNdDetail(giaiId, nd) {
 }
 
 // ── Render danh sách bảng + trận ──
+// _renderBangListDirect: render bảng đấu KHÔNG có stale-guard
+// Dùng sau khi đổi tên VĐV — biết chắc _M đã đúng, cần force-render ngay
+// (renderBangList có guard giaiId/nd != _cur* sẽ block nếu context lệch)
+function _renderBangListDirect(giaiId, nd) {
+  // Cập nhật _curGiaiId/_curNd nếu chưa khớp (đảm bảo context đúng)
+  if (giaiId && nd) { _curGiaiId = giaiId; _curNd = nd; }
+  // v91 FIX: buộc rebuild toàn bộ — bỏ qua smart partial-update signature check
+  // (sig không đổi khi chỉ đổi tên/sân/giờ/TT → cột trái không cập nhật)
+  _forceBangListRebuild = true;
+  renderBangList(giaiId, nd);
+}
+
 function renderBangList(giaiId, nd) {
   const wrap = document.getElementById('bang-list');
   if (!wrap) return;
-  // FIX: Nếu giaiId/nd truyền vào khác với _curGiaiId/_curNd hiện tại → bỏ qua (stale callback)
-  if (giaiId && nd && (giaiId !== _curGiaiId || nd !== _curNd)) return;
   const giaiName = String((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||'');
   const allM = _M.filter(m=>(String(m[0]||'')===giaiName||String(m[0]||'')===giaiId)&&String(m[1]||'')===nd);
   const isDone = m => isMatchDone(m);
@@ -7795,12 +8203,20 @@ function renderBangList(giaiId, nd) {
 
 
 
-  // ── Stat cards ──
-  const statHtml = `<div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
-    <div class="sc b"><div class="slb">Tổng trận</div><div class="sv b">${totalM}</div><div class="ss">${allTeams.length} đội · ${poolBangs.length} bảng</div></div>
-    <div class="sc g"><div class="slb">Hoàn thành</div><div class="sv g">${doneM}</div><div class="ss">${pct}%</div></div>
-    <div class="sc o"><div class="slb">Đang đấu</div><div class="sv o">${liveM||'—'}</div><div class="ss">trận live</div></div>
-    <div class="sc p"><div class="slb">Chưa đấu</div><div class="sv p">${pendM}</div><div class="ss">${busyCourts.length}/${allCourts.length} sân dùng</div></div>
+  // ── Stat cards (desktop/tablet: 4 thẻ; mobile: 1 hàng gọn "Label: value") ──
+  const statHtml = `<div data-bl-stat>
+    <div class="stats nd-stats-cards" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
+      <div class="sc b"><div class="slb">Tổng trận</div><div class="sv b" data-sv="total">${totalM}</div><div class="ss">${allTeams.length} đội · ${poolBangs.length} bảng</div></div>
+      <div class="sc g"><div class="slb">Hoàn thành</div><div class="sv g" data-sv="done">${doneM}</div><div class="ss">${pct}%</div></div>
+      <div class="sc o"><div class="slb">Đang đấu</div><div class="sv o" data-sv="live">${liveM||'—'}</div><div class="ss">trận live</div></div>
+      <div class="sc p"><div class="slb">Chưa đấu</div><div class="sv p" data-sv="pend">${pendM}</div><div class="ss" data-sv-sub="pend">${busyCourts.length}/${allCourts.length} sân dùng</div></div>
+    </div>
+    <div class="nd-stats-compact">
+      <span class="nsc-it b">Tổng trận: <b data-sv="total">${totalM}</b></span><span class="nsc-sep">|</span>
+      <span class="nsc-it g">Hoàn thành: <b data-sv="done">${doneM}</b></span><span class="nsc-sep">|</span>
+      <span class="nsc-it o">Đang đấu: <b data-sv="live">${liveM||'—'}</b></span><span class="nsc-sep">|</span>
+      <span class="nsc-it p">Chưa đấu: <b data-sv="pend">${pendM}</b></span>
+    </div>
   </div>`;
 
   function secHdr(label,sub,withCollapse){
@@ -7825,7 +8241,10 @@ function renderBangList(giaiId, nd) {
   // ══════════════════════════════════════════════════════
   // SMART PARTIAL UPDATE — tránh flash khi poll 3s/5s
   // ══════════════════════════════════════════════════════
-  const _existsGrid = wrap.querySelector('[data-bl-grid]');
+  // v91 FIX: nếu _forceBangListRebuild=true (sau Sửa trận/Sửa bảng) → bỏ qua smart
+  // partial-update, coi như chưa có grid → rebuild toàn bộ (y chang v20)
+  const _existsGrid = _forceBangListRebuild ? null : wrap.querySelector('[data-bl-grid]');
+  _forceBangListRebuild = false;
 
   if (!_existsGrid) {
     // ── Lần đầu: render toàn bộ ──
@@ -8141,6 +8560,19 @@ function openEditMatchMo(giaiId, nd, bang, code) {
     return '';
   };
   const curTime  = _parseTime(String(m[11]||''));
+  // v95 FIX: tách giờ/phút riêng — giờ 00-23, phút block 5 (00,05,...,55)
+  const [curTH, curTM] = curTime ? curTime.split(':') : ['',''];
+  const _emHourOpts = ['<option value="">--</option>'].concat(
+    Array.from({length:24},(_,i)=>String(i).padStart(2,'0'))
+      .map(h=>`<option value="${h}"${h===curTH?' selected':''}>${h}</option>`)
+  ).join('');
+  const _emMinOpts = (()=>{
+    const mins=[]; for(let i=0;i<60;i+=5) mins.push(String(i).padStart(2,'0'));
+    if (curTM && !mins.includes(curTM)) { mins.push(curTM); mins.sort(); }
+    return ['<option value="">--</option>'].concat(
+      mins.map(mm=>`<option value="${mm}"${mm===curTM?' selected':''}>${mm}</option>`)
+    ).join('');
+  })();
   const curRule  = String(m[12]||'11').trim() || '11'; // v52: Quy tắc điểm từ Matches col[12]
   // v54 FIX: CHỈ đọc điểm từ KetQua khi trận đã done — tránh hiện điểm sai cho trận pending
   // Trước đây dùng getFinalScore bất kể trạng thái → nếu _dkScores có data thừa → hiện nhầm
@@ -8221,31 +8653,31 @@ function openEditMatchMo(giaiId, nd, bang, code) {
       </div>
 
       <!-- Card Tỉ số -->
-      <div style="background:var(--bg3);border-radius:10px;padding:14px 16px">
+      <div style="background:var(--bg3);border-radius:10px;padding:10px 14px">
         <input type="hidden" id="em-score-cleared" value="0">
-        <div style="font-size:9px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">🏓 Tỉ số</div>
+        <div style="font-size:9px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">🏓 Tỉ số</div>
         <div style="display:grid;grid-template-columns:1fr 24px 1fr;gap:6px;align-items:center">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-            <div style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">${esc(String(m[4]||'').split(' ')[0].slice(0,10))}</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+            <div style="font-size:8.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-align:center;max-width:100%">${esc(String(m[4]||'').replace('TBD','').trim())}</div>
             <input id="em-sa" type="number" min="0" max="99" value="${curSA}" placeholder="—"
-              style="background:var(--bg2);border:1.5px solid var(--bdr);border-radius:7px;padding:8px 4px;font-size:22px;font-weight:900;color:var(--ac);text-align:center;font-family:var(--mo);width:100%;box-sizing:border-box">
+              style="background:var(--bg2);border:1.5px solid var(--bdr);border-radius:7px;padding:5px 4px;font-size:17px;font-weight:900;color:var(--ac);text-align:center;font-family:var(--mo);width:100%;box-sizing:border-box">
             <div style="display:flex;gap:4px;width:100%">
-              <button onclick="const el=document.getElementById('em-sa');el.value=Math.max(0,(+el.value||0)-1)" style="flex:1;height:24px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:15px;cursor:pointer">−</button>
-              <button onclick="const el=document.getElementById('em-sa');el.value=(+el.value||0)+1" style="flex:1;height:24px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:15px;cursor:pointer">+</button>
+              <button onclick="const el=document.getElementById('em-sa');el.value=Math.max(0,(+el.value||0)-1)" style="flex:1;height:19px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:13px;cursor:pointer">−</button>
+              <button onclick="const el=document.getElementById('em-sa');el.value=(+el.value||0)+1" style="flex:1;height:19px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:13px;cursor:pointer">+</button>
             </div>
           </div>
-          <div style="text-align:center;font-size:18px;color:var(--tx4);padding-top:20px">–</div>
-          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-            <div style="font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">${esc(String(m[7]||'').split(' ')[0].slice(0,10))}</div>
+          <div style="text-align:center;font-size:18px;color:var(--tx4);padding-top:16px">–</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+            <div style="font-size:8.5px;font-weight:700;color:var(--tx3);text-transform:uppercase;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-align:center;max-width:100%">${esc(String(m[7]||'').replace('TBD','').trim())}</div>
             <input id="em-sb" type="number" min="0" max="99" value="${curSB}" placeholder="—"
-              style="background:var(--bg2);border:1.5px solid var(--bdr);border-radius:7px;padding:8px 4px;font-size:22px;font-weight:900;color:var(--gn);text-align:center;font-family:var(--mo);width:100%;box-sizing:border-box">
+              style="background:var(--bg2);border:1.5px solid var(--bdr);border-radius:7px;padding:5px 4px;font-size:17px;font-weight:900;color:var(--gn);text-align:center;font-family:var(--mo);width:100%;box-sizing:border-box">
             <div style="display:flex;gap:4px;width:100%">
-              <button onclick="const el=document.getElementById('em-sb');el.value=Math.max(0,(+el.value||0)-1)" style="flex:1;height:24px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:15px;cursor:pointer">−</button>
-              <button onclick="const el=document.getElementById('em-sb');el.value=(+el.value||0)+1" style="flex:1;height:24px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:15px;cursor:pointer">+</button>
+              <button onclick="const el=document.getElementById('em-sb');el.value=Math.max(0,(+el.value||0)-1)" style="flex:1;height:19px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:13px;cursor:pointer">−</button>
+              <button onclick="const el=document.getElementById('em-sb');el.value=(+el.value||0)+1" style="flex:1;height:19px;border-radius:4px;border:1px solid var(--bdr);background:var(--bg2);color:var(--tx2);font-size:13px;cursor:pointer">+</button>
             </div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:10px;padding-top:8px;border-top:1px solid var(--bdr)">
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:6px;padding-top:6px;border-top:1px solid var(--bdr)">
           ${(curSA!==''||curSB!=='')?`<button onclick="
             document.getElementById('em-sa').value='';document.getElementById('em-sb').value='';
             document.getElementById('em-done').checked=false;document.getElementById('em-score-cleared').value='1';
@@ -8275,15 +8707,19 @@ function openEditMatchMo(giaiId, nd, bang, code) {
         <div>
           <label style="font-size:10px;font-weight:700;color:var(--or);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">⏱ Giờ thi đấu</label>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <input id="em-time" type="time" value="${curTime}"
-              style="background:var(--bg2);border:1.5px solid rgba(245,158,11,.35);border-radius:8px;padding:6px 10px;font-size:14px;font-weight:700;color:var(--or);font-family:var(--mo);width:130px;outline:none;appearance:auto">
-            <button onclick="document.getElementById('em-time').value=''"
+            <select id="em-time-h"
+              style="background:var(--bg2);border:1.5px solid rgba(245,158,11,.35);border-radius:8px;padding:6px 8px;font-size:14px;font-weight:700;color:var(--or);font-family:var(--mo);outline:none">${_emHourOpts}</select>
+            <span style="color:var(--or);font-weight:700;font-size:14px">:</span>
+            <select id="em-time-m"
+              style="background:var(--bg2);border:1.5px solid rgba(245,158,11,.35);border-radius:8px;padding:6px 8px;font-size:14px;font-weight:700;color:var(--or);font-family:var(--mo);outline:none">${_emMinOpts}</select>
+            <button onclick="document.getElementById('em-time-h').value='';document.getElementById('em-time-m').value=''"
               style="font-size:10px;color:var(--tx3);background:var(--bg2);border:1px solid var(--bdr);border-radius:5px;padding:4px 9px;cursor:pointer">✕ Xóa</button>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
-              ${['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30'].map(t=>
-                `<button onclick="document.getElementById('em-time').value='${t}'"
-                  style="font-size:10px;color:${curTime===t?'var(--or)':'var(--tx3)'};background:${curTime===t?'rgba(245,158,11,.12)':'var(--bg2)'};border:1px solid ${curTime===t?'rgba(245,158,11,.3)':'var(--bdr)'};border-radius:5px;padding:3px 7px;cursor:pointer;font-family:var(--mo)">${t}</button>`
-              ).join('')}
+              ${['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30'].map(t=>{
+                const [th,tm]=t.split(':');
+                return `<button onclick="document.getElementById('em-time-h').value='${th}';document.getElementById('em-time-m').value='${tm}'"
+                  style="font-size:10px;color:${curTime===t?'var(--or)':'var(--tx3)'};background:${curTime===t?'rgba(245,158,11,.12)':'var(--bg2)'};border:1px solid ${curTime===t?'rgba(245,158,11,.3)':'var(--bdr)'};border-radius:5px;padding:3px 7px;cursor:pointer;font-family:var(--mo)">${t}</button>`;
+              }).join('')}
             </div>
           </div>
         </div>
@@ -8334,12 +8770,48 @@ Hành động này không thể hoàn tác.`)) return;
   } catch(e) { toast('❌ Lỗi kết nối','er'); }
 }
 
+// v92 FIX: đồng bộ ngược — khi đổi tên đội/VĐV ở Bảng đấu (saveEditMatch) →
+// cập nhật luôn Danh sách VĐV (_players) + Bốc thăm chia bảng (_bocThamGroups)
+// để tab "Danh sách" hiển thị tên mới ngay, không cần qua lại tab mới thấy
+function _syncRenameToPlayersList(giaiId, nd, oldName, newName) {
+  if (!oldName || !newName || oldName === newName) return false;
+  // chỉ sync nếu _players/_bocThamGroups hiện tại đang đúng context với trận vừa sửa
+  if (_curGiaiId !== giaiId || _curNd !== nd) return false;
+  let changed = false;
+  (_players||[]).forEach(p => { if (p && p.name === oldName) { p.name = newName; changed = true; } });
+  Object.keys(_bocThamGroups||{}).forEach(bang => {
+    const arr = _bocThamGroups[bang];
+    (arr||[]).forEach((t, ti) => { if (t === oldName) { arr[ti] = newName; changed = true; } });
+  });
+  if (!changed) return false;
+  // Lưu memory cache + localStorage ngay (không mất khi chuyển tab/reload)
+  _savePLayersCtx();
+  _lsSavePlayers(_playersCtxKey, _players, _bocThamGroups);
+  // Render lại panel Danh sách nếu đang mở
+  const panel = document.getElementById('nd-panel-players');
+  if (panel && panel.style.display !== 'none' && typeof renderPlayersPanel === 'function') {
+    renderPlayersPanel();
+  }
+  // Nếu danh sách đã từng lưu lên Sheets → đồng bộ ngầm lên Sheets luôn
+  if (_playersSavedMap[_playersCtxKey]) {
+    Promise.allSettled([_saveVDVToSheets(), _saveBangToSheets()]).then(results => {
+      const failed = results.filter(r=>r.status==='rejected'||!r.value?.ok).length;
+      if (failed) toast('⚠️ Đồng bộ Danh sách VĐV lên Sheet lỗi', 'in');
+    });
+  } else {
+    _playersSavedMap[_playersCtxKey] = false;
+  }
+  return true;
+}
+
 async function saveEditMatch(giaiId, nd, bang, code) {
   const ta    = (document.getElementById('em-ta')?.value||'').trim();
   const tb    = (document.getElementById('em-tb')?.value||'').trim();
   const court = (document.getElementById('em-court')?.value||'').trim();
   const ref   = (document.getElementById('em-ref')?.value||'').trim(); // comma-separated multi-ref
-  const time  = (document.getElementById('em-time')?.value||'').trim(); // giờ thi đấu HH:MM
+  const emTH  = (document.getElementById('em-time-h')?.value||'').trim();
+  const emTM  = (document.getElementById('em-time-m')?.value||'').trim();
+  const time  = emTH ? (emTH.padStart(2,'0')+':'+(emTM||'00').padStart(2,'0')) : ''; // giờ thi đấu HH:MM
   const saRaw = document.getElementById('em-sa')?.value;
   const sbRaw = document.getElementById('em-sb')?.value;
   const done  = document.getElementById('em-done')?.checked;
@@ -8426,6 +8898,17 @@ async function saveEditMatch(giaiId, nd, bang, code) {
     const renamedA = ta !== oldTA;
     const renamedB = tb !== oldTB;
     const extraUpdates = [];
+
+    // v90 FIX: đăng ký _renameOverrides + lưu localStorage NGAY — giống renamePlayer —
+    // để bảo vệ tên mới khỏi bị loadMatchesCache/poll nền ghi đè bằng tên cũ
+    // (Máy chủ/Sheet có thể chưa kịp lưu xong khi prefetch chạy lại)
+    if (renamedA && oldTA) _renameOverrides[oldTA] = ta;
+    if (renamedB && oldTB) _renameOverrides[oldTB] = tb;
+    // v92 FIX: đồng bộ tên mới sang Danh sách VĐV + Bốc thăm chia bảng
+    if (renamedA && oldTA) _syncRenameToPlayersList(giaiId, nd, oldTA, ta);
+    if (renamedB && oldTB) _syncRenameToPlayersList(giaiId, nd, oldTB, tb);
+    try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
+
     if (renamedA || renamedB) {
       const thisRound = String(newRow[9]||'');
       const thisIsGroupStage = !thisRound || thisRound === 'Vòng bảng' || thisRound.includes('bảng');
@@ -8453,7 +8936,8 @@ async function saveEditMatch(giaiId, nd, bang, code) {
     }
 
     // ── Re-render ngay với cache đã sửa (không cần chờ extra API) ──
-    renderBangList(giaiId, nd);
+    // v90 FIX: dùng _renderBangListDirect (force, không guard) — y chang renamePlayer/v20
+    _renderBangListDirect(giaiId, nd);
     // Sync cây thi đấu (nd-panel bracket)
     if (_bkGiai && _bkNd === nd) bkRender();
     if (typeof renderBracket === 'function') {
@@ -8477,11 +8961,50 @@ async function saveEditMatch(giaiId, nd, bang, code) {
         if (failed) toast(`⚠️ ${failed} trận chưa đồng bộ tên mới lên sheet`, 'in');
       });
     }
+    // v90 FIX: cleanup _renameOverrides sau 60s — đủ thời gian cho Máy chủ commit + prefetch tới
+    if (renamedA && oldTA) setTimeout(() => { delete _renameOverrides[oldTA]; }, 60000);
+    if (renamedB && oldTB) setTimeout(() => { delete _renameOverrides[oldTB]; }, 60000);
   } else {
     toast('❌ '+(d?.reason||'Lỗi cập nhật'),'er');
   }
 }
 
+
+// ── Helper: 2 dropdown Giờ(00-23) : Phút(00,05,...,55) — thay native time picker ──
+function _timeSelectsHtml(idPrefix, value, opts) {
+  opts = opts || {};
+  const accent = opts.accent || 'var(--or)';
+  const border = opts.border || 'rgba(245,158,11,.3)';
+  const w = opts.width || '62px';
+  const fs = opts.fontSize || '14px';
+  const [vh, vm] = (value||'').split(':').map(s=>parseInt(s));
+  const h = isNaN(vh) ? 8 : vh;
+  // Làm tròn phút về bội số 5 gần nhất
+  const m = isNaN(vm) ? 0 : Math.round(vm/5)*5 % 60;
+  const selStyle = `background:var(--bg3);border:1.5px solid ${border};border-radius:8px;padding:6px 4px;font-size:${fs};font-weight:800;color:${accent};font-family:var(--mo);outline:none;cursor:pointer;text-align:center;text-align-last:center;width:${w};-webkit-appearance:none;appearance:none`;
+  const hourOpts = Array.from({length:24},(_,i)=>`<option value="${String(i).padStart(2,'0')}"${i===h?' selected':''}>${String(i).padStart(2,'0')}</option>`).join('');
+  const minOpts  = Array.from({length:12},(_,i)=>{const v=i*5;return `<option value="${String(v).padStart(2,'0')}"${v===m?' selected':''}>${String(v).padStart(2,'0')}</option>`;}).join('');
+  return `<span style="display:inline-flex;align-items:center;gap:3px">`
+    + `<select id="${idPrefix}_h" style="${selStyle}">${hourOpts}</select>`
+    + `<span style="color:${accent};font-weight:800;font-size:${fs}">:</span>`
+    + `<select id="${idPrefix}_m" style="${selStyle}">${minOpts}</select>`
+    + `</span>`;
+}
+function _getTimeFromSelects(idPrefix) {
+  const h = document.getElementById(idPrefix+'_h')?.value;
+  const m = document.getElementById(idPrefix+'_m')?.value;
+  return (h!==undefined && m!==undefined) ? `${h}:${m}` : '';
+}
+function _setTimeToSelects(idPrefix, hh, mm) {
+  const eh = document.getElementById(idPrefix+'_h');
+  const em = document.getElementById(idPrefix+'_m');
+  if (eh) eh.value = String(hh).padStart(2,'0');
+  if (em) {
+    // Snap về bội số 5 gần nhất (option có sẵn)
+    const snapped = Math.round(mm/5)*5 % 60;
+    em.value = String(snapped).padStart(2,'0');
+  }
+}
 
 // ── Phân giờ thi đấu hàng loạt cho cả bảng ──
 async function openScheduleTimeMo(giaiId, nd, bang) {
@@ -8507,8 +9030,7 @@ async function openScheduleTimeMo(giaiId, nd, bang) {
       <td style="padding:5px 8px;font-family:var(--mo);font-weight:800;font-size:12px;color:var(--ac)">${esc(String(m[3]||''))}</td>
       <td style="padding:5px 8px;font-size:12px;color:var(--tx2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(String(m[4]||''))} vs ${esc(String(m[7]||''))}</td>
       <td style="padding:5px 8px;text-align:center">
-        <input type="time" id="st_time_${i}" value="${String(m[11]||'')}"
-          style="background:var(--bg2);border:1.5px solid rgba(245,158,11,.35);border-radius:7px;padding:4px 8px;font-size:13px;font-weight:700;color:var(--or);font-family:var(--mo);width:108px;outline:none">
+        ${_timeSelectsHtml('st_time_'+i, String(m[11]||''), {width:'48px',fontSize:'13px',border:'rgba(245,158,11,.35)'})}
       </td>
     </tr>`).join('');
 
@@ -8527,8 +9049,7 @@ async function openScheduleTimeMo(giaiId, nd, bang) {
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <div>
           <label style="font-size:10px;font-weight:700;color:var(--tx3);display:block;margin-bottom:4px">Giờ bắt đầu</label>
-          <input id="st-start" type="time" value="${firstTime}"
-            style="background:var(--bg3);border:1.5px solid rgba(245,158,11,.3);border-radius:8px;padding:6px 10px;font-size:15px;font-weight:800;color:var(--or);font-family:var(--mo);outline:none">
+          ${_timeSelectsHtml('st-start', firstTime, {width:'58px',fontSize:'15px'})}
         </div>
         <div>
           <label style="font-size:10px;font-weight:700;color:var(--tx3);display:block;margin-bottom:4px">Bước nhảy (phút)</label>
@@ -8585,16 +9106,13 @@ function _stSelectSlot(btn) {
 }
 
 function _stAutoApply(count) {
-  const start = document.getElementById('st-start')?.value;
+  const start = _getTimeFromSelects('st-start');
   const slot  = parseInt(document.getElementById('st-slot-val')?.value||'15');
   if (!start) { toast('Chọn giờ bắt đầu','er'); return; }
   const [hh,mm] = start.split(':').map(Number);
   let totalMin = hh*60+mm;
   for (let i=0; i<count; i++) {
-    const h=String(Math.floor(totalMin/60)%24).padStart(2,'0');
-    const m=String(totalMin%60).padStart(2,'0');
-    const el=document.getElementById(`st_time_${i}`);
-    if (el) el.value=`${h}:${m}`;
+    _setTimeToSelects('st_time_'+i, Math.floor(totalMin/60)%24, totalMin%60);
     totalMin+=slot;
   }
 }
@@ -8608,17 +9126,24 @@ async function _stSaveAll(giaiId, nd, bang, count) {
 
   const updates = [];
   for (let i=0; i<count; i++) {
-    const timeVal = (document.getElementById(`st_time_${i}`)?.value||'').trim();
+    const timeVal = _getTimeFromSelects('st_time_'+i);
     const m = ms[i]; if (!m) continue;
     const newRow = [...m];
     newRow[11] = timeVal;
     // Cập nhật local cache
     const mIdx = _M.indexOf(m);
     if (mIdx>=0) _M[mIdx] = newRow;
+    // v96 FIX: đăng ký _timeOverrides ngay — bảo vệ giờ mới khỏi bị prefetchAll ghi đè
+    // bằng data cũ từ Máy chủ (GAS chưa kịp commit khi poll nền chạy lại)
+    _setTimeOverride(gName||giaiId, nd, String(m[2]||''), String(m[3]||''), timeVal);
     updates.push({ bang: String(m[2]||''), code: String(m[3]||''), row: newRow });
   }
 
   document.getElementById('sched-time-overlay')?.remove();
+  // FIX v95: render NGAY với cache _M đã sửa local — y chang saveEditMatch (_renderBangListDirect
+  // force rebuild, bỏ qua signature-check nên cột Giờ cập nhật ngay, không cần đợi GAS/refresh)
+  try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
+  _renderBangListDirect(giaiId, nd);
   toast(`⏳ Đang lưu giờ cho ${updates.length} trận...`,'in');
 
   try {
@@ -8628,7 +9153,7 @@ async function _stSaveAll(giaiId, nd, bang, count) {
              nd,bang:u.bang,code:u.code,row:u.row})
     ));
     toast(`✅ Đã lưu giờ thi đấu cho ${updates.length} trận`,'ok');
-    renderBangList(giaiId, nd);
+    _renderBangListDirect(giaiId, nd);
   } catch(e) {
     toast('❌ Lỗi lưu giờ: '+e.message,'er');
   }
@@ -8789,6 +9314,7 @@ async function applyEditBang(giaiId, nd, oldBang) {
   const newCourt = (document.getElementById('eb-court').value||'').trim();
   const newRef   = (document.getElementById('eb-ref')?.value||'').trim(); // comma-separated multi-ref
   const newRule  = (document.getElementById('eb-rule')?.value||'11').trim(); // v49: quy tắc điểm
+
   if (!newBang) { toast('Nhập tên bảng','er'); return; }
   document.getElementById('edit-bang-overlay').remove();
   const giaiNameEB = String((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||giaiId);
@@ -8852,7 +9378,8 @@ async function applyEditBang(giaiId, nd, oldBang) {
   const refMsg = newRef ? ` · TT: ${newRef}` : '';
   const courtMsg = newCourt ? ` · Sân: ${newCourt}` : '';
   toast(`✅ Bảng ${newBang}${courtMsg}${refMsg} — đã cập nhật`, 'ok');
-  renderBangList(giaiId, nd);
+  try { localStorage.setItem('pb_adm_M_' + CODE, JSON.stringify(_M)); } catch(e) {}
+  _renderBangListDirect(giaiId, nd);
 }
 
 // ── Xóa toàn bộ trận của một bảng ──
@@ -9570,6 +10097,17 @@ async function loadMatchesCache(giaiId='', forceRefresh=false) {
   const giaiName = giaiId ? String((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||giaiId) : '';
   const cKey = 'matches_' + giaiName;
 
+  // FIX: áp dụng _renameOverrides (oldName→newName) lên 1 row — translate tên đội
+  // nếu trùng tên CŨ vừa đổi (cache cũ/server chưa kịp propagate)
+  const _applyRO = (row) => {
+    if (!Object.keys(_renameOverrides).length) return row;
+    let changed = false;
+    const r = [...row];
+    if (_renameOverrides[r[4]]) { r[4] = _renameOverrides[r[4]]; changed = true; }
+    if (_renameOverrides[r[7]]) { r[7] = _renameOverrides[r[7]]; changed = true; }
+    return changed ? r : row;
+  };
+
   // Dùng cache nếu còn mới VÀ không bị force refresh
   const cached = forceRefresh ? null : cacheGet(cKey);
   if (cached) {
@@ -9582,7 +10120,8 @@ async function loadMatchesCache(giaiId='', forceRefresh=false) {
         const k = `${String(m[1]||'')}|${String(m[2]||'')}|${String(m[3]||'')}`;
         localByKey2[k] = m;
       });
-    const mergedCache = cached.map(nr => {
+    const mergedCache = cached.map(nrRaw => {
+      const nr = _applyRO(nrRaw); // FIX: translate tên cũ trong cache → tên mới
       const k = `${String(nr[1]||'')}|${String(nr[2]||'')}|${String(nr[3]||'')}`;
       const local = localByKey2[k];
       if (!local) return nr;
@@ -9621,7 +10160,8 @@ async function loadMatchesCache(giaiId='', forceRefresh=false) {
           localByKey[k] = m;
         });
 
-      const mergedRows = newRows.map(nr => {
+      const mergedRows = newRows.map(nrRaw => {
+        const nr = _applyRO(nrRaw); // FIX: translate tên cũ (server chưa kịp propagate) → tên mới
         const k = `${String(nr[1]||'')}|${String(nr[2]||'')}|${String(nr[3]||'')}`;
         const local = localByKey[k];
         if (!local) return nr;
@@ -9911,6 +10451,28 @@ async function cleanupDuplicateMatches() {
     toast('❌ Lỗi kết nối: ' + e.message, 'er');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🧹 Dọn trùng'; }
+  }
+}
+
+// FIX v95: Sửa các ô Thời gian (cột L Matches) bị Google Sheets tự convert
+// thành Date/Time → gây lệch hiển thị ~25 phút. Chuyển lại về text "HH:mm".
+async function fixMatchTimeFormatsAdmin() {
+  const btn = document.getElementById('btn-fix-time');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang sửa...'; }
+  try {
+    const d = await gPost({ action: 'fixMatchTimeFormats', adminCode: CODE });
+    if (d.ok) {
+      toast(`✅ Đã sửa ${d.fixed} ô Giờ thi đấu bị sai`, 'ok');
+      _invalidateMatchCache(_curGiaiId||'');
+      if (_curTourn) await loadMatchesCache(String(_curTourn[0]||''), true);
+      renderBangList(_curGiaiId||'', _curNd||'');
+    } else {
+      toast('❌ ' + (d.reason||'Lỗi'), 'er');
+    }
+  } catch(e) {
+    toast('❌ Lỗi kết nối: ' + e.message, 'er');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<span class="nd-tb-ic">⏱</span> Sửa giờ'; }
   }
 }
 
@@ -10997,11 +11559,20 @@ function bkRender() {
     tree = JSON.parse(JSON.stringify(_bkCurrentTree));
     tree = _bkApplyOverrides(tree);
     tree = _bkResolveAdvancers(tree, koMatches);
-  } else {
-    // Chưa Apply: rebuild từ seeds (chế độ preview/chỉnh sửa tự do)
-    tree = _bkBuildTree(seeds, bangs, koMatches, bangDone);
+  } else if (_bkCurrentTree) {
+    // Cây đã được tạo (qua "Tạo cây") nhưng chưa Apply → GIỮ NGUYÊN vị trí, không rebuild lại từ BXH mỗi lần poll
+    tree = JSON.parse(JSON.stringify(_bkCurrentTree));
     tree = _bkApplyOverrides(tree);
     tree = _bkResolveAdvancers(tree, koMatches);
+  } else {
+    // Chưa có cây nào → hiện màn chờ, KHÔNG tự động tạo. Chỉ tạo khi user bấm "🏗 Tạo cây"
+    const ndWrap = document.getElementById('nd-bk-wrap') || wrap;
+    ndWrap.innerHTML = `<div class="empty"><div class="ei">🏆</div>
+      <p>Nhấn <b>🏗 Tạo cây</b> để tạo cây thi đấu từ kết quả vòng bảng</p>
+      <p style="font-size:11px;color:var(--tx3);margin-top:4px">${bangs.length} bảng · ${Object.values(seeds||{}).flat().length} đội được xếp hạng</p>
+    </div>`;
+    if (status) status.innerHTML = `<span>${bangs.length} bảng</span><span style="margin:0 4px;opacity:.4">·</span><span>${seeds.length} đội xếp hạng</span>`;
+    return;
   }
 
   // Set _bkCurrentTree ngay sau build — không phụ thuộc UI elements
@@ -11516,7 +12087,14 @@ async function ndBkGenChart() {
 
     // Reset overrides để xem cây chuẩn (không bị ảnh hưởng bởi drag-drop cũ)
     _bkOverrides = {};
-    _bkCurrentTree = null;
+
+    // Build cây mới NGAY TẠI ĐÂY và gán vào _bkCurrentTree TRƯỚC khi gọi bkRender().
+    // bkRender giờ KHÔNG tự rebuild khi _bkCurrentTree đã có → phải build sẵn ở đây.
+    const koMatches = _M.filter(m=>String(m[0]||'')===_bkGiaiName && String(m[1]||'')===_bkNd)
+      .filter(m=>{const v=String(m[9]||'');return v&&v!=='Vòng bảng'&&!v.includes('bảng');});
+    let newTree = _bkBuildTree(seeds, bangs, koMatches, bangDone); // 4 tham số: seeds,bangs,koMatches,bangDone
+    newTree = _bkResolveAdvancers(newTree, koMatches);
+    _bkCurrentTree = newTree;
 
     // Render cây xem trước — chỉ hiển thị, không lưu
     await _swapBkWrap('nd-bk-wrap', () => Promise.resolve(bkRender()));
@@ -11742,6 +12320,8 @@ function _bkStopAutoPolling() {
 
 async function _bkAutoAdvanceIfNeeded() {
   if (!_bkAutoMode || _bkEditMode || !_bkGiai || !_bkNd) return;
+  // FIX: guard nd đã đổi — timer 8s có thể đang chạy dở khi user vừa switch nd
+  if (_bkLastRenderKey !== (_bkGiai + '|' + _bkNd)) return;
   // v8: Dừng hoàn toàn khi cây đã bị xóa (_bkIsEmpty=true) — không chỉ 5s
   if (_bkIsEmpty) return;
   // v7: Block trong 5s sau khi xóa cây (race condition safety)
@@ -16360,34 +16940,101 @@ function renderUsers(rows) {
 }
 function _updateUserRoleFields() {
   const status = document.getElementById('u-status').value;
+  const isActive  = status === 'active';
   const isManager = status === 'manager';
   const isPlayer  = status === 'player';
-  const isRef = status === 'active' || isPlayer;
-  // Manager: hiện picker chọn nhiều giải; Trọng tài/Player: hiện dropdown giải đơn
-  document.getElementById('fg-giai-manager').style.display = isManager ? 'block' : 'none';
-  document.getElementById('fg-giai-ref').style.display    = isRef     ? 'block' : 'none';
-  // Cập nhật label giải theo role
-  const giaiLabel = document.querySelector('#fg-giai-ref label');
-  if (giaiLabel) giaiLabel.textContent = isPlayer ? '🏆 Giải được xem *' : 'Giải đấu phân công';
-  // Reset hidden fields (sân/vòng/nội dung đã bỏ khỏi UI)
+  const isAdmin   = status === 'admin';
+
+  // ① SĐT: chỉ hiện cho trọng tài active
+  const fgPhone = document.getElementById('fg-phone');
+  if (fgPhone) fgPhone.style.display = isActive ? 'block' : 'none';
+
+  // ② Mã: hiện cho manager, player, admin (không cần cho active — dùng SĐT)
+  const fgCode = document.getElementById('fg-code');
+  if (fgCode) fgCode.style.display = (!isActive) ? 'block' : 'none';
+  // Mã ẩn vẫn cần tồn tại cho active (dùng SĐT làm mã) → giữ element, chỉ ẩn UI
+
+  // ③ Giải đấu: manager dùng multi-picker, active/player dùng dropdown đơn
+  const fgMgr = document.getElementById('fg-giai-manager');
+  const fgRef = document.getElementById('fg-giai-ref');
+  if (fgMgr) fgMgr.style.display = isManager ? 'block' : 'none';
+  if (fgRef) fgRef.style.display = (isActive || isPlayer) ? 'block' : 'none';
+
+  // Label giải theo role
+  const lbl = document.getElementById('u-giai-ref-label');
+  if (lbl) lbl.innerHTML = isPlayer
+    ? '🏆 Giải được xem <span style="color:var(--rd)">*</span>'
+    : 'Giải đấu phân công <span style="color:var(--rd)">*</span>';
+
+  // ④ Nội dung: ẩn khi chưa có giải (hiện qua _onUGiaiRefChange)
+  const fgNd = document.getElementById('fg-nd-ref');
+  const refSel = document.getElementById('u-giai-ref-sel');
+  if (fgNd) fgNd.style.display = (isActive || isPlayer) && refSel?.value ? 'block' : 'none';
+
+  // Reset nội dung khi đổi role
+  const nd = document.getElementById('u-nd');
+  const ndChips = document.getElementById('u-nd-chips');
+  if (nd) nd.value = '';
+  if (ndChips) ndChips.innerHTML = '';
   const courts = document.getElementById('u-courts');
   const rounds = document.getElementById('u-rounds');
-  const nd = document.getElementById('u-nd');
   if (courts) courts.value = '';
   if (rounds) rounds.value = '';
-  if (nd) nd.value = '';
-  // Khi chuyển từ active → manager: tự động pre-select giải đang có vào manager picker
+
+  // Khi chuyển sang manager: pre-select giải đang có
   if (isManager) {
-    const refSel = document.getElementById('u-giai-ref-sel');
-    const currentGiai = refSel ? refSel.value : '';
+    const currentGiai = refSel?.value || '';
     if (currentGiai) {
-      // Tìm giaiId tương ứng với tên giải
       const t = _T.find(t => String(t[1]||t[0]||'') === currentGiai || String(t[0]||'') === currentGiai);
       const giaiId = t ? String(t[0]||'') : currentGiai;
       _buildManagerGiaiPicker([giaiId]);
       document.getElementById('u-giai').value = giaiId;
     }
   }
+}
+
+// Khi chọn giải trong dropdown (active/player) → hiện chip nội dung
+function _onUGiaiRefChange() {
+  const giaiName = document.getElementById('u-giai-ref-sel').value;
+  const fgNd = document.getElementById('fg-nd-ref');
+  const ndChips = document.getElementById('u-nd-chips');
+  const ndInput = document.getElementById('u-nd');
+  if (!fgNd || !ndChips) return;
+  if (!giaiName) { fgNd.style.display = 'none'; ndInput.value = ''; ndChips.innerHTML = ''; return; }
+  // Tìm nội dung của giải từ _T (col 7 = noidung list)
+  const t = _T.find(t => String(t[1]||t[0]||'') === giaiName);
+  const nds = t ? String(t[7]||'').split(',').map(s=>s.trim()).filter(Boolean) : [];
+  if (!nds.length) { fgNd.style.display = 'none'; ndInput.value = ''; return; }
+  fgNd.style.display = 'block';
+  // Reset selection
+  ndInput.value = '';
+  _renderUNdChips(nds, []);
+}
+
+function _renderUNdChips(nds, selected) {
+  const chipsWrap = document.getElementById('u-nd-chips');
+  const ndInput = document.getElementById('u-nd');
+  if (!chipsWrap) return;
+  chipsWrap.innerHTML = nds.map(nd => {
+    const on = selected.includes(nd);
+    return `<button type="button" onclick="_toggleUNd('${esc(nd)}')"
+      style="padding:5px 14px;font-size:12px;font-weight:700;border-radius:20px;cursor:pointer;transition:all .12s;
+      border:1.5px solid ${on?'var(--ac)':'var(--bdr2)'};
+      background:${on?'rgba(14,165,233,.15)':'transparent'};
+      color:${on?'var(--ac)':'var(--tx3)'}">${esc(nd)}</button>`;
+  }).join('');
+}
+
+function _toggleUNd(nd) {
+  const ndInput = document.getElementById('u-nd');
+  const giaiName = document.getElementById('u-giai-ref-sel').value;
+  const t = _T.find(t => String(t[1]||t[0]||'') === giaiName);
+  const nds = t ? String(t[7]||'').split(',').map(s=>s.trim()).filter(Boolean) : [];
+  let cur = (ndInput.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if (cur.includes(nd)) cur = cur.filter(x => x !== nd);
+  else cur.push(nd);
+  ndInput.value = cur.join(', ');
+  _renderUNdChips(nds, cur);
 }
 function _buildManagerGiaiPicker(selectedList) {
   // selectedList: array of giai IDs
@@ -16708,6 +17355,20 @@ function openUserMo(pre=null) {
 
   _updateUserRoleFields();
   document.getElementById('u-status').onchange = _updateUserRoleFields;
+
+  // Nếu đang sửa và đã có giải + nội dung → render chips
+  const curGiai = document.getElementById('u-giai-ref-sel')?.value;
+  if (curGiai && (pre?.status === 'active' || pre?.status === 'player')) {
+    const t = _T.find(t => String(t[1]||t[0]||'') === curGiai);
+    const nds = t ? String(t[7]||'').split(',').map(s=>s.trim()).filter(Boolean) : [];
+    if (nds.length) {
+      const cur = (pre?.noidung||'').split(',').map(s=>s.trim()).filter(Boolean);
+      document.getElementById('fg-nd-ref').style.display = 'block';
+      _renderUNdChips(nds, cur);
+      document.getElementById('u-nd').value = pre?.noidung || '';
+    }
+  }
+
   document.getElementById('u-save').disabled=false;
   openMo('mo-user');
 }
@@ -16721,12 +17382,19 @@ async function saveUser() {
   const name=document.getElementById('u-name').value.trim();
   const phone=document.getElementById('u-phone').value.trim();
   // Mã không bắt buộc — nếu trống thì dùng SĐT làm mã
-  const codeRaw=document.getElementById('u-code').value.trim();
-  const code = codeRaw || phone; // fallback: SĐT làm mã
+  const status = document.getElementById('u-status').value;
+  const isActiveRole = status === 'active';
+  const codeRaw = document.getElementById('u-code').value.trim().toUpperCase(); // luôn uppercase
+  const code = codeRaw || phone;
   if(!name){toast('Vui lòng nhập họ tên','er');return;}
-  if(!phone){
+  // Validate theo role: active → bắt buộc SĐT; còn lại → bắt buộc mã
+  if(isActiveRole && !phone){
     document.getElementById('u-phone').focus();
-    toast('⚠️ Số điện thoại là bắt buộc!','er');return;
+    toast('⚠️ Số điện thoại là bắt buộc cho Trọng tài!','er');return;
+  }
+  if(!isActiveRole && !codeRaw){
+    document.getElementById('u-code').focus();
+    toast('⚠️ Mã đăng nhập là bắt buộc!','er');return;
   }
   // Đảm bảo _U đã load — nếu rỗng fetch từ Máy chủ trước khi check unique
   if (!_U.length) {
@@ -16735,32 +17403,38 @@ async function saveUser() {
       if (du?.ok && du.rows?.length > 1) _U = du.rows.slice(1);
     } catch(e) {}
   }
-  // Kiểm tra SĐT unique phía client (bỏ qua chính user đang sửa)
+  // Kiểm tra SĐT unique phía client — chỉ khi có nhập SĐT (không cần cho manager/player)
   const cleanPhone = phone.replace(/\D/g,'');
   const selfCode = _editU ? String(_editU.code||'').trim().toUpperCase() : null;
-  const dupUser = (_U||[]).find(u => {
-    const uPhone = String(u[10]||'').trim().replace(/\D/g,'');
-    const uCode  = String(u[0]||'').trim().toUpperCase();
-    const isSelf = selfCode && uCode === selfCode;
-    return !isSelf && uPhone && uPhone === cleanPhone;
-  });
-  if (dupUser) {
-    document.getElementById('u-phone').focus();
-    toast(`⚠️ SĐT ${phone} đã thuộc TT: ${String(dupUser[1]||'(không tên)')}`, 'er');
-    return;
+  if (cleanPhone) {
+    const dupUser = (_U||[]).find(u => {
+      const uPhone = String(u[10]||'').trim().replace(/\D/g,'');
+      const uCode  = String(u[0]||'').trim().toUpperCase();
+      const isSelf = selfCode && uCode === selfCode;
+      return !isSelf && uPhone && uPhone === cleanPhone;
+    });
+    if (dupUser) {
+      document.getElementById('u-phone').focus();
+      toast(`⚠️ SĐT ${phone} đã thuộc TK: ${String(dupUser[1]||'(không tên)')}`, 'er');
+      return;
+    }
   }
   btn.disabled=true;
   const originalCode = (document.getElementById('u-code').dataset.originalCode||'').trim();
   // Khi sửa: giữ nguyên mã cũ (originalCode). Khi thêm mới: dùng SĐT làm mã nếu không có mã
-  const effectiveCode = _editU ? (originalCode || code) : (code || phone);
+  const effectiveCode = (_editU ? (originalCode || code) : (code || phone)).toUpperCase();
   // origPhone: SĐT gốc của user đang sửa — để Máy chủ tìm đúng row theo SĐT
   const origPhone = _editU ? String(_editU.phone||'').trim().replace(/\D/g,'') : '';
+  const nd = document.getElementById('u-nd')?.value?.trim() || '';
+  // FIX: originalCode phải là string (không dùng undefined — bị JSON.stringify bỏ qua → GAS không nhận được)
+  const origCodeVal = _editU ? (originalCode || effectiveCode) : '';
   const user={code: effectiveCode, name, expire:document.getElementById('u-exp').value,
-    originalCode: undefined,
+    originalCode: origCodeVal,
     origPhone: origPhone, // SĐT cũ để Máy chủ tìm row chính xác
     courts:document.getElementById('u-courts').value.trim(),
     rounds:document.getElementById('u-rounds').value.trim(),
-    note:document.getElementById('u-note').value.trim(),
+    note:'',  // ghi chú ẩn
+    noidung: nd,
     status:document.getElementById('u-status').value,
     giai: (['active','player'].includes(document.getElementById('u-status').value))
       ? document.getElementById('u-giai-ref-sel').value
@@ -16771,12 +17445,55 @@ async function saveUser() {
   toast(`✅ ${_editU?'Cập nhật':'Thêm'} ${name}...`,'ok');
   try{
     const d=await gPost({action:_editU?'updateUser':'addUser',adminCode:CODE,user});
-    if(!d.ok)toast('Lỗi: '+d.reason,'er');
+    if(!d.ok){
+      toast('❌ Lỗi: '+(d.reason||'Không lưu được'),'er');
+      return; // FIX: lưu thất bại → không xoá cache/không sửa _U, giữ nguyên danh sách hiện tại
+    }
     delete _cache['users']; delete _cache['users_' + ROLE + '_' + CODE]; // invalidate cache
+
+    // FIX: cập nhật _U ngay (optimistic) để TT mới/sửa luôn hiện trong danh sách
+    // ngay lập tức, không phụ thuộc độ trễ hoặc bộ lọc đang chọn của loadUsers()
+    const newRow = [
+      effectiveCode, user.name, user.expire ? new Date(user.expire) : new Date('2099-12-31'),
+      user.courts||'', user.rounds||'', '', user.note||'', user.status,
+      user.giai||'', user.noidung||'', user.phone||'',
+      (_editU ? '' : (ROLE==='manager' ? CODE.toUpperCase() : ''))
+    ];
+    if (_editU) {
+      const selfCodeUp = (originalCode || effectiveCode).toUpperCase();
+      const idx = _U.findIndex(r => {
+        const rCode  = String(r[0]||'').trim().toUpperCase();
+        const rPhone = String(r[10]||'').trim().replace(/\D/g,'');
+        return rCode===selfCodeUp || (origPhone && rPhone===origPhone);
+      });
+      if (idx >= 0) {
+        newRow[11] = _U[idx][11] || newRow[11]; // giữ nguyên ownerCode hiện có
+        _U[idx] = newRow;
+      } else {
+        _U.push(newRow);
+      }
+    } else {
+      _U.push(newRow);
+    }
+
+    // FIX: khi vừa thêm mới — bỏ các bộ lọc đang áp dụng (giải/vai trò/tìm kiếm)
+    // để chắc chắn TT mới luôn hiển thị ngay, không bị bộ lọc đang chọn ẩn đi
+    if (!_editU) {
+      const giaiF = document.getElementById('u-giai-f');
+      const roleF = document.getElementById('u-role-f');
+      const qEl   = document.getElementById('uq');
+      if (giaiF) giaiF.value = '';
+      if (roleF) roleF.value = '';
+      if (qEl)   qEl.value = '';
+    }
+    _populateUserGiaiFilter();
+    filterUsers();
+
+    // Đồng bộ lại với Máy chủ ở nền (không chặn UI)
     loadUsers();
     // Sync player viewers tab if affected
     if(user.status==='player') { _PU=[]; loadPlayerUsers(); }
-  }catch(e){toast('Lỗi kết nối','er');}
+  }catch(e){toast('Lỗi kết nối: '+e.message,'er');}
 }
 async function delUser(phoneOrCode, name) {
   if (!confirm(`Xóa trọng tài ${name}?`)) return;
