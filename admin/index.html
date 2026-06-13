@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<!-- Pickleball Admin v96 2026-06-13: FIX TRIỆT ĐỂ hiển thị giờ ngay sau "Lưu tất cả giờ" — Nguyên nhân: prefetchAll() chạy nền sau khi _stSaveAll lưu xong, merge server data về và KHÔNG bảo vệ col[11] (giờ) → giờ mới bị ghi đè bằng giá trị cũ từ GAS (chưa kịp commit). Giải pháp: thêm _timeOverrides{} (y chang _renameOverrides cho tên VĐV): đăng ký ngay trong _stSaveAll trước khi đóng overlay; prefetchAll merge áp dụng _timeOverrides giữ giờ local 90s; _applyTimeOverrides() helper dọn expired + protect col[11]. Không ảnh hưởng các chức năng khác. | v95 2026-06-13: COMPACT MOBILE trang Chi tiết nội dung — (1) Chuyển thanh "NỘI DUNG: ..." lên đầu trang (trên cả Header); (2) Ẩn tiêu đề Nội dung (tv-nd-title-wrap) trên mobile, giữ nút "← Quay lại"; (3) Toolbar 5 nút (Làm mới/Thêm bảng/Dọn trùng/Xóa Firebase Live/Xóa tất cả bảng) trên mobile: bỏ icon chỉ còn label, dồn 1 hàng cuộn ngang; (4) Khối Tổng quan (Tổng trận/Hoàn thành/Đang đấu/Chưa đấu) trên mobile gộp thành 1 hàng gọn "Label: value | Label: value" thay 4 thẻ rời | v94 2026-06-13: COMPACT POLISH responsive Mobile/Tablet — thu nhỏ đồng bộ font/icon/nút/khoảng cách toàn trang Admin (login, card, button, modal, table, tab, bottom-nav, stat-card, notification tray, bracket card), fix .cn max-width:100vw tránh tràn ngang trên điện thoại
+<!-- Pickleball Admin v97 2026-06-13: FIX xóa giờ trên Admin không xóa trên GSheet — Nguyên nhân: GAS updateMatch có guard "nếu col[11] rỗng → giữ nguyên giờ từ sheet" (tránh ghi đè vô tình), nên khi admin bấm ✕ Xóa giờ, GAS thấy row[11]='' nhưng vẫn khôi phục giờ cũ. Giải pháp: thêm flag timeCleared=true (y chang scoreCleared cho điểm) — (1) Admin: hidden field em-time-cleared; nút ✕ Xóa giờ set=1, nút preset giờ reset=0; saveEditMatch gửi timeCleared tới GAS; _stSaveAll cũng gửi timeCleared=true khi row[11]===''; (2) GAS v59: chỉ fallback giờ từ sheet nếu timeCleared!==true, còn nếu timeCleared=true thì ghi '' (xóa thật) + xóa Firebase /matches time. Không ảnh hưởng các chức năng khác. | v96 2026-06-13: FIX TRIỆT ĐỂ hiển thị giờ ngay sau "Lưu tất cả giờ" — Nguyên nhân: prefetchAll() chạy nền sau khi _stSaveAll lưu xong, merge server data về và KHÔNG bảo vệ col[11] (giờ) → giờ mới bị ghi đè bằng giá trị cũ từ GAS (chưa kịp commit). Giải pháp: thêm _timeOverrides{} (y chang _renameOverrides cho tên VĐV): đăng ký ngay trong _stSaveAll trước khi đóng overlay; prefetchAll merge áp dụng _timeOverrides giữ giờ local 90s; _applyTimeOverrides() helper dọn expired + protect col[11]. Không ảnh hưởng các chức năng khác. | v95 2026-06-13: COMPACT MOBILE trang Chi tiết nội dung — (1) Chuyển thanh "NỘI DUNG: ..." lên đầu trang (trên cả Header); (2) Ẩn tiêu đề Nội dung (tv-nd-title-wrap) trên mobile, giữ nút "← Quay lại"; (3) Toolbar 5 nút (Làm mới/Thêm bảng/Dọn trùng/Xóa Firebase Live/Xóa tất cả bảng) trên mobile: bỏ icon chỉ còn label, dồn 1 hàng cuộn ngang; (4) Khối Tổng quan (Tổng trận/Hoàn thành/Đang đấu/Chưa đấu) trên mobile gộp thành 1 hàng gọn "Label: value | Label: value" thay 4 thẻ rời | v94 2026-06-13: COMPACT POLISH responsive Mobile/Tablet — thu nhỏ đồng bộ font/icon/nút/khoảng cách toàn trang Admin (login, card, button, modal, table, tab, bottom-nav, stat-card, notification tray, bracket card), fix .cn max-width:100vw tránh tràn ngang trên điện thoại
      Pickleball Admin v93 2026-06-12: FIX RESPONSIVE Tablet (641-1024px) + Mobile (≤640px) cho trang Chi tiết nội dung — (1) [data-bl-grid] (Bảng đấu: bảng trận + tình trạng sân/BXH 420px) → xếp dọc 1 cột, bỏ sticky; (2) [data-players-grid] (Danh sách VĐV + Bốc thăm chia bảng) → xếp dọc 1 cột; (3) #bang-list overflow-x:auto → bảng trận cuộn ngang thay vì bị cắt; (4) .stats (4-5 thẻ/dòng) → ép 2 cột trên tablet/mobile (!important đè inline repeat(4,1fr)/(5,1fr)); (5) form "Cấu hình bảng đấu" (2 bảng × 4 đội/bảng, Tên bảng/Phương thức) → xếp dọc trên mobile; (6) tab Danh sách/Bảng đấu/Cây thi đấu giảm padding trên tablet; (7) toolbar nút (Làm mới/Thêm bảng/Dọn trùng/Xóa Firebase Live/Xóa tất cả bảng) → 2 nút/dòng đều nhau trên mobile |
      Pickleball Admin v92 2026-06-12: ADD đồng bộ 2 chiều — saveEditMatch (Sửa trận ở Bảng đấu) khi đổi tên VĐV/đội: thêm _syncRenameToPlayersList() cập nhật ngay _players (Danh sách VĐV) + _bocThamGroups (Bốc thăm chia bảng), lưu localStorage + render lại tab Danh sách nếu đang mở; nếu danh sách đã "Đã lưu" lên Sheets thì đồng bộ ngầm lên Sheets luôn (saveDanhSachVDV+saveDanhSachBang) — trước đây chỉ có chiều Danh sách→Bảng đấu (renamePlayer), giờ thêm chiều Bảng đấu→Danh sách |
      Pickleball Admin v90 2026-06-12: FIX TRIỆT ĐỂ saveEditMatch + applyEditBang hiển thị NGAY (y chang v20) — (1) saveEditMatch khi đổi tên VĐV/đội: đăng ký _renameOverrides[oldName]=newName NGAY (bảo vệ tên mới khỏi bị loadMatchesCache nền ghi đè bằng tên cũ từ Sheet chưa kịp lưu — trước đây chỉ renamePlayer có cơ chế này, saveEditMatch (Sửa trận trong Bảng đấu) thì KHÔNG → các trận liên quan A2/A3/A6 không cập nhật ngay, phải F5 mới thấy); (2) saveEditMatch + applyEditBang lưu localStorage pb_adm_M_ ngay sau khi sửa _M; (3) saveEditMatch + applyEditBang dùng _renderBangListDirect (force render, bỏ qua mọi guard) thay vì renderBangList; (4) cleanup _renameOverrides sau 60s đủ thời gian Máy chủ commit + prefetch tới |
@@ -8706,18 +8706,19 @@ function openEditMatchMo(giaiId, nd, bang, code) {
         <!-- Giờ thi đấu (cuối cùng) -->
         <div>
           <label style="font-size:10px;font-weight:700;color:var(--or);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px">⏱ Giờ thi đấu</label>
+          <input type="hidden" id="em-time-cleared" value="0">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <select id="em-time-h"
               style="background:var(--bg2);border:1.5px solid rgba(245,158,11,.35);border-radius:8px;padding:6px 8px;font-size:14px;font-weight:700;color:var(--or);font-family:var(--mo);outline:none">${_emHourOpts}</select>
             <span style="color:var(--or);font-weight:700;font-size:14px">:</span>
             <select id="em-time-m"
               style="background:var(--bg2);border:1.5px solid rgba(245,158,11,.35);border-radius:8px;padding:6px 8px;font-size:14px;font-weight:700;color:var(--or);font-family:var(--mo);outline:none">${_emMinOpts}</select>
-            <button onclick="document.getElementById('em-time-h').value='';document.getElementById('em-time-m').value=''"
-              style="font-size:10px;color:var(--tx3);background:var(--bg2);border:1px solid var(--bdr);border-radius:5px;padding:4px 9px;cursor:pointer">✕ Xóa</button>
+            <button onclick="document.getElementById('em-time-h').value='';document.getElementById('em-time-m').value='';document.getElementById('em-time-cleared').value='1'"
+              style="font-size:10px;color:var(--rd);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:5px;padding:4px 9px;cursor:pointer">✕ Xóa giờ</button>
             <div style="display:flex;gap:4px;flex-wrap:wrap">
               ${['07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30'].map(t=>{
                 const [th,tm]=t.split(':');
-                return `<button onclick="document.getElementById('em-time-h').value='${th}';document.getElementById('em-time-m').value='${tm}'"
+                return `<button onclick="document.getElementById('em-time-h').value='${th}';document.getElementById('em-time-m').value='${tm}';document.getElementById('em-time-cleared').value='0'"
                   style="font-size:10px;color:${curTime===t?'var(--or)':'var(--tx3)'};background:${curTime===t?'rgba(245,158,11,.12)':'var(--bg2)'};border:1px solid ${curTime===t?'rgba(245,158,11,.3)':'var(--bdr)'};border-radius:5px;padding:3px 7px;cursor:pointer;font-family:var(--mo)">${t}</button>`;
               }).join('')}
             </div>
@@ -8812,6 +8813,9 @@ async function saveEditMatch(giaiId, nd, bang, code) {
   const emTH  = (document.getElementById('em-time-h')?.value||'').trim();
   const emTM  = (document.getElementById('em-time-m')?.value||'').trim();
   const time  = emTH ? (emTH.padStart(2,'0')+':'+(emTM||'00').padStart(2,'0')) : ''; // giờ thi đấu HH:MM
+  // v97 FIX: phân biệt "chưa có giờ" vs "admin bấm ✕ Xóa giờ" — y chang scoreCleared
+  // timeCleared=true → GAS xóa col[11] trên sheet; false → GAS giữ nguyên nếu rỗng
+  const timeCleared = document.getElementById('em-time-cleared')?.value === '1';
   const saRaw = document.getElementById('em-sa')?.value;
   const sbRaw = document.getElementById('em-sb')?.value;
   const done  = document.getElementById('em-done')?.checked;
@@ -8823,7 +8827,7 @@ async function saveEditMatch(giaiId, nd, bang, code) {
   // Admin có thể phân sân, giờ, trọng tài trước — tên đội điền sau khi có kết quả vòng bảng
   // v55 FIX: thêm rule vào điều kiện — cho phép lưu khi chỉ đổi quy tắc điểm
   const ruleVal = (document.getElementById('em-rule')?.value||'11').trim();
-  const hasAnyInput = ta || tb || court || ref || time || ruleVal;
+  const hasAnyInput = ta || tb || court || ref || time || ruleVal || timeCleared;
   if (!hasAnyInput) { toast('Nhập ít nhất 1 thông tin để lưu','er'); return; }
 
   document.getElementById('edit-match-overlay')?.remove();
@@ -8876,9 +8880,10 @@ async function saveEditMatch(giaiId, nd, bang, code) {
   toast('⏳ Đang lưu...','in');
   let d = await gPost({action:'updateMatch',adminCode:CODE,
     giai:gName||giaiId,giaiName:gName||giaiId,nd,bang:bangActual,code,row:newRow,
-    scoreCleared: scoreCleared});
+    scoreCleared: scoreCleared, timeCleared: timeCleared});
   if (d&&!d.ok&&gName&&gName!==giaiId) {
-    d = await gPost({action:'updateMatch',adminCode:CODE,giai:giaiId,giaiName:gName,nd,bang:bangActual,code,row:newRow});
+    d = await gPost({action:'updateMatch',adminCode:CODE,giai:giaiId,giaiName:gName,nd,bang:bangActual,code,row:newRow,
+      scoreCleared: scoreCleared, timeCleared: timeCleared});
   }
   if (d?.ok) {
     // ── Cập nhật local cache _M ngay lập tức ──
@@ -9150,7 +9155,9 @@ async function _stSaveAll(giaiId, nd, bang, count) {
     await Promise.all(updates.map(u=>
       gPost({action:'updateMatch',adminCode:CODE,
              giai:gName||giaiId,giaiName:gName||giaiId,
-             nd,bang:u.bang,code:u.code,row:u.row})
+             nd,bang:u.bang,code:u.code,row:u.row,
+             // v97 FIX: timeCleared=true khi giờ bị xóa → GAS xóa col[11] trên sheet
+             timeCleared: (u.row[11]===''||u.row[11]===null||u.row[11]===undefined)})
     ));
     toast(`✅ Đã lưu giờ thi đấu cho ${updates.length} trận`,'ok');
     _renderBangListDirect(giaiId, nd);
