@@ -2,14 +2,14 @@
 <!-- FIX v11 2026-06-07: pushMatchToGS gửi row đủ cấu trúc [giai,nd,bang,code,teamA,'','',teamB] — trước đây thiếu giai ở index 0 làm Máy chủ lưu sai cột -->
 <html lang="vi">
 <head>
-<!-- Pickleball v8.29 — v21 2026-06-09: FIX TRIỆT ĐỂ rule realtime — (1) hasChange trong pollMatches+loadAllFromGS thêm so sánh rule; (2) áp setRule(freshM.rule) NGAY trong poll khi rule trận đang chấm thay đổi, không chờ TT bấm vào trận | v8.28 — v20 2026-06-09: FIX rule không áp TT — setRule(m.rule) gọi ở tất cả Cases 3/4/5 loadMatch, luôn dùng rule mới nhất từ Admin thắng snapshot localStorage; thêm thanh rule-inline-bar luôn hiển thị | v8.27 — v19 2026-06-09: (1) Ẩn phần chọn Quy tắc điểm khỏi UI TT; (2) FIX BUG CRITICAL: winRule không được lưu/restore từ localStorage → sau refresh/reload rule về default '11' → deuce rule bị bỏ qua → 11-10 báo thắng thay vì tiếp tục đến 12-10 | v8.24 — REALTIME ROBUST 2026-06-08: v52 — (1) _writeLiveToFirebase check response status + log lỗi (auth 401/403 detect); (2) keepalive:true cho tất cả Firebase REST writes — survive page navigation; (3) Log mỗi lần ghi điểm để debug | v8.23 — 1 luồng Firebase 2026-06-08: v51 FIX TRIỆT ĐỂ — (1) _writeLiveToFirebase dùng fetch() REST API thay SDK — không cần auth, không bị block bởi Security Rules; (2) GAS debounce 400ms→200ms; (3) admin _liveSig bao gồm điểm số+debounce 150ms |  FIX _handleNewAssignment — load Máy chủ trước khi tìm trận; xử lý type=assignedToGiai; không cần loadAllFromGS 2 lần | v8.17 2026-06-07: FIX assignment key — dùng SĐT (phone) thay mã code, tránh trùng tên TT | v8.16 2026-06-07: FIX live score — inp-referee tự động điền từ m.referee khi loadMatch (Case4+Case5); liveScores local thêm referee+status | v8.15 2026-06-07: ADD Firebase Realtime Database — onValue WebSocket < 1s; fallback poll Máy chủ CacheService | v8.14 2026-06-07: ADD auto-assignment poll — Máy chủ CacheService checkAssignment; banner thông báo + beep; tự động loadMatch khi rảnh, hiện nút khi đang chấm | v8.13 2026-06-07: FIX LOAD TRẬN — referee field trong liveScores (init+poll); renderMatchGrid sau validate ngầm; _applyPerm trước renderMatchGrid đầu tiên | v8.12 2026-06-07: FIX CRITICAL — liveKey đổi sang "giai|nd|bang|code" (4 phần) để không trùng giữa các nội dung; clearLiveGS/finishLiveGS/replayMatchGS gửi key mới; m.key dùng giai khi available | v8.11 2026-06-04: FIX CRITICAL — thêm </div> đóng sb-teams-row; sb-action-bar không còn nằm trong grid 2-cột → 2 card cân đối 50/50 | v8.10 2026-06-04: FIX sb-action-bar căn giữa tỉ số (3-col grid + ex-side groups); hai card cân đối | v8.9 2026-06-04: FIX loadAllFromGS — REPLACE thay vì MERGE S.results từ Máy chủ (source of truth); xóa bảng+tạo lại không còn bị stale "Hoàn thành" trên màn hình trọng tài | v8.8 2026-06-03: FIX swapPlayersDisplay — chấm cam giữ nguyên ô vật lý khi swap tên VĐV | v8.7; player-slot fixed height 44px; serve-balls min-width giữ chỗ | v8.6: auto-cleanup kết quả (TTL 1 ngày, cap 100) + nhật ký (TTL 12h, cap 300) | v8.5: FIX v34 — auto-hide polling-driven (CK có điểm từ Máy chủ → ẩn ngay); | v8.4 FIX v33 — auto-hide nội dung/giải khi CK hoàn thành; sort trận (live→chưa đấu→hoàn thành); nút ẩn/hiện trận HT; | v8.2 FIX v32 — _removeDiacritics normalize tên TT; renderMatchGrid hiển thị khi có trận phân tên dù courts=[]; | v8.1 FIX: Park priority in renderMatchCard — tỉ số tím đúng khi switch trận | 2026-05-23 -->
+<!-- Pickleball v8.30 — v23 2026-06-13: HIỂN THỊ GIỜ THI ĐẤU trên thẻ trận — (1) loadAllFromGS: đọc r[11] (Thời gian col L) vào m.time và r[12] vào m.rule (trước đây bỏ sót r[11], m.time luôn undefined); (2) pollMatches: tương tự đọc r[11]→mTime2 thêm vào matchList, thêm oldTimes/newTimes vào hasChange để admin chỉnh giờ trigger rerender ngay; (3) _renderMatchCard: hiển thị ⏱ HH:MM màu amber ngay hàng metadata (noidung·bang·court·round) khi m.time có giá trị. | v8.29 — v21 2026-06-09: FIX TRIỆT ĐỂ rule realtime — (1) hasChange trong pollMatches+loadAllFromGS thêm so sánh rule; (2) áp setRule(freshM.rule) NGAY trong poll khi rule trận đang chấm thay đổi, không chờ TT bấm vào trận | v8.28 — v20 2026-06-09: FIX rule không áp TT — setRule(m.rule) gọi ở tất cả Cases 3/4/5 loadMatch, luôn dùng rule mới nhất từ Admin thắng snapshot localStorage; thêm thanh rule-inline-bar luôn hiển thị | v8.27 — v19 2026-06-09: (1) Ẩn phần chọn Quy tắc điểm khỏi UI TT; (2) FIX BUG CRITICAL: winRule không được lưu/restore từ localStorage → sau refresh/reload rule về default '11' → deuce rule bị bỏ qua → 11-10 báo thắng thay vì tiếp tục đến 12-10 | v8.24 — REALTIME ROBUST 2026-06-08: v52 — (1) _writeLiveToFirebase check response status + log lỗi (auth 401/403 detect); (2) keepalive:true cho tất cả Firebase REST writes — survive page navigation; (3) Log mỗi lần ghi điểm để debug | v8.23 — 1 luồng Firebase 2026-06-08: v51 FIX TRIỆT ĐỂ — (1) _writeLiveToFirebase dùng fetch() REST API thay SDK — không cần auth, không bị block bởi Security Rules; (2) GAS debounce 400ms→200ms; (3) admin _liveSig bao gồm điểm số+debounce 150ms |  FIX _handleNewAssignment — load Máy chủ trước khi tìm trận; xử lý type=assignedToGiai; không cần loadAllFromGS 2 lần | v8.17 2026-06-07: FIX assignment key — dùng SĐT (phone) thay mã code, tránh trùng tên TT | v8.16 2026-06-07: FIX live score — inp-referee tự động điền từ m.referee khi loadMatch (Case4+Case5); liveScores local thêm referee+status | v8.15 2026-06-07: ADD Firebase Realtime Database — onValue WebSocket < 1s; fallback poll Máy chủ CacheService | v8.14 2026-06-07: ADD auto-assignment poll — Máy chủ CacheService checkAssignment; banner thông báo + beep; tự động loadMatch khi rảnh, hiện nút khi đang chấm | v8.13 2026-06-07: FIX LOAD TRẬN — referee field trong liveScores (init+poll); renderMatchGrid sau validate ngầm; _applyPerm trước renderMatchGrid đầu tiên | v8.12 2026-06-07: FIX CRITICAL — liveKey đổi sang "giai|nd|bang|code" (4 phần) để không trùng giữa các nội dung; clearLiveGS/finishLiveGS/replayMatchGS gửi key mới; m.key dùng giai khi available | v8.11 2026-06-04: FIX CRITICAL — thêm </div> đóng sb-teams-row; sb-action-bar không còn nằm trong grid 2-cột → 2 card cân đối 50/50 | v8.10 2026-06-04: FIX sb-action-bar căn giữa tỉ số (3-col grid + ex-side groups); hai card cân đối | v8.9 2026-06-04: FIX loadAllFromGS — REPLACE thay vì MERGE S.results từ Máy chủ (source of truth); xóa bảng+tạo lại không còn bị stale "Hoàn thành" trên màn hình trọng tài | v8.8 2026-06-03: FIX swapPlayersDisplay — chấm cam giữ nguyên ô vật lý khi swap tên VĐV | v8.7; player-slot fixed height 44px; serve-balls min-width giữ chỗ | v8.6: auto-cleanup kết quả (TTL 1 ngày, cap 100) + nhật ký (TTL 12h, cap 300) | v8.5: FIX v34 — auto-hide polling-driven (CK có điểm từ Máy chủ → ẩn ngay); | v8.4 FIX v33 — auto-hide nội dung/giải khi CK hoàn thành; sort trận (live→chưa đấu→hoàn thành); nút ẩn/hiện trận HT; | v8.2 FIX v32 — _removeDiacritics normalize tên TT; renderMatchGrid hiển thị khi có trận phân tên dù courts=[]; | v8.1 FIX: Park priority in renderMatchCard — tỉ số tím đúng khi switch trận | 2026-05-23 -->
 <meta charset="UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <!-- Firebase SDK v9 (compat mode — không cần npm/bundler) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<title>Referee v21 — Pickleball / DA NANG ®</title>
+<title>Referee v24 — Pickleball / DA NANG ®</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -2091,12 +2091,14 @@ async function loadAllFromGS() {
       const court    = String(r[8]||'').trim();  // Sân
       const round    = String(r[9]||'').trim();  // Vòng đấu
       const referee  = String(r[10]||'').trim(); // GhiChú / Trọng tài (v15)
+      const time     = String(r[11]||'').trim(); // v23: Giờ thi đấu (Matches col[11])
+      const rule     = String(r[12]||'').trim(); // v21: Quy tắc điểm (Matches col[12])
       if (!nd || !code) return;
       // v40 FIX: key = "giai|nd|bang|code" (4 phần) để không trùng giữa nội dung/giải
       const key = giai ? `${giai}|${nd}|${bang}|${code}` : `${nd}|${bang}|${code}`;
       newMatches.push({ giai, noidung:nd, bang, code, teamA:tA, teamB:tB,
                         matchScoreA:sA, matchScoreB:sB,
-                        court, round, referee, // phân quyền
+                        court, round, referee, time, rule, // phân quyền
                         key });
     });
     matchList = newMatches;
@@ -3172,6 +3174,7 @@ function _renderMatchCard(grid, m, idx) {
         `<span>${m.noidung||''}${m.bang?`<span style="color:#0891b2;font-weight:700"> · ${m.bang}</span>`:''}</span>` +
         (m.court?`<span style="color:#0369a1;font-weight:700">· ${m.court}</span>`:'') +
         (m.round?`<span style="color:var(--amber-dk)">· ${m.round}</span>`:'') +
+        (m.time ?`<span style="color:#d97706;font-weight:700;font-size:10px">⏱ ${m.time}</span>`:'') +
       `</div>` +
       `<div style="display:flex;align-items:flex-start;gap:4px;margin-bottom:4px">` +
         `<span style="font-size:11px;font-weight:${winA?'700':'500'};color:${winA?'var(--green-dk)':'var(--g700)'};flex:1;min-width:0;line-height:1.35;text-align:left">${sn(m.teamA)}</span>` +
@@ -3421,9 +3424,12 @@ _loadParkedMatches();
 // ══════════════════════════════════════════════════════════════
 async function replayMatchGS(m) {
   if (!GS_URL || !m) return;
-  // v40 FIX: m.key đã là 4 phần; fallback tự build
+  // v40 FIX: m.key đã là 4 phần "giai|nd|bang|code"; fallback tự build
   const key  = m.key || ((m.giai?m.giai+'|':'') + (m.noidung||'') + '|' + (m.bang||'') + '|' + (m.code||''));
   const parts = key.split('|');
+  // v24 FIX: key 4 phần → parts[0]=giai, parts[1]=nd, parts[2]=bang, parts[3]=code
+  // Trước đây dùng parts[0..2] → nd/bang/code nhận sai giá trị (lệch 1 vị trí)
+  const isKey4 = parts.length >= 4;
   try {
     const res = await fetch(GS_URL, {
       method:  'POST',
@@ -3431,10 +3437,10 @@ async function replayMatchGS(m) {
       body: JSON.stringify({
         action: 'replayMatch',
         key,
-        giai:  m.giai    || '',
-        nd:    parts[0]  || m.noidung || '',
-        bang:  parts[1]  || m.bang    || '',
-        code:  parts[2]  || m.code    || '',
+        giai:  m.giai    || (isKey4 ? parts[0] : ''),
+        nd:    isKey4 ? parts[1] : (parts[0] || m.noidung || ''),
+        bang:  isKey4 ? parts[2] : (parts[1] || m.bang    || ''),
+        code:  isKey4 ? parts[3] : (parts[2] || m.code    || ''),
       }),
       redirect: 'follow',
     });
@@ -4752,7 +4758,8 @@ async function pollMatches() {
       if (!nd||!code) return;
       // v40 FIX: key 4 phần giai|nd|bang|code
       const mRule2=String(r[12]||'').trim(); // v18: Quy tắc điểm từ Matches col[12]
-      newMatches.push({giai,noidung:nd,bang,code,teamA:tA,teamB:tB,matchScoreA:sA,matchScoreB:sB,court,round,referee,rule:mRule2,key:giai?`${giai}|${nd}|${bang}|${code}`:`${nd}|${bang}|${code}`});
+      const mTime2=String(r[11]||'').trim(); // v23: Giờ thi đấu từ Matches col[11]
+      newMatches.push({giai,noidung:nd,bang,code,teamA:tA,teamB:tB,matchScoreA:sA,matchScoreB:sB,court,round,referee,time:mTime2,rule:mRule2,key:giai?`${giai}|${nd}|${bang}|${code}`:`${nd}|${bang}|${code}`});
     });
     const oldBangs  = [...new Set(matchList.map(m=>m.bang).filter(Boolean))].join(',');
     const newBangs  = [...new Set(newMatches.map(m=>m.bang).filter(Boolean))].join(',');
@@ -4767,6 +4774,9 @@ async function pollMatches() {
     // bị bỏ qua hoàn toàn → matchList không cập nhật, phải reload trang mới thấy tên mới
     const oldTeams  = matchList.map(m=>`${m.key}:${m.teamA}§${m.teamB}`).join('|');
     const newTeams  = newMatches.map(m=>`${m.key}:${m.teamA}§${m.teamB}`).join('|');
+    // v23: thêm giờ vào hasChange — admin chỉnh giờ không đổi điểm/tên/rule → cần rerender
+    const oldTimes  = matchList.map(m=>`${m.key}:${m.time||''}`).join('|');
+    const newTimes  = newMatches.map(m=>`${m.key}:${m.time||''}`).join('|');
 
     // v21 FIX REALTIME: nếu trận đang chấm có rule mới → áp ngay, KHÔNG chờ hasChange
     if (S.currentMatch?.key) {
@@ -4783,7 +4793,8 @@ async function pollMatches() {
                    || oldNDs   !== newNDs
                    || oldScores !== newScores
                    || oldRules  !== newRules  // v21: thêm rule
-                   || oldTeams  !== newTeams; // FIX: thêm tên đội
+                   || oldTeams  !== newTeams  // FIX: thêm tên đội
+                   || oldTimes  !== newTimes; // v23: thêm giờ thi đấu
 
     if (!hasChange) return; // không có gì thay đổi → bỏ qua
 
