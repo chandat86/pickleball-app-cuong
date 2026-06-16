@@ -7,7 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Pickleball v3111 — Xem Giải Đấu</title>
+<title>Pickleball v3 — Xem Giải Đấu</title>
 <style>
 /* system font - no import needed */
 :root{
@@ -306,10 +306,15 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);min-height:100vh
 .bk-row+.bk-row{border-top:1px solid var(--bdr)}
 .bk-row.r-win{background:rgba(34,197,94,.06)}
 .bk-row.r-bye{opacity:.45;background:var(--bg3)}
+/* v4: Lucky Loser styles — giống admin */
+.bk-row.r-lucky{background:rgba(168,85,247,.08);border-left:2px solid rgba(168,85,247,.6)}
+.bk-row.r-lucky .bk-tname{color:rgba(168,85,247,.9);font-weight:700;font-style:italic}
 .bk-pill{font-size:9px;font-weight:800;width:24px;height:24px;padding:0;
   border-radius:50%;display:flex;align-items:center;justify-content:center;
   flex-shrink:0;letter-spacing:.01em;border:2px solid transparent;text-transform:uppercase}
 .bk-pill.p-bye{background:var(--bg3);color:var(--tx4);border-color:var(--bdr)}
+/* v4: Lucky pill */
+.bk-pill.p-lucky{background:rgba(168,85,247,.15);color:rgba(168,85,247,.9);border-color:rgba(168,85,247,.3)}
 .bk-pill.p-w{background:rgba(14,165,233,.12);color:var(--ac);border-color:rgba(14,165,233,.2)}
 .bk-pill.p-A{background:rgba(14,165,233,.15);color:#38bdf8;border-color:rgba(14,165,233,.25)}
 .bk-pill.p-B{background:rgba(251,146,60,.15);color:#fb923c;border-color:rgba(251,146,60,.25)}
@@ -386,6 +391,9 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);min-height:100vh
 @keyframes bk-pulse{0%,100%{border-left-color:#f97316}50%{border-left-color:#fed7aa}}
 @keyframes bk-dot{from{opacity:1}to{opacity:.25}}
 </style>
+<!-- Firebase SDK v10 (compat) — realtime live + results push < 500ms -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -498,8 +506,9 @@ function _restoreUiFromSession(){
   }catch(e){}
 }
 let _liveTimer=null;
-// v37: BracketTree GSheet cache
+// v37: BracketTree SRV cache
 let _bkTreeCache={};     // {nd: {rounds, _overrides, _byeRule, version}}
+let _fbPBracketRefGlobal=null; // v4: Firebase /bracketTree listener ref
 let _bkTreeVersion=0;    // version của cây đang hiển thị
 let _permTimer=null;
 let _hardReloadTimer=null; // v3: Hard reload toàn bộ cache mỗi N phút
@@ -526,7 +535,7 @@ function _isSessionExpired(){
   document.addEventListener(ev, _touchActive, {passive:true});
 });
 const DATA_VER_KEY='pb_pdata_ver'; // v3: version key để detect admin change
-const APP_VER_KEY ='pb_app_ver';   // version token từ GAS — detect cấu trúc giải thay đổi
+const APP_VER_KEY ='pb_app_ver';   // version token từ Máy chủ — detect cấu trúc giải thay đổi
 
 // ══ UTILS ══
 const $=id=>document.getElementById(id);
@@ -555,7 +564,7 @@ async function gGet(params,timeout=12000){
     const r=await fetch(url.toString(),{signal:ctrl.signal,cache:'no-store'});
     clearTimeout(t);
     const d=await r.json();
-    _checkAppVersion(d); // detect GAS version change → tự reload data
+    _checkAppVersion(d); // detect Máy chủ version change → tự reload data
     return d;
   }catch(e){clearTimeout(t);return {};}
 }
@@ -573,7 +582,7 @@ function loadSaved(){
       return false;
     }
     GS=j.u; USER_CODE=j.c;
-    // KHÔNG lấy USER_GIAI/USER_ND từ cache — luôn lấy từ GAS khi validate
+    // KHÔNG lấy USER_GIAI/USER_ND từ cache — luôn lấy từ Máy chủ khi validate
     USER_NAME=''; USER_GIAI=''; USER_ND='';
     return true;
   }catch(e){return false;}
@@ -589,7 +598,7 @@ async function doLogin(){
     const isPhone=phone.length>=8&&phone.length<=12&&/^\d+$/.test(phone);
     const param=isPhone?`&phone=${encodeURIComponent(phone)}`:`&code=${encodeURIComponent(id.toUpperCase())}`;
 
-    // Thử playerInit trước (GAS mới) — nếu không có thì fallback validate (GAS cũ)
+    // Thử playerInit trước (Máy chủ mới) — nếu không có thì fallback validate (Máy chủ cũ)
     let d=null;
     let usePlayerInit=false;
     try{
@@ -603,7 +612,7 @@ async function doLogin(){
       }
     }catch(e1){}
 
-    // Fallback: GAS cũ dùng validate
+    // Fallback: Máy chủ cũ dùng validate
     if(!d){
       const r2=await fetch(`${GS}?action=validate&device=player-web&_t=${Date.now()}${param}`,{cache:'no-store'});
       if(!r2.ok){showErr('Lỗi kết nối HTTP '+r2.status);btn.disabled=false;btn.textContent='Đăng nhập →';return;}
@@ -622,10 +631,10 @@ async function doLogin(){
     localStorage.setItem('pb_player_v6',JSON.stringify({u:GS,c:USER_CODE,n:USER_NAME,g:USER_GIAI,nd:USER_ND}));
 
     if(usePlayerInit && d.matches){
-      _applyPlayerInitData(d); // GAS mới: data có sẵn trong response
+      _applyPlayerInitData(d); // Máy chủ mới: data có sẵn trong response
       startApp(true);
     } else {
-      // GAS cũ: gọi loadAll bình thường
+      // Máy chủ cũ: gọi loadAll bình thường
       _clearDataCache();
       startApp(false);
     }
@@ -667,17 +676,124 @@ async function startApp(dataAlreadyLoaded){
   setTimeout(_updateStickyOffsets, 100);
   window.addEventListener('resize', _updateStickyOffsets);
 }
+// ── v50: Firebase config — realtime live + results < 500ms ──
+const _FB_CFG_P = {
+  apiKey:      'AIzaSyAJV0Ojod9lQ4vec-y90l52xX7HUTP-dvA',
+  authDomain:  'app-pickleball.firebaseapp.com',
+  databaseURL: 'https://app-pickleball-default-rtdb.asia-southeast1.firebasedatabase.app',
+  projectId:   'app-pickleball',
+  appId:       '1:462226845907:web:5b451c3c1f624062796426',
+};
+let _fbPApp = null, _fbPDb = null;
+let _fbPLiveRef = null, _fbPResultsRef = null;
+let _fbPConnected = false;
+
+function _initPlayerFirebase() {
+  try {
+    if (typeof firebase === 'undefined') return false;
+    if (!_fbPApp) _fbPApp = firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(_FB_CFG_P);
+    _fbPDb = _fbPApp.database();
+
+    // Listener 1: /liveScores
+    _fbPLiveRef = _fbPDb.ref('liveScores');
+    _fbPLiveRef.on('value', snap => {
+      const data = snap.val();
+      _L = [];
+      if (data) {
+        Object.values(data).forEach(d => {
+          if (!d || !d.key || d.status === 'finished') return;
+          // Lọc theo giải của player
+          if (_giaiName && d.giai && d.giai !== _giaiName) return;
+          _L.push([d.key, d.giai||'', d.teamA||'', d.scoreA??0, d.scoreB??0, d.teamB||'',
+                   d.server||'', d.game||'Game 1', d.updatedAt||'', d.status||'playing', d.referee||'']);
+        });
+      }
+      if(_curTab==='live') renderLive();
+      if(_curTab==='schedule') renderSchedule();
+      const lb=document.getElementById('tb-live');if(lb)lb.style.display=_L.length?'flex':'none';
+    }, err => { console.warn('[FB Player] liveScores err:', err.message); });
+
+    // Listener 2: /results — kết quả hoàn thành
+    _fbPResultsRef = _fbPDb.ref('results');
+    _fbPResultsRef.on('value', snap => {
+      const data = snap.val();
+      if (!data) return;
+      let changed = false;
+      Object.values(data).forEach(d => {
+        if (!d || !d.giai || !d.nd || !d.bang || !d.code) return;
+        if (_giaiName && d.giai !== _giaiName) return;
+        // Upsert vào _R
+        const idx = _R.findIndex(r =>
+          String(r[1]||'')===d.giai && String(r[2]||'')===d.nd &&
+          String(r[3]||'')===d.bang  && String(r[4]||'')===d.code);
+        const row = ['', d.giai, d.nd, d.bang, d.code,
+                     d.teamA||'', d.teamB||'', d.scoreA||0, d.scoreB||0,
+                     d.winner||'', d.court||'', d.ref||'', ''];
+        if (idx >= 0) _R[idx] = row; else { _R.push(row); changed = true; }
+        changed = true;
+      });
+      if (!changed) return;
+      if(_curTab==='standings') renderStandings();
+      if(_curTab==='schedule')  renderSchedule();
+      if(_curTab==='bracket')   renderBracketTab();
+    }, err => { console.warn('[FB Player] results err:', err.message); });
+
+    _fbPConnected = true;
+    console.log('[FB Player] liveScores + results WebSocket ✅');
+
+    // Listener 3: /bracketTree — v4 NEW: cây thi đấu realtime (Lucky/BYE đúng ngay)
+    let _fbPBracketRef = null;
+    try {
+      _fbPBracketRef = _fbPDb.ref('bracketTree');
+      _fbPBracketRef.on('value', snap => {
+        const data = snap.val();
+        if (!data) return;
+        const gUp = (_giaiName || USER_GIAI || '').trim().toUpperCase();
+        Object.values(data).forEach(d => {
+          if (!d || !d.giai || !d.nd || !d.rounds) return;
+          if (gUp && d.giai.trim().toUpperCase() !== gUp) return;
+          // Lưu vào cache — bao gồm _byeRule và _overrides để Lucky hiển thị đúng
+          _bkTreeCache[d.nd] = { ...d, version: d.version || d.ts || 0 };
+          console.log('[FB Player bracketTree]', d.nd, 'byeRule:', d._byeRule, 'v:', d.version);
+          // Re-render nếu đang xem tab bracket đúng nội dung này
+          if (_curTab === 'bracket' && _curNd === d.nd) renderBracketTab();
+        });
+      }, err => { console.warn('[FB Player] bracketTree err:', err.message); });
+      // Lưu ref để off() khi stop
+      _fbPBracketRefGlobal = _fbPBracketRef;
+    } catch(eBk) { console.warn('[FB Player] bracketTree listener lỗi:', eBk.message); }
+
+    return true;
+  } catch(e) {
+    console.warn('[FB Player] init lỗi:', e.message);
+    return false;
+  }
+}
+function _stopPlayerFirebase() {
+  if (_fbPLiveRef)    { try { _fbPLiveRef.off('value');    } catch(e){} _fbPLiveRef    = null; }
+  if (_fbPResultsRef) { try { _fbPResultsRef.off('value'); } catch(e){} _fbPResultsRef = null; }
+  if (typeof _fbPBracketRefGlobal !== 'undefined' && _fbPBracketRefGlobal) {
+    try { _fbPBracketRefGlobal.off('value'); } catch(e){} _fbPBracketRefGlobal = null;
+  }
+  _fbPConnected = false;
+}
+
 function startRefresh(){
   stopRefresh();
-  _liveTimer=setInterval(()=>silentRefresh(),REFRESH_SEC*1000);
-  _permTimer=setInterval(()=>checkPermission(),PERM_CHECK_SEC*1000);
-  // v3: Hard reload toàn bộ cache mỗi HARD_RELOAD_MIN phút
-  _hardReloadTimer=setInterval(()=>_hardReload(),HARD_RELOAD_MIN*60*1000);
+  // v50: Firebase thay thế live + results poll — giảm từ 4 request/8s → 1 request/30s
+  const fbOk = _initPlayerFirebase();
+  // Poll GAS mỗi 30s chỉ để sync matches/tournaments (ít thay đổi)
+  // Nếu Firebase không có → fallback poll mỗi 8s như cũ
+  _liveTimer = setInterval(()=>silentRefresh(), fbOk ? 30000 : REFRESH_SEC*1000);
+  _permTimer = setInterval(()=>checkPermission(), PERM_CHECK_SEC*1000);
+  // Hard reload mỗi 10 phút thay vì 5 phút (Firebase xử lý live/results)
+  _hardReloadTimer = setInterval(()=>_hardReload(), fbOk ? 600000 : HARD_RELOAD_MIN*60*1000);
 }
 function stopRefresh(){
   if(_liveTimer){clearInterval(_liveTimer);_liveTimer=null;}
   if(_permTimer){clearInterval(_permTimer);_permTimer=null;}
   if(_hardReloadTimer){clearInterval(_hardReloadTimer);_hardReloadTimer=null;}
+  _stopPlayerFirebase();
 }
 
 // v3: Xóa toàn bộ cache dữ liệu trận đấu (không xóa session login)
@@ -688,8 +804,8 @@ function _clearDataCache(){
   console.log('[v3] Data cache cleared (incl bracket snapshot)');
 }
 
-// ── App version check: GAS trả appVersion trong mọi response ──
-// Nếu version thay đổi (admin deploy GAS mới) → clear data cache + reload
+// ── App version check: Máy chủ trả appVersion trong mọi response ──
+// Nếu version thay đổi (admin deploy Máy chủ mới) → clear data cache + reload
 let _appVerChecked = false;
 function _checkAppVersion(data) {
   if (!data?.appVersion) return;
@@ -1091,7 +1207,7 @@ function renderSchedule(){
       const tA=String(m[4]||'').trim()||'TBD',tB=String(m[7]||'').trim()||'TBD';
       const court=String(m[8]||''),round=String(m[9]||'');
       const matchTimeRaw=String(m[11]||'').trim(); // giờ thi đấu col[11]
-      // Format: GAS trả về HH:MM string đúng (đã fix ở GAS v40)
+      // Format: Máy chủ trả về HH:MM string đúng (đã fix ở Máy chủ v40)
       // Fallback: nếu vẫn còn ISO (data cũ) → parse UTC rồi cộng +7h (UTC+7)
       const fmtMatchTime=(v)=>{
         if(!v)return'';
@@ -1504,6 +1620,10 @@ function _bkBuildAndRenderTree(nd,wrap){
 
   const koByCode={};
   koMatches.forEach(m=>{koByCode[String(m[3]||'')]=m;});
+  // v4: đọc _byeRule và overrides từ cache để hiển thị Lucky đúng
+  const _snapCached = _bkTreeCache[nd] || {};
+  const _byeRule    = _snapCached._byeRule || 'bye';
+  const _ov_build   = _snapCached._overrides || {};
 
   const getWinnerFromKo=(code)=>{
     const sheetM=koByCode[code];
@@ -1592,15 +1712,25 @@ function _bkBuildAndRenderTree(nd,wrap){
     if(rank&&bang2)return rank+bang2;return'?';
   };
 
+  // v4 FIX: mkCard trong _bkBuildAndRenderTree hỗ trợ Lucky giống admin
   const mkCard=(m,done,live,fs,mc)=>{
     const tA=m.teamA||'',tB=m.teamB||'';
     const winA=fs&&fs.scoreA>fs.scoreB,winB=fs&&fs.scoreB>fs.scoreA;
     const cardCls='bk-card'+(done?' c-done':'')+(live?' c-live':'')+(mc?' '+mc:'');
-    const rA=m.isByeA?'r-bye':(!tA?'r-tbd':winA?'r-win':'');
-    const rB=m.isByeB?'r-bye':(!tB?'r-tbd':winB?'r-win':'');
-    const nA=m.isByeA?'BYE':(tA||'—'),nB=m.isByeB?'BYE':(tB||'—');
-    const plA=pillLabel(m.seedA||''),plB=pillLabel(m.seedB||'');
-    const pcA=pillCls(m.seedA||''),pcB=pillCls(m.seedB||'');
+    const _ov_m=_ov_build[m.code]||{};
+    const luckyPickedA=m.isByeA&&_ov_m.byeAOverridden&&tA;
+    const luckyPickedB=m.isByeB&&_ov_m.byeBOverridden&&tB;
+    const isLuckySlotA=m.isByeA&&(_byeRule==='lucky'||_ov_m.byeModeA==='lucky')&&!luckyPickedA;
+    const isLuckySlotB=m.isByeB&&(_byeRule==='lucky'||_ov_m.byeModeB==='lucky')&&!luckyPickedB;
+    const rA=m.isByeA?(luckyPickedA?'':isLuckySlotA?'r-lucky':'r-bye'):(!tA?'r-tbd':winA?'r-win':'');
+    const rB=m.isByeB?(luckyPickedB?'':isLuckySlotB?'r-lucky':'r-bye'):(!tB?'r-tbd':winB?'r-win':'');
+    const nA=m.isByeA?(luckyPickedA?(tA||'—'):isLuckySlotA?'🍀 Lucky':'BYE'):(tA||'—');
+    const nB=m.isByeB?(luckyPickedB?(tB||'—'):isLuckySlotB?'🍀 Lucky':'BYE'):(tB||'—');
+    // v4 FIX: Lucky slot chưa chọn đội → pill hiện '🍀' thay vì 'BYE'
+    const plA=luckyPickedA?(_ov_m.luckyLabelA||'🍀'):isLuckySlotA?'🍀':pillLabel(m.seedA||'');
+    const plB=luckyPickedB?(_ov_m.luckyLabelB||'🍀'):isLuckySlotB?'🍀':pillLabel(m.seedB||'');
+    const pcA=isLuckySlotA?'p-lucky':pillCls(m.seedA||'');
+    const pcB=isLuckySlotB?'p-lucky':pillCls(m.seedB||'');
     const scA=fs?`<div class="bk-sbox${winA?' s-win':''}">${fs.scoreA}</div>`:'<div class="bk-sbox s-empty">—</div>';
     const scB=fs?`<div class="bk-sbox${winB?' s-win':''}">${fs.scoreB}</div>`:'<div class="bk-sbox s-empty">—</div>';
     return `<div class="${cardCls}">
@@ -1680,7 +1810,7 @@ function _bkBuildAndRenderTree(nd,wrap){
   wrap.innerHTML=html;
 }
 
-// v37: Fetch cây thi đấu từ GSheet BracketTree (GET, public)
+// v37: Fetch cây thi đấu từ SRV BracketTree (GET, public)
 async function _fetchBracketTree(nd){
   if(!GS||!nd)return null;
   try{
@@ -1729,7 +1859,7 @@ function renderBracketTab(){
     wrap.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-msg">Chọn nội dung thi đấu</div><div class="empty-sub">Dùng bộ lọc bên trên để chọn nội dung</div></div>';
     return;
   }
-  // v37: Ưu tiên snapshot từ GAS (source of truth), fallback sang rebuild local
+  // v37: Ưu tiên snapshot từ Máy chủ (source of truth), fallback sang rebuild local
   const cached=_bkTreeCache[nd];
   if(cached&&cached.rounds){
     // FIX v3.3: Có cache → update in-place, KHÔNG xóa toàn bộ innerHTML (tránh nháy)
@@ -1889,16 +2019,27 @@ function _bkRenderFromSnapshot(nd,snap,wrap){
     const bm=s.match(/Bảng\s+([A-Z])/i);const bg=bm?bm[1].toUpperCase():'';
     if(rank&&bg)return rank+bg;return'?';
   };
+  // v4 FIX: đọc _byeRule từ snap để hiển thị Lucky đúng như admin
+  const _byeRule = snap._byeRule || 'bye';
   const mkCard=(m,done,live,fs,mc,liveFs)=>{
     const tA=m.teamA||'',tB=m.teamB||'';
     const winA=fs&&fs.scoreA>fs.scoreB,winB=fs&&fs.scoreB>fs.scoreA;
     const liveWinA=liveFs&&liveFs.scoreA>liveFs.scoreB,liveWinB=liveFs&&liveFs.scoreB>liveFs.scoreA;
     const cardCls='bk-card'+(done?' c-done':'')+(live?' c-live':'')+(mc?' '+mc:'');
-    const rA=m.isByeA?'r-bye':(!tA?'r-tbd':winA?'r-win':'');
-    const rB=m.isByeB?'r-bye':(!tB?'r-tbd':winB?'r-win':'');
-    const nA=m.isByeA?'BYE':(tA||'—'),nB=m.isByeB?'BYE':(tB||'—');
-    const plA=pillLabel(m.seedA||''),plB=pillLabel(m.seedB||'');
-    const pcA=pillCls(m.seedA||''),pcB=pillCls(m.seedB||'');
+    const _ov=overrides[m.code]||{};
+    const luckyPickedA=m.isByeA&&_ov.byeAOverridden&&tA;
+    const luckyPickedB=m.isByeB&&_ov.byeBOverridden&&tB;
+    const isLuckySlotA=m.isByeA&&(_byeRule==='lucky'||_ov.byeModeA==='lucky')&&!luckyPickedA;
+    const isLuckySlotB=m.isByeB&&(_byeRule==='lucky'||_ov.byeModeB==='lucky')&&!luckyPickedB;
+    const rA=m.isByeA?(luckyPickedA?'':isLuckySlotA?'r-lucky':'r-bye'):(!tA?'r-tbd':winA?'r-win':'');
+    const rB=m.isByeB?(luckyPickedB?'':isLuckySlotB?'r-lucky':'r-bye'):(!tB?'r-tbd':winB?'r-win':'');
+    const nA=m.isByeA?(luckyPickedA?(tA||'—'):isLuckySlotA?'🍀 Lucky':'BYE'):(tA||'—');
+    const nB=m.isByeB?(luckyPickedB?(tB||'—'):isLuckySlotB?'🍀 Lucky':'BYE'):(tB||'—');
+    // v4 FIX: Lucky slot chưa chọn đội → pill hiện '🍀' thay vì 'BYE'
+    const plA=luckyPickedA?(_ov.luckyLabelA||'🍀'):isLuckySlotA?'🍀':pillLabel(m.seedA||'');
+    const plB=luckyPickedB?(_ov.luckyLabelB||'🍀'):isLuckySlotB?'🍀':pillLabel(m.seedB||'');
+    const pcA=isLuckySlotA?'p-lucky':pillCls(m.seedA||'');
+    const pcB=isLuckySlotB?'p-lucky':pillCls(m.seedB||'');
     // Score box: done → kết quả chính thức, live → tỉ số realtime
     let scA,scB;
     if(fs){
@@ -2000,7 +2141,7 @@ function selectBkNd(nd){
 // ══ BOOT ══
 async function autoLoginFromCache(){
   try{
-    // Thử playerInit (GAS mới) — fallback validate (GAS cũ)
+    // Thử playerInit (Máy chủ mới) — fallback validate (Máy chủ cũ)
     let d=null, hasData=false;
     try{
       const r1=await fetch(`${GS}?action=playerInit&device=player-web&_t=${Date.now()}&code=${encodeURIComponent(USER_CODE)}`,{cache:'no-store'});
