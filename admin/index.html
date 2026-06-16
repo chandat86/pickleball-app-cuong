@@ -1,7 +1,11 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<!-- Pickleball Admin v97 2026-06-13: FIX xóa giờ trên Admin không xóa trên GSheet — Nguyên nhân: GAS updateMatch có guard "nếu col[11] rỗng → giữ nguyên giờ từ sheet" (tránh ghi đè vô tình), nên khi admin bấm ✕ Xóa giờ, GAS thấy row[11]='' nhưng vẫn khôi phục giờ cũ. Giải pháp: thêm flag timeCleared=true (y chang scoreCleared cho điểm) — (1) Admin: hidden field em-time-cleared; nút ✕ Xóa giờ set=1, nút preset giờ reset=0; saveEditMatch gửi timeCleared tới GAS; _stSaveAll cũng gửi timeCleared=true khi row[11]===''; (2) GAS v59: chỉ fallback giờ từ sheet nếu timeCleared!==true, còn nếu timeCleared=true thì ghi '' (xóa thật) + xóa Firebase /matches time. Không ảnh hưởng các chức năng khác. | v96 2026-06-13: FIX TRIỆT ĐỂ hiển thị giờ ngay sau "Lưu tất cả giờ" — Nguyên nhân: prefetchAll() chạy nền sau khi _stSaveAll lưu xong, merge server data về và KHÔNG bảo vệ col[11] (giờ) → giờ mới bị ghi đè bằng giá trị cũ từ GAS (chưa kịp commit). Giải pháp: thêm _timeOverrides{} (y chang _renameOverrides cho tên VĐV): đăng ký ngay trong _stSaveAll trước khi đóng overlay; prefetchAll merge áp dụng _timeOverrides giữ giờ local 90s; _applyTimeOverrides() helper dọn expired + protect col[11]. Không ảnh hưởng các chức năng khác. | v95 2026-06-13: COMPACT MOBILE trang Chi tiết nội dung — (1) Chuyển thanh "NỘI DUNG: ..." lên đầu trang (trên cả Header); (2) Ẩn tiêu đề Nội dung (tv-nd-title-wrap) trên mobile, giữ nút "← Quay lại"; (3) Toolbar 5 nút (Làm mới/Thêm bảng/Dọn trùng/Xóa Firebase Live/Xóa tất cả bảng) trên mobile: bỏ icon chỉ còn label, dồn 1 hàng cuộn ngang; (4) Khối Tổng quan (Tổng trận/Hoàn thành/Đang đấu/Chưa đấu) trên mobile gộp thành 1 hàng gọn "Label: value | Label: value" thay 4 thẻ rời | v94 2026-06-13: COMPACT POLISH responsive Mobile/Tablet — thu nhỏ đồng bộ font/icon/nút/khoảng cách toàn trang Admin (login, card, button, modal, table, tab, bottom-nav, stat-card, notification tray, bracket card), fix .cn max-width:100vw tránh tràn ngang trên điện thoại
+<!-- Pickleball Admin v106 2026-06-16: FIREBASE BRACKET TREE — Cây thi đấu tải qua Firebase WebSocket <100ms thay vì fetch GAS 2-8s. (1) GAS v61 saveBracketTree: sau khi ghi Sheet → PUT /bracketTree/{giai_nd} lên Firebase RTDB; GAS bracketTree GET cũng backfill Firebase khi client lần đầu fetch GAS. (2) Admin v106: thêm Listener 4 _fbBracketRef = _fbDb.ref('bracketTree') — onValue nhận mọi cây từ Firebase, lưu vào cache RAM+localStorage (_bkNdCacheSet applied=true), nếu đang xem đúng nội dung → re-render ngay. (3) _bkLoadTreeFromSheet bỏ qua fetch GAS khi cache Firebase còn <30s tươi → lần mở tab sau F5 mà Firebase đã push đủ rồi: cache hit ngay, không chờ GAS. Kết hợp localStorage v105: lần F5 đầu → Firebase onValue cập nhật cache; lần F5 tiếp → localStorage hit trước Firebase → 0ms. Không ảnh hưởng logic _bkGen guard, deleteBracketTree xóa cả Firebase node.
+--><!-- Pickleball Admin v103 2026-06-14: TỐI ƯU TỐC ĐỘ trên nền v102 — thêm cache cây thi đấu THEO TỪNG NỘI DUNG (_bkTreeCache, Map key="giai|nd"). Trước đây v102 luôn hiện "⏳ Đang tải..." mỗi lần swap nội dung dù vừa xem xong — đúng nhưng chậm. Giờ: (1) Khi rời 1 nội dung, lưu snapshot _bkCurrentTree/_bkApplied/_bkLastVersion/_bkOverrides/_bkByeRule/_bkIsEmpty của nd đó vào cache; (2) Khi swap sang nội dung ĐÃ CÓ trong cache → khôi phục state từ cache và render() NGAY LẬP TỨC (0ms, cùng tick, không "⏳", giữ đúng vị trí seeding đã lưu) — chỉ nội dung CHƯA TỪNG XEM mới hiện "⏳ Đang tải..."; (3) setTimeout 300ms sync SRV vẫn chạy ngầm để lấy version mới nhất — nếu cache còn < 10s (_BK_CACHE_TTL) thì BỎ QUA fetch bracketVersion lần đó (giảm tải GAS khi swap nhanh liên tục), còn lại vẫn sync như cũ; (4) sync poll 5s + 2 background handler live/30s (cập nhật real-time) KHÔNG bị ảnh hưởng — vẫn chạy độc lập trên _bkGen như v102, đảm bảo "cập nhật nhanh hơn" không đổi; (5) ndBkRefresh ("Làm mới") và bkDeleteTree xóa cache entry tương ứng để không hiện lại state cũ/đã xóa. Toàn bộ guard _bkGen của v102 GIỮ NGUYÊN 100% — cache chỉ là lớp hiển-thị-tức-thì phía trên, không thay đổi tính đúng đắn khi swap nhanh nhiều lần. -->
+<!-- Pickleball Admin v102 2026-06-14: FIX TRIỆT ĐỂ TUYỆT ĐỐI cây thi đấu hiện nhầm nội dung khi swap qua lại — Root cause thật: (1) bkRender preview-from-seeds (khi SRV chưa có cây cho nd mới) build tree từ _bkCalcSeeds(_bkGiai,_bkNd) NGAY khi _M có thể vẫn còn data cũ → tree preview trùng cấu trúc/label với cây nd trước → hiện nhầm vài giây rồi rớt về "Tạo cây" khi _M load lại đúng; (2) _swapBkWrap sau khi render xong luôn tự gọi lại _ndBkRender() ở finally KHÔNG có guard nào — nếu trong lúc đó user đã swap sang nd khác, lần gọi lại này dùng _bkGiai/_bkNd MỚI nhưng có thể render đè/ghi đè DOM của chuỗi render đang chạy cho nd mới, gây nhấp nháy/đổi vị trí. Fix v102: (A) thêm generation counter toàn cục _bkGen — tăng mỗi lần nd/giai bracket đổi (ndChanged trong _ndBkRender); MỌI callback async (setTimeout 300ms, await _bkLoadTreeFromSheet, _swapBkWrap, sync poll 5s, 2 background handler live/30s) chụp _snapGen lúc bắt đầu và bắt buộc so _bkGen===_snapGen trước khi mutate _bkCurrentTree hoặc viết DOM — sai gen → bỏ hoàn toàn, không vẽ gì; (B) XÓA HẲN nhánh "preview build từ seeds" trong _ndBkRender — khi đổi nd, hiện NGAY "⏳ Đang tải cây thi đấu…" rồi CHỈ dùng cây từ SRV (_bkLoadTreeFromSheet) hoặc "🏗 Tạo cây" nếu SRV chưa có, không đoán/preview; (C) _swapBkWrap nhận tham số _snapGen — bỏ qua swap+re-render nếu gen đã đổi. Kết quả: swap qua lại giữa các nội dung → luôn hiện đúng cây của nội dung đang chọn (hoặc "Tạo cây" nếu chưa có), không còn hiện nhầm/nhá/giật, không đổi vị trí đội đã lưu. Không ảnh hưởng chức năng khác (Tạo cây/Áp dụng/Sửa/Lucky/BYE/Refresh giữ nguyên vì _swapBkWrap gọi không kèm _snapGen ở các action đó). -->
+
+<!-- Pickleball Admin v101 2026-06-14: FIX TRIỆT ĐỂ cây thi đấu hiển thị nhầm nội dung cũ — Root cause: có 2 handler chạy nền (live score ~2s và poll 30s) khi nhận kết quả mới, cả 2 đều (1) gọi _bkBuildTree từ seeds (tạo cây mới từ BXH, không phân biệt nd nào) và (2) set _bkCurrentTree = tree mới + gọi bkRender() mà KHÔNG check nd hiện tại. Khi user vừa switch từ ĐN→NN: _bkCurrentTree=null, nhưng 2 handler này vẫn chạy với _bkGiai/_bkNd đã là NN, build cây NN từ seeds (sai vị trí), ghi vào _bkCurrentTree, render → hiện cây sai. Fix v101: thêm guard `_bkLastRenderKey === _bkGiai+|+_bkNd` vào cả 2 handler (chỉ chạy khi nd đang hiển thị khớp với nd cần xử lý); dùng JSON.parse(_bkCurrentTree) + _bkResolveAdvancers thay _bkBuildTree (giữ nguyên vị trí seeding đã lưu, chỉ cập nhật winner); thêm `if(!_bkCurrentTree) skip` khi chưa có cây. | v100 — Nguyên nhân: trong _bkBuildTree, allSeeds được build với team: () => bangDone?.[s.bang] ? s.team : '' (là function). Khi cây được lưu lên SRV qua JSON.stringify, function này bị mất (JSON không serialize function) → khi load lại từ SRV, s.team là undefined. Hai nơi gọi s.team() trong bkRender và _bkUpdateSeedPanel báo lỗi "is not a function". Fix: đổi team thành plain string (team: s.team || '') trong allSeeds — giá trị lấy ngay lúc build, giống kết quả function cũ (rỗng nếu bảng chưa xong, có tên nếu xong). Cập nhật 2 call site s.team() → s.team. Kết quả: Tạo cây → hiển thị đúng → Apply & Lưu → giữ nguyên vị trí seeding → reload/refresh → load từ SRV đúng cây đã lưu, không lỗi. | v99 2026-06-14: FIX cây thi đấu nhảy nhầm nội dung — 2 nguyên nhân: (1) _bkStartSyncPoll() snapshot _pollKey=_bkGiai+|+_bkNd nhưng chỉ guard bằng _bkLastRenderKey (chỉ set sau khi _ndBkRender async chạy xong ~300ms+); trong window đó poll 5s đầu tiên thấy _bkLastRenderKey vẫn = old nd nên không dừng → fetch bracketVersion của nd cũ → load cây sai. Fix: thêm guard kép _liveKey = _bkGiai+|+_bkNd (đồng bộ, cập nhật ngay khi openNdDetail) song song với _bkLastRenderKey tại mỗi await. (2) openNdDetail gọi switchNdTab('bracket') 2 LẦN (lần 1 ngay lập tức, lần 2 sau loadMatchesCache+_bkLoadOverridesFromGAS) → 2 _bkStartSyncPoll() chạy đồng thời với 2 _pollKey khác nhau, 1 poll stale không bao giờ tự dừng vì _pollKey của nó chưa bao giờ được set làm _bkLastRenderKey. Fix: lần 2 chỉ gọi _ndBkRender() (không gọi switchNdTab lại → không restart poll). | v97 — Nguyên nhân: GAS updateMatch có guard "nếu col[11] rỗng → giữ nguyên giờ từ sheet" (tránh ghi đè vô tình), nên khi admin bấm ✕ Xóa giờ, GAS thấy row[11]='' nhưng vẫn khôi phục giờ cũ. Giải pháp: thêm flag timeCleared=true (y chang scoreCleared cho điểm) — (1) Admin: hidden field em-time-cleared; nút ✕ Xóa giờ set=1, nút preset giờ reset=0; saveEditMatch gửi timeCleared tới GAS; _stSaveAll cũng gửi timeCleared=true khi row[11]===''; (2) GAS v59: chỉ fallback giờ từ sheet nếu timeCleared!==true, còn nếu timeCleared=true thì ghi '' (xóa thật) + xóa Firebase /matches time. Không ảnh hưởng các chức năng khác. | v96 2026-06-13: FIX TRIỆT ĐỂ hiển thị giờ ngay sau "Lưu tất cả giờ" — Nguyên nhân: prefetchAll() chạy nền sau khi _stSaveAll lưu xong, merge server data về và KHÔNG bảo vệ col[11] (giờ) → giờ mới bị ghi đè bằng giá trị cũ từ GAS (chưa kịp commit). Giải pháp: thêm _timeOverrides{} (y chang _renameOverrides cho tên VĐV): đăng ký ngay trong _stSaveAll trước khi đóng overlay; prefetchAll merge áp dụng _timeOverrides giữ giờ local 90s; _applyTimeOverrides() helper dọn expired + protect col[11]. Không ảnh hưởng các chức năng khác. | v95 2026-06-13: COMPACT MOBILE trang Chi tiết nội dung — (1) Chuyển thanh "NỘI DUNG: ..." lên đầu trang (trên cả Header); (2) Ẩn tiêu đề Nội dung (tv-nd-title-wrap) trên mobile, giữ nút "← Quay lại"; (3) Toolbar 5 nút (Làm mới/Thêm bảng/Dọn trùng/Xóa Firebase Live/Xóa tất cả bảng) trên mobile: bỏ icon chỉ còn label, dồn 1 hàng cuộn ngang; (4) Khối Tổng quan (Tổng trận/Hoàn thành/Đang đấu/Chưa đấu) trên mobile gộp thành 1 hàng gọn "Label: value | Label: value" thay 4 thẻ rời | v94 2026-06-13: COMPACT POLISH responsive Mobile/Tablet — thu nhỏ đồng bộ font/icon/nút/khoảng cách toàn trang Admin (login, card, button, modal, table, tab, bottom-nav, stat-card, notification tray, bracket card), fix .cn max-width:100vw tránh tràn ngang trên điện thoại
      Pickleball Admin v93 2026-06-12: FIX RESPONSIVE Tablet (641-1024px) + Mobile (≤640px) cho trang Chi tiết nội dung — (1) [data-bl-grid] (Bảng đấu: bảng trận + tình trạng sân/BXH 420px) → xếp dọc 1 cột, bỏ sticky; (2) [data-players-grid] (Danh sách VĐV + Bốc thăm chia bảng) → xếp dọc 1 cột; (3) #bang-list overflow-x:auto → bảng trận cuộn ngang thay vì bị cắt; (4) .stats (4-5 thẻ/dòng) → ép 2 cột trên tablet/mobile (!important đè inline repeat(4,1fr)/(5,1fr)); (5) form "Cấu hình bảng đấu" (2 bảng × 4 đội/bảng, Tên bảng/Phương thức) → xếp dọc trên mobile; (6) tab Danh sách/Bảng đấu/Cây thi đấu giảm padding trên tablet; (7) toolbar nút (Làm mới/Thêm bảng/Dọn trùng/Xóa Firebase Live/Xóa tất cả bảng) → 2 nút/dòng đều nhau trên mobile |
      Pickleball Admin v92 2026-06-12: ADD đồng bộ 2 chiều — saveEditMatch (Sửa trận ở Bảng đấu) khi đổi tên VĐV/đội: thêm _syncRenameToPlayersList() cập nhật ngay _players (Danh sách VĐV) + _bocThamGroups (Bốc thăm chia bảng), lưu localStorage + render lại tab Danh sách nếu đang mở; nếu danh sách đã "Đã lưu" lên Sheets thì đồng bộ ngầm lên Sheets luôn (saveDanhSachVDV+saveDanhSachBang) — trước đây chỉ có chiều Danh sách→Bảng đấu (renamePlayer), giờ thêm chiều Bảng đấu→Danh sách |
      Pickleball Admin v90 2026-06-12: FIX TRIỆT ĐỂ saveEditMatch + applyEditBang hiển thị NGAY (y chang v20) — (1) saveEditMatch khi đổi tên VĐV/đội: đăng ký _renameOverrides[oldName]=newName NGAY (bảo vệ tên mới khỏi bị loadMatchesCache nền ghi đè bằng tên cũ từ Sheet chưa kịp lưu — trước đây chỉ renamePlayer có cơ chế này, saveEditMatch (Sửa trận trong Bảng đấu) thì KHÔNG → các trận liên quan A2/A3/A6 không cập nhật ngay, phải F5 mới thấy); (2) saveEditMatch + applyEditBang lưu localStorage pb_adm_M_ ngay sau khi sửa _M; (3) saveEditMatch + applyEditBang dùng _renderBangListDirect (force render, bỏ qua mọi guard) thay vì renderBangList; (4) cleanup _renameOverrides sau 60s đủ thời gian Máy chủ commit + prefetch tới |
@@ -1800,6 +1804,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
                 <button class="btn bp" onclick="bkApplyAndSave()" id="bk-apply-btn">⚡ Áp dụng & Tạo lịch vòng trong</button>
               </div>
             </div>
+            <!-- Banner Lưu cây — hiện khi có thay đổi pending -->
+            <div id="bk-save-banner" style="display:none;align-items:center;gap:10px;
+              padding:8px 14px;margin:8px 0 0;border-radius:8px;
+              background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.35)">
+              <span style="font-size:13px;color:#fbbf24;font-weight:600">✏️</span>
+              <span id="bk-save-count" style="font-size:12px;color:#fbbf24;font-weight:600;flex:1">0 thay đổi chưa lưu</span>
+              <button id="bk-save-pending-btn" class="btn bsm"
+                style="background:rgba(251,191,36,.2);border:1.5px solid rgba(251,191,36,.5);color:#fbbf24;font-weight:700"
+                onclick="bkSavePendingToSheet()">💾 Lưu cây lên Sheet</button>
+              <button style="background:none;border:none;color:#fbbf24;cursor:pointer;font-size:16px;padding:2px 6px"
+                onclick="_bkClearPending()" title="Huỷ thay đổi">✕</button>
+            </div>
             <div id="bk-seed-table" style="padding:12px 16px;overflow-x:auto"></div>
           </div>
         </div>
@@ -2756,6 +2772,7 @@ let _fbDb   = null;
 let _fbLiveRef   = null;  // ref('/liveScores')
 let _fbResultsRef = null; // ref('/results')   — v50 NEW
 let _fbMatchesRef = null; // ref('/matches')   — v50 NEW
+let _fbBracketRef = null; // ref('/bracketTree') — v106 NEW: cây thi đấu realtime
 let _fbListener  = null;  // unsubscribe fn
 let _fbConnected = false; // Firebase WebSocket đang hoạt động
 // v52: REST poll state — song song SDK, dedup bằng JSON signature
@@ -2867,6 +2884,84 @@ let _dkScores={};                                  // { "bang|code": {scoreA,sco
 let _curGiaiId='', _curNd='', _curPage='dashboard'; // navigation state
 let _bkGiai='', _bkNd='', _bkGiaiName='';          // bracket state
 let _bkLastRenderKey=''; // FIX: track (giai|nd) đã render lần trước — KHÔNG bị openNdDetail ghi đè trước khi _ndBkRender chạy
+// v104: flag đánh dấu bkRender đang được gọi từ live/poll path (không phải user action)
+// → bkRender bỏ qua _bkAutoSyncToSchedule để không spam network mỗi 2s khi có trận LIVE
+let _bkLiveRender = false;
+// v102 FIX TRIỆT ĐỂ: generation counter — tăng MỖI LẦN nd/giai bracket đổi.
+// Mọi callback async (setTimeout, await, _swapBkWrap...) phải chụp _bkGen lúc bắt đầu
+// và so sánh lại trước khi mutate _bkCurrentTree / render DOM. Nếu lệch → bỏ (stale).
+let _bkGen = 0;
+// v103: cache cây theo từng nội dung (key = "giai|nd") — hiển thị TỨC THÌ khi quay lại
+// nội dung đã xem trước đó (0ms, không "⏳ Đang tải"), vẫn giữ nguyên đúng vị trí seeding.
+// entry: { tree, applied, version, byeRule, overrides, ts }
+// ── Bracket tree cache theo nd — key = giaiName|nd (không dùng giaiId) ──
+// Mỗi nd có entry riêng, không share. Cache chỉ đọc khi key khớp chính xác.
+const _bkNdCache = new Map(); // key: "giaiName|nd" → { tree, applied, version, ts }
+// v105: TTL tăng lên 5 phút (RAM), localStorage TTL 2 tiếng — tồn tại qua F5
+const _BK_ND_CACHE_TTL    = 300000;  // 5 phút RAM — sau đó sync SRV
+const _BK_LS_CACHE_TTL    = 7200000; // 2 giờ localStorage
+const _BK_LS_CACHE_PREFIX = 'pb_bk_tree_v1_'; // prefix localStorage key
+
+function _bkNdCacheKey(giai, nd) {
+  const g = (_resolveGiaiName(giai) || giai || '').trim().toLowerCase();
+  const n = (nd || '').trim().toLowerCase();
+  return g + '§' + n; // ký tự § ít gặp trong tên giải/nd, tránh nhầm key
+}
+
+// v105: Lưu vào cả RAM lẫn localStorage — tồn tại qua F5/reload
+function _bkNdCacheSet(giai, nd, entry) {
+  const key = _bkNdCacheKey(giai, nd);
+  const obj  = { ...entry, ts: Date.now() };
+  _bkNdCache.set(key, obj);
+  // Chỉ lưu localStorage khi applied=true (cây đã xác nhận hợp lệ từ SRV)
+  if (entry.applied && entry.tree) {
+    try {
+      const lsKey = _BK_LS_CACHE_PREFIX + key;
+      // Không lưu toàn bộ tree nếu quá lớn (>200KB) — tránh vượt quota localStorage
+      const serialized = JSON.stringify(obj);
+      if (serialized.length < 200000) {
+        localStorage.setItem(lsKey, serialized);
+      }
+    } catch(ex) { /* quota exceeded hoặc private browsing — bỏ qua */ }
+  }
+}
+
+// v105: Đọc RAM trước, fallback localStorage khi RAM trống (sau F5)
+function _bkNdCacheGet(giai, nd) {
+  const key = _bkNdCacheKey(giai, nd);
+  // 1. Thử RAM trước (nhanh nhất)
+  const ram = _bkNdCache.get(key);
+  if (ram && ram.tree && ram.applied) return ram;
+  // 2. Fallback localStorage (tồn tại qua F5)
+  try {
+    const lsKey = _BK_LS_CACHE_PREFIX + key;
+    const raw = localStorage.getItem(lsKey);
+    if (raw) {
+      const e = JSON.parse(raw);
+      // Kiểm tra TTL — cây cũ hơn 2 tiếng → bỏ qua, fetch lại từ SRV
+      if (e && e.tree && e.applied && (Date.now() - (e.ts || 0)) < _BK_LS_CACHE_TTL) {
+        // Nạp lại vào RAM để lần sau dùng không cần parse localStorage nữa
+        _bkNdCache.set(key, e);
+        console.log('[BK CACHE] Khôi phục từ localStorage — nd:', nd, 'v:', e.version);
+        return e;
+      } else {
+        // Hết hạn → dọn
+        localStorage.removeItem(lsKey);
+      }
+    }
+  } catch(ex) { /* parse lỗi hoặc không có localStorage */ }
+  return null;
+}
+
+function _bkNdCacheDel(giai, nd) {
+  const key = _bkNdCacheKey(giai, nd);
+  _bkNdCache.delete(key);
+  // Xóa cả localStorage
+  try { localStorage.removeItem(_BK_LS_CACHE_PREFIX + key); } catch(ex) {}
+}
+// Backward compat stubs (gọi từ code cũ Apply/Save — giờ là no-op vì _bkNdCacheSet thay thế)
+function _bkCacheSave(giai, nd, extra) { /* no-op: dùng _bkNdCacheSet */ }
+function _bkCacheGet(giai, nd) { return null; /* dùng _bkNdCacheGet */ }
 let _bkOverrides={};                               // bracket manual overrides
 let _bkByeMapGlobal = {};                            // map matchCode → {byeA,byeB} cho Lucky check
 let _bkDragMode = false;
@@ -3112,20 +3207,29 @@ async function _syncFinishedMatches(finishedKeys) {
       // Kể cả khi không ở tab cây thi đấu — để _bkCurrentTree có winner mới
       // rồi _bkDoSyncToSchedule tạo/update CK/H3 trong _M và Máy chủ
       // v37: Sau Apply → chỉ resolve winners, không rebuild; Trước Apply → bỏ qua (user chưa set tree)
-      if (_bkGiai && _bkNd && !_bkIsEmpty && _bkApplied && _bkCurrentTree) {
-        // Rebuild tree silently (không cần render vào UI nếu tab đang ẩn)
-        const { seeds, bangs, bangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
+      // v101 FIX: thêm guard nd — chỉ chạy khi _bkLastRenderKey khớp với _bkGiai|_bkNd hiện tại
+      // Tránh rebuild cây của nd CŨ (ĐN) khi user đang ở nd MỚI (NN) → hiển thị nhầm.
+      // Dùng _bkCurrentTree đang có (clone) thay vì _bkBuildTree lại — giữ nguyên vị trí seeding.
+      if (_bkGiai && _bkNd && !_bkIsEmpty && _bkApplied && _bkCurrentTree
+          && _bkLastRenderKey === (_bkGiai + '|' + _bkNd)) {
+        // v102: snapshot generation — guard sau await _bkDoSyncToSchedule (có thể mất thời gian)
+        const _genSnap = _bkGen;
+        // v101: KHÔNG _bkBuildTree lại từ seeds — dùng clone của _bkCurrentTree + resolve winners
+        const { bangs: bngs2, bangDone: bd2 } = _bkCalcSeeds(_bkGiai, _bkNd);
         const _gn2 = _resolveGiaiName(_bkGiai) || _bkGiai;
         const allM2 = _M.filter(m => String(m[0]||'')===_gn2 && String(m[1]||'')===_bkNd);
         const koM2  = allM2.filter(m => { const v=String(m[9]||''); return v&&v!=='Vòng bảng'&&!v.includes('bảng'); });
-        let tree2 = _bkBuildTree(seeds, bangs, koM2, bangDone);
+        let tree2 = _bkCloneTree(_bkCurrentTree); // deep clone — giữ vị trí
         tree2 = _bkApplyOverrides(tree2);
         tree2 = _bkResolveAdvancers(tree2, koM2);
-        _bkCurrentTree = tree2; // cập nhật tree với winner mới
+        if (_genSnap === _bkGen && _bkIsActiveNd()) { _bkCurrentTree = tree2; _bkState.setTree(tree2, _bkApplied, _bkLastVersion); } // cập nhật tree với winner mới — chỉ khi nd chưa đổi
 
         // Sync winner vào _M + Máy chủ ngay lập tức (không debounce)
         await _bkDoSyncToSchedule();
 
+        // v102 FIX: guard sau await — nếu user đã đổi nd trong lúc sync, KHÔNG vẽ DOM
+        if (_genSnap !== _bkGen) { /* skip render — nd đã đổi */ }
+        else {
         // Nếu user đang ở tab cây → render UI
         const ndWrap = document.getElementById('nd-bk-wrap');
         if (ndWrap && ndWrap.offsetParent !== null) {
@@ -3135,13 +3239,14 @@ async function _syncFinishedMatches(finishedKeys) {
           const _swapTarget = ndContent || ndWrap;
           if (realWrap) realWrap.id = '_bk_swap_hidden';
           _swapTarget.id = 'bk-wrap';
-          try { bkRender(); } finally {
+          try { _bkLiveRender = true; bkRender(); } finally {
+            _bkLiveRender = false;
             _swapTarget.id = ndContent ? 'nd-bk-content' : 'nd-bk-wrap';
             if (realWrap) realWrap.id = 'bk-wrap';
           }
           setTimeout(_syncBkScrollbar, 80);
         } else if (_curPage === 'bracket') {
-          bkRender();
+          _bkLiveRender = true; bkRender(); _bkLiveRender = false;
         }
 
         // Sau khi sync: re-render bảng đấu để hiện tên đội mới ở CK/H3
@@ -3149,6 +3254,7 @@ async function _syncFinishedMatches(finishedKeys) {
           const tvNd2 = document.getElementById('tv-nd');
           if (tvNd2 && tvNd2.style.display !== 'none') renderBangList(_bkGiai, _bkNd);
         }
+        } // end else (gen chưa đổi)
       }
     };
     _reRender();
@@ -3729,16 +3835,31 @@ function _startResultsPolling() {
         }
         // Rebuild tree + sync winner vào CK/H3 ngay
         // v8: Chỉ khi cây thi đấu đang hoạt động (không bị xóa)
-        if (_bkGiai && _bkNd && !_bkIsEmpty) {
-          const { seeds: s3, bangs: b3, bangDone: bd3 } = _bkCalcSeeds(_bkGiai, _bkNd);
+        // v101 FIX: thêm guard nd (giống fix live handler) + dùng _bkCurrentTree thay _bkBuildTree
+        if (_bkGiai && _bkNd && !_bkIsEmpty && _bkLastRenderKey === (_bkGiai + '|' + _bkNd)) {
+          const _genSnap3 = _bkGen; // v102: snapshot generation — guard sau await _bkDoSyncToSchedule
           const _gn3 = _resolveGiaiName(_bkGiai) || _bkGiai;
           const allM3 = _M.filter(m => String(m[0]||'')===_gn3 && String(m[1]||'')===_bkNd);
           const koM3  = allM3.filter(m => { const v=String(m[9]||''); return v&&v!=='Vòng bảng'&&!v.includes('bảng'); });
-          let tree3 = _bkBuildTree(s3, b3, koM3, bd3);
-          tree3 = _bkApplyOverrides(tree3);
-          tree3 = _bkResolveAdvancers(tree3, koM3);
-          _bkCurrentTree = tree3;
+          let tree3;
+          if (_bkApplied && _bkCurrentTree) {
+            // Cây đã Apply → clone + resolve thôi, KHÔNG rebuild (giữ vị trí seeding)
+            tree3 = _bkCloneTree(_bkCurrentTree);
+            tree3 = _bkApplyOverrides(tree3);
+            tree3 = _bkResolveAdvancers(tree3, koM3);
+          } else if (_bkCurrentTree) {
+            // Cây chưa Apply (preview) → resolve advancers
+            tree3 = _bkCloneTree(_bkCurrentTree);
+            tree3 = _bkResolveAdvancers(tree3, koM3);
+          } else {
+            // Chưa có cây → không làm gì (user chưa tạo cây)
+            tree3 = null;
+          }
+          if (tree3 && _genSnap3 === _bkGen && _bkIsActiveNd()) {
+          _bkCurrentTree = tree3; _bkState.setTree(tree3, _bkApplied, _bkLastVersion);
           await _bkDoSyncToSchedule(); // tạo/update CK/H3 ngay
+          // v102 FIX: guard sau await — nếu user đã đổi nd trong lúc sync, KHÔNG vẽ DOM
+          if (_genSnap3 === _bkGen) {
           // Re-render UI nếu đang ở tab cây
           const ndWrap = document.getElementById('nd-bk-wrap');
           if (ndWrap && ndWrap.offsetParent !== null) {
@@ -3748,7 +3869,8 @@ function _startResultsPolling() {
             const _swapTarget = ndContent || ndWrap;
             if (realWrap) realWrap.id = '_bk_swap_hidden';
             _swapTarget.id = 'bk-wrap';
-            try { bkRender(); } finally {
+            try { _bkLiveRender = true; bkRender(); } finally {
+              _bkLiveRender = false;
               _swapTarget.id = ndContent ? 'nd-bk-content' : 'nd-bk-wrap';
               if (realWrap) realWrap.id = 'bk-wrap';
             }
@@ -3759,6 +3881,8 @@ function _startResultsPolling() {
             const tvNd3 = document.getElementById('tv-nd');
             if (tvNd3 && tvNd3.style.display !== 'none') renderBangList(_bkGiai, _bkNd);
           }
+          } // end if(_genSnap3===_bkGen) after await
+          } // end if(tree3)
         }
       }
     } catch(e) {}
@@ -3833,7 +3957,7 @@ function _onLiveData(rows, source) {
 
   if (_curPage === 'bracket') {
     _bkRestoreState();
-    if (_bkGiai && _bkNd) bkRender();
+    if (_bkGiai && _bkNd) { _bkLiveRender = true; bkRender(); _bkLiveRender = false; }
   }
 }
 
@@ -3966,10 +4090,66 @@ function _initFirebaseLive() {
       _onMatchData(val);
     }, (err) => { console.warn('[FB] matches lỗi:', err.message); });
 
+    // ── Listener 4: /bracketTree — cây thi đấu realtime (v106 NEW) ──
+    // GAS saveBracketTree PUT /bracketTree/{giai_nd} → client nhận ngay <100ms
+    // Thay thế hoàn toàn việc fetch GAS bracketTree (2-8s cold start)
+    _fbBracketRef = _fbDb.ref('bracketTree');
+    _fbBracketRef.on('value', (snapshot) => {
+      _fbSdkLastFireTs = Date.now();
+      const val = snapshot.val(); // { "giai_nd_key": { giai, nd, version, rounds, ... } }
+      if (!val) return;
+      console.log('[FB bracketTree] fire →', Object.keys(val).length, 'nội dung');
+      // Cập nhật cache cho từng nội dung có trong Firebase
+      Object.values(val).forEach(function(d) {
+        if (!d || !d.giai || !d.nd || !d.rounds || !d.version) return;
+        // Build tree object đúng format client cần
+        const treeFromFb = {
+          rounds: (d.rounds || []).map(function(r) {
+            return {
+              name: r.name || '',
+              matches: (r.matches || []).map(function(m) {
+                const roundName = r.name || '';
+                return {
+                  code:    m.code   || '',
+                  teamA:   m.teamA  || '',
+                  teamB:   m.teamB  || '',
+                  seedA:   m.seedA  || '',
+                  seedB:   m.seedB  || '',
+                  isByeA:  !!m.isByeA,
+                  isByeB:  !!m.isByeB,
+                  fromFin: roundName === 'Chung kết' ? 0 : roundName === 'Bán kết' ? 1 : roundName === 'Tứ kết' ? 2 : roundName === 'Hạng 3' ? -1 : 3,
+                  cls:     roundName === 'Chung kết' ? 'bk-ck' : roundName === 'Bán kết' ? 'bk-bk' : roundName === 'Tứ kết' ? 'bk-tk' : roundName === 'Hạng 3' ? 'bk-h3' : 'bk-vg',
+                };
+              })
+            };
+          }),
+          _overrides: d._overrides || {},
+          _byeRule:   d._byeRule   || 'bye',
+          _meta:      d._meta      || null,
+        };
+        // Lưu vào cache (RAM + localStorage) — applied=true vì đã từ SRV
+        _bkNdCacheSet(d.giai, d.nd, { tree: treeFromFb, applied: true, version: d.version });
+        console.log('[FB bracketTree] cache ✅', d.nd, 'v', d.version);
+        // Nếu đang xem đúng nội dung này → re-render ngay nếu version mới hơn
+        if (_bkGiai && _bkNd) {
+          const myGiaiName = (_resolveGiaiName(_bkGiai) || _bkGiai).trim();
+          const fbGiaiName = (d.giai || '').trim();
+          if (fbGiaiName === myGiaiName && d.nd === _bkNd && d.version > _bkLastVersion) {
+            console.log('[FB bracketTree] Re-render nd:', d.nd, 'v', d.version, '>', _bkLastVersion);
+            _bkCurrentTree = treeFromFb;
+            _bkApplied     = true;
+            _bkLastVersion = d.version;
+            _ndBkRender();
+          }
+        }
+      });
+    }, (err) => { console.warn('[FB] bracketTree lỗi:', err.message); });
+
     _fbListener = () => {
       _fbLiveRef?.off('value');
       _fbResultsRef?.off('value');
       _fbMatchesRef?.off('value');
+      _fbBracketRef?.off('value');
     };
     _fbConnected = true;
     // 1 LUỒNG: _fbConnected=true → updateLiveScores tự render từ Firebase data (không fetch GAS)
@@ -4689,7 +4869,7 @@ async function updateLiveScores() {
         renderBangList(_curGiaiId, _curNd); // dùng _curGiaiId thực
       }
     }
-    if (_curPage === 'bracket' && _bkGiai && _bkNd) bkRender();
+    if (_curPage === 'bracket' && _bkGiai && _bkNd) { _bkLiveRender = true; bkRender(); _bkLiveRender = false; }
 
     // v56: GAS safety poll + REST liveScores poll đã bị TẮT.
     // Nguồn duy nhất cho live score: Firebase SDK on('value').
@@ -4714,7 +4894,7 @@ async function updateLiveScores() {
         renderBangList(_curGiaiId, _curNd); // dùng _curGiaiId thực
       }
     }
-    if (_curPage === 'bracket' && _bkGiai && _bkNd) bkRender();
+    if (_curPage === 'bracket' && _bkGiai && _bkNd) { _bkLiveRender = true; bkRender(); _bkLiveRender = false; }
   } catch(e) { /* silent */ }
 }
 
@@ -6128,9 +6308,6 @@ async function ndRefresh() {
     _invalidateMatchCache(_curGiaiId||''); // force fetch từ Máy chủ, không dùng cache cũ
     await loadMatchesCache(_curGiaiId||'', true);
     if (bracketActive) {
-      _bkGiai = _curGiaiId || _bkGiai;
-      _bkNd   = _curNd     || _bkNd;
-      _bkGiaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
       _ndBkRender();
     } else {
       renderBangList(_curGiaiId||'', _curNd||'');
@@ -6146,11 +6323,22 @@ function _bkStartSyncPoll() {
   // FIX: snapshot key lúc khởi động poll — nếu user đổi nd trước khi 1 lượt poll
   // hoàn tất (network chậm), bỏ qua kết quả thay vì apply nhầm vào nd hiện tại
   const _pollKey = _bkGiai + '|' + _bkNd;
+  const _pollGen = _bkGen; // v102: snapshot generation — guard chính, mạnh hơn _pollKey
   _bkGasPollTimer = setInterval(async () => {
     if (!_bkGiai || !_bkNd || !GS) return;
     if (_bkIsEmpty) return;
     if (_bkDeletedAt && Date.now() - _bkDeletedAt < 5000) return;
-    if (_bkLastRenderKey !== _pollKey) { _bkStopSyncPoll(); return; } // nd đã đổi → tự dừng
+    // v102 FIX: guard sinh chính bằng generation — chỉ cần 1 điều kiện duy nhất, không
+    // phụ thuộc timing của _bkLastRenderKey (vốn chỉ set sau khi _ndBkRender async chạy xong).
+    if (_pollGen !== _bkGen) { _bkStopSyncPoll(); return; }
+    // v97 FIX TRIỆT ĐỂ: kiểm tra SONG SONG cả 2 guard:
+    // (1) _pollKey so với _bkGiai/_bkNd LIVE (đồng bộ ngay khi openNdDetail gọi) — không
+    //     phụ thuộc _bkLastRenderKey vốn chỉ được cập nhật khi _ndBkRender() chạy xong (async delay).
+    // (2) _bkLastRenderKey so với _pollKey — giữ lại guard cũ để an toàn kép.
+    // Nếu bất kỳ guard nào báo đổi nd → dừng poll lập tức (không chờ poll kế tiếp).
+    const _liveKey = _bkGiai + '|' + _bkNd;
+    if (_liveKey !== _pollKey) { _bkStopSyncPoll(); return; }      // nd đã đổi (live)
+    if (_bkLastRenderKey !== _pollKey) { _bkStopSyncPoll(); return; } // nd đã đổi (rendered)
     try {
       // v37: Poll nhẹ bằng GET bracketVersion — không cần adminCode
       const giaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
@@ -6162,17 +6350,25 @@ function _bkStartSyncPoll() {
       const r = await fetch(url.toString(), { cache: 'no-store' });
       const vRes = await r.json();
       if (!vRes.ok) return;
-      if (_bkLastRenderKey !== _pollKey) return; // FIX: guard sau await — nd đã đổi trong lúc fetch
+      // Guard kép sau await — await có thể mất vài giây, user có thể đã đổi nd
+      if (_pollGen !== _bkGen) return;
+      if ((_bkGiai + '|' + _bkNd) !== _pollKey) return;
+      if (_bkLastRenderKey !== _pollKey) return;
       const remoteVer = vRes.version || 0;
       if (remoteVer <= _bkLastVersion) return;
       console.log('[BK SYNC] SRV BracketTree mới (v', remoteVer, '>', _bkLastVersion, ') — đang tải...');
       // Có phiên bản mới → load cây từ SRV
-      const loaded = await _bkLoadTreeFromSheet();
-      if (_bkLastRenderKey !== _pollKey) return; // FIX: guard sau await thứ 2
+      const loaded = await _bkLoadTreeFromSheet(_bkGiai, _bkNd);
+      // Guard kép lần 3 sau await dài nhất (_bkLoadTreeFromSheet fetch GAS ~1-3s)
+      if (_pollGen !== _bkGen) return;
+      if ((_bkGiai + '|' + _bkNd) !== _pollKey) return;
+      if (_bkLastRenderKey !== _pollKey) return;
       if (loaded) {
-        // _bkLoadTreeFromSheet() đã set _bkCurrentTree = d.tree + _bkApplied = true.
-        // KHÔNG null lại ở đây — trước đây làm bkRender rơi về branch "chưa có cây" (placeholder)
-        await _swapBkWrap('nd-bk-wrap', () => Promise.resolve(bkRender()));
+        // _bkLoadTreeFromSheet đã guard bằng _bkGiai/_bkNd, nếu loaded=true thì đúng nd
+        _bkNdCacheSet(_bkGiai, _bkNd, {
+          tree: _bkCurrentTree, applied: _bkApplied, version: _bkLastVersion
+        });
+        await _swapBkWrap('nd-bk-wrap', () => { _bkLiveRender = true; const r = bkRender(); _bkLiveRender = false; return Promise.resolve(r); }, _pollGen);
         toast('🔄 Cây thi đấu đã được cập nhật từ SRV', 'in', 2500);
       }
     } catch(e) { console.warn('[BK SYNC] Poll error:', e); }
@@ -7454,92 +7650,38 @@ async function confirmGenerateSchedule() {
 // ── Render cây thi đấu vào nd-bk-wrap (dùng ID swap) ──
 // v2: render ngay từ cache → nhanh, rồi fetch ngầm nếu data cũ/đổi nội dung
 async function _ndBkRender() {
-  // v7: Block mọi auto-render trong 5s sau khi xóa cây — tránh Máy chủ race condition
-  if (_bkDeletedAt && Date.now() - _bkDeletedAt < 5000) {
-    console.log('[BK] _ndBkRender blocked (just deleted, ' + Math.round((Date.now()-_bkDeletedAt)/1000) + 's ago)');
-    return;
-  }
-  _bkGiai = _curGiaiId || _bkGiai;
-  _bkNd   = _curNd     || _bkNd;
+  if (_bkDeletedAt && Date.now() - _bkDeletedAt < 5000) return;
+
+  _bkGiai     = _curGiaiId || _bkGiai;
+  _bkNd       = _curNd     || _bkNd;
   _bkGiaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
 
-  // FIX: Snapshot nd tại thời điểm gọi — dùng để guard mọi callback async
-  const _snapBkGiai = _bkGiai, _snapBkNd = _bkNd;
-  const _isBkStale = () => _bkGiai !== _snapBkGiai || _bkNd !== _snapBkNd;
-
   const ndWrap = document.getElementById('nd-bk-wrap');
-  if (!ndWrap) return;
-  if (!_bkGiai || !_bkNd) {
-    ndWrap.innerHTML = '<div class="empty"><div class="ei">🏆</div><p>Chưa chọn giải / nội dung</p></div>';
-    return;
-  }
+  if (!ndWrap || !_bkGiai || !_bkNd) return;
 
-  // FIX BUG: trước đây dùng prevGiai=_bkGiai/prevNd=_bkNd CHỤP ngay đầu hàm — nhưng
-  // openNdDetail() đã set _bkGiai/_bkNd = giá trị MỚI TRƯỚC KHI gọi _ndBkRender(),
-  // nên prev luôn === current → ndChanged luôn false → cây của nd cũ bị giữ lại
-  // và hiển thị nhầm cho nd mới. Dùng _bkLastRenderKey (chỉ _ndBkRender ghi) để so sánh đúng.
-  const _curKey = _bkGiai + '|' + _bkNd;
-  const ndChanged = (_bkLastRenderKey !== _curKey);
-  _bkLastRenderKey = _curKey;
-  // FIX: Khi đổi nội dung/giải → LUÔN reset toàn bộ state cây (kể cả khi _bkApplied=true của nd cũ),
-  // tránh hiện nhầm cây của nội dung trước đó. _bkLoadTreeFromSheet() sẽ load lại đúng cây
-  // cho nd mới nếu server đã có (set lại _bkApplied=true), nếu chưa có thì hiện "Nhấn Tạo cây".
+  const myGiai = _bkGiai, myNd = _bkNd;
+  const myKey  = myGiai + '§' + myNd;
+  const stale  = () => _bkGiai !== myGiai || _bkNd !== myNd;
+
+  const ndChanged = (_bkLastRenderKey !== myKey);
   if (ndChanged) {
-    _bkCurrentTree = null;
-    _bkApplied     = false;
-    _bkLastVersion = 0;
-
-    // FIX: _bkAutoTimer (8s) + _bkLastKoDoneKeys là GLOBAL, không reset khi đổi nd.
-    // Nếu nd cũ đang ở chế độ tự động (_bkAutoMode=true sau khi Apply), timer cũ vẫn
-    // chạy ngầm, đọc _bkGiai/_bkNd LIVE (đã là nd MỚI) nhưng _bkLastKoDoneKeys vẫn
-    // chứa key của nd CŨ → tưởng nd mới "có kết quả mới" → tự resolve/lưu lại tree
-    // của nd mới sau vài giây, gây hiệu ứng "tự thay đổi/giật" mà user thấy.
-    // Dừng timer cũ + reset key set; sẽ được bật lại đúng ngữ cảnh nếu cần (Apply).
+    _bkLastRenderKey = myKey;
+    _bkCurrentTree   = null;
+    _bkApplied       = false;
+    _bkLastVersion   = 0;
     _bkStopAutoPolling();
     _bkLastKoDoneKeys = new Set();
-
-    // FIX TỐC ĐỘ: build ngay 1 cây PREVIEW từ _M cache local (không cần mạng) → hiển thị
-    // tức thì khi đổi nd, giống v56. Nếu server có cây đã Apply, _bkLoadTreeFromSheet (300ms
-    // sau) sẽ THAY THẾ bằng cây thật. Đây là build 1 LẦN DUY NHẤT khi đổi nd — không lặp lại
-    // khi poll, không vi phạm yêu cầu "giữ nguyên, không tự tạo cây mới mỗi vài giây".
-    try {
-      const { seeds: pvSeeds, bangs: pvBangs, bangDone: pvBangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
-      if (pvBangs.length) {
-        const pvKoMatches = _M.filter(m=>String(m[0]||'')===_bkGiaiName && String(m[1]||'')===_bkNd)
-          .filter(m=>{const v=String(m[9]||'');return v&&v!=='Vòng bảng'&&!v.includes('bảng');});
-        let pvTree = _bkBuildTree(pvSeeds, pvBangs, pvKoMatches, pvBangDone);
-        pvTree = _bkResolveAdvancers(pvTree, pvKoMatches);
-        _bkCurrentTree = pvTree; // preview tạm — sẽ bị thay bằng cây thật từ server nếu có
-      }
-    } catch(e) { console.warn('[BK] preview build error:', e); }
-  }
-
-  // FIX: Khi switch nội dung → clear cây ngay, không để cây cũ hiện trong khi load
-  if (ndChanged) {
-    const ndContent = document.getElementById('nd-bk-content');
-    if (ndContent) ndContent.innerHTML = '';
   }
 
   _bkOverrides = _bkLoadOverrides();
   _bkSaveState();
-  // v37: Load cây từ SRV BracketTree — single source of truth
-  // Render local trước (nhanh), sau đó sync từ SRV
-  setTimeout(async () => {
-    if (_isBkStale()) return; // FIX: user đã chuyển nd khác trong 300ms
-    const loaded = await _bkLoadTreeFromSheet();
-    if (_isBkStale()) return; // FIX: guard sau await
-    if (loaded || _bkCurrentTree) {
-      await _swapBkWrap('nd-bk-wrap', () => Promise.resolve(bkRender()));
-    }
-  }, 300);
 
-  // Helper: vẽ cây vào ndWrap ngay lập tức
-  // FIX v21: swap nd-bk-CONTENT (con), không swap nd-bk-wrap (cha scroll container)
-  const _renderNow = () => {
-    if (_isBkStale()) return; // FIX: không render nếu đã switch sang nd khác
+  // ── Helper render vào đúng DOM element ──
+  function _doRender() {
+    if (stale()) return;
     const ndContent = document.getElementById('nd-bk-content');
     const realWrap  = document.getElementById('bk-wrap');
-    const target    = ndContent || ndWrap; // fallback nếu chưa có content div
+    const target    = ndContent || ndWrap;
     if (realWrap) realWrap.id = '_bk_swap_hidden';
     target.id = 'bk-wrap';
     try { bkRender(); }
@@ -7548,68 +7690,46 @@ async function _ndBkRender() {
       if (realWrap) realWrap.id = 'bk-wrap';
     }
     setTimeout(_syncBkScrollbar, 80);
-  };
-
-  const giaiName = _bkGiaiName || _resolveGiaiName(_bkGiai) || _bkGiai;
-  const hasCacheData = _M.some(m => String(m[0]||'') === giaiName && String(m[1]||'') === _bkNd);
-
-  // v7: Đọc trạng thái empty từ sessionStorage (survive reload)
-  // Nếu session nói "empty" thì giữ, TRỪ KHI có KO matches thật trên Máy chủ
-  _bkIsEmpty = _bkReadEmpty();
-  const hasKO = _M.some(m => {
-    if (String(m[0]||'') !== giaiName || String(m[1]||'') !== _bkNd) return false;
-    const v = String(m[9]||'');
-    return v && v !== 'Vòng bảng' && !/^bảng\s+[a-z0-9]/i.test(v);
-  });
-  // Nếu sessionStorage nói empty=true → giữ trống dù _M có KO
-  // (Máy chủ có thể chưa flush xong, hoặc user chưa tạo lại cây)
-  // Chỉ tự reset empty nếu KHÔNG có flag xóa và có KO thật
-  if (hasKO && !_bkIsEmpty) {
-    // Bình thường: có cây thật → hiển thị
+    _bkSaveState();
   }
-  // Nếu _bkIsEmpty=true (vừa xóa) thì giữ nguyên dù hasKO
 
-  if (hasCacheData && !ndChanged) {
-    // DATA ĐÃ CÓ TRONG MEMORY → render ngay, không cần network
-    _renderNow();
+  if (ndChanged) {
+    // ── CACHE HIT: hiển thị ngay 0ms, fetch SRV ngầm ──
+    const cached = _bkNdCacheGet(myGiai, myNd);
+    if (cached && cached.tree) {
+      _bkCurrentTree = _bkCloneTree(cached.tree);
+      _bkApplied     = !!cached.applied;
+      _bkLastVersion = cached.version || 0;
+      // Xóa DOM cũ → render cache ngay
+      const el = document.getElementById('nd-bk-content') || ndWrap;
+      if (el !== ndWrap) el.innerHTML = '';
+      _doRender();
+      // Fetch SRV ngầm — không block UI
+      _bkLoadTreeFromSheet(myGiai, myNd).then(loaded => {
+        if (stale() || !loaded) return;
+        _bkNdCacheSet(myGiai, myNd, { tree: _bkCurrentTree, applied: _bkApplied, version: _bkLastVersion });
+        _doRender(); // cập nhật nếu có thay đổi
+      }).catch(() => {});
+      return;
+    }
+
+    // ── CACHE MISS: hiện ⏳, fetch SRV ──
+    const el2 = document.getElementById('nd-bk-content') || ndWrap;
+    el2.innerHTML = '<div class="empty"><div class="ei">⏳</div><p>Đang tải cây thi đấu…</p></div>';
+    await _bkLoadTreeFromSheet(myGiai, myNd);
+    if (stale()) return;
+    // v105: Lưu cache — nếu SRV có cây (applied=true từ _bkLoadTreeFromSheet),
+    // lần sau vào tab này sẽ hiển thị ngay từ localStorage, không còn ⏳
+    if (_bkCurrentTree) {
+      // _bkLoadTreeFromSheet đã set _bkApplied=true khi load thành công
+      _bkNdCacheSet(myGiai, myNd, { tree: _bkCurrentTree, applied: _bkApplied, version: _bkLastVersion });
+    }
+    _doRender();
     return;
   }
 
-  if (hasCacheData && ndChanged) {
-    // Đổi nội dung nhưng data đã có → render ngay rồi smart-merge từ Máy chủ nền
-    _renderNow();
-    // Fetch ngầm: cập nhật _M mới nhất, re-resolve winners trên cây ĐANG CÓ (không xóa cây)
-    loadMatchesCache(_snapBkGiai, true).then(() => {
-      if (_isBkStale()) return; // FIX: guard stale
-      // FIX: KHÔNG set _bkCurrentTree=null ở đây — trước đây làm rơi về branch
-      // "chưa có cây" (placeholder) ngay cả khi vừa hiển thị cây thật từ server
-      // hoặc preview hợp lệ, gây hiệu ứng "hiện vài giây rồi mất".
-      // Nếu đã có _bkCurrentTree (preview hoặc tree thật) → giữ nguyên, bkRender
-      // tự re-resolve advancers với _M mới. Chỉ rebuild khi THỰC SỰ chưa có gì.
-      if (!_bkCurrentTree) {
-        try {
-          const { seeds: pvSeeds2, bangs: pvBangs2, bangDone: pvBangDone2 } = _bkCalcSeeds(_bkGiai, _bkNd);
-          if (pvBangs2.length) {
-            const pvKo2 = _M.filter(m=>String(m[0]||'')===_bkGiaiName && String(m[1]||'')===_bkNd)
-              .filter(m=>{const v=String(m[9]||'');return v&&v!=='Vòng bảng'&&!v.includes('bảng');});
-            let pvTree2 = _bkBuildTree(pvSeeds2, pvBangs2, pvKo2, pvBangDone2);
-            pvTree2 = _bkResolveAdvancers(pvTree2, pvKo2);
-            _bkCurrentTree = pvTree2;
-          }
-        } catch(e) { console.warn('[BK] smart-merge preview error:', e); }
-      }
-      _renderNow();
-    }).catch(() => {});
-    return;
-  }
-
-  // Chưa có data → phải fetch trước, hiện loading state
-  ndWrap.innerHTML = '<div class="empty"><div class="ei">⏳</div><p>Đang tải cây thi đấu…</p></div>';
-  try {
-    await loadMatchesCache(_snapBkGiai, true);
-  } catch(e) { /* tiếp tục với data hiện có */ }
-  if (_isBkStale()) return; // FIX: guard sau await dài
-  _renderNow();
+  // ── Cùng nd (poll/live): render từ state hiện tại ──
+  _doRender();
 }
 
 // ── ndBk action wrappers ──
@@ -7622,9 +7742,12 @@ async function ndBkRefresh() {
   // Không invalidate cache — chỉ force refresh để merge Máy chủ + local
   // Invalidate sẽ xóa cache local dẫn đến mất tên đội BK/CK chưa push Máy chủ
   _bkCurrentTree = null;
+  _bkNdCacheDel(_bkGiai, _bkNd); // xóa cache → buộc fetch lại từ SRV
+  _bkPending.clear(); // xóa pending khi refresh thủ công
+  _bkUpdateSaveBanner();
   try {
     await loadMatchesCache(_bkGiai, true); // forceRefresh=true: fetch Máy chủ nhưng smart merge
-    await _ndBkRender();
+    await _ndBkRender(_bkGiai, _bkNd);
     // Cũng re-render bảng đấu nếu đang ở tab đó
     if (_curGiaiId === _bkGiai && _curNd === _bkNd) {
       const tvNd = document.getElementById('tv-nd');
@@ -7669,6 +7792,8 @@ async function ndBkDelete() {
 }
 
 // ── Helper: swap bk-wrap ID → run async fn → swap back ──
+// Dùng cho các action (Apply, Save, AutoFill...) cần bkRender() truy cập bk-wrap
+// KHÔNG tự gọi _ndBkRender() sau fn() — tránh render nhầm/vòng lặp
 async function _swapBkWrap(altId, fn) {
   const realWrap = document.getElementById('bk-wrap');
   // FIX v21 TRIỆT ĐỂ: swap nd-bk-CONTENT (con) thay vì nd-bk-wrap (cha)
@@ -7687,10 +7812,6 @@ async function _swapBkWrap(altId, fn) {
     const w2 = document.getElementById('_bk_wrap_hidden');
     if (w1) w1.id = altId2;
     if (w2) w2.id = 'bk-wrap';
-    // Re-render sau action (không cần restore scroll vì cha không bị reset)
-    await new Promise(r => setTimeout(r, 150));
-    _ndBkRender();
-    // Chỉ cập nhật width thanh scroll
     setTimeout(_syncBkScrollbar, 200);
   }
 }
@@ -7721,13 +7842,26 @@ function _getActiveNdTab() {
 }
 
 function openNdDetail(giaiId, nd) {
-  // Ghi nhớ tab đang active để giữ lại khi đổi nội dung (cây thi đấu)
+  // Ghi nhớ tab đang active để giữ lại khi đổi nội dung
   const ndViewVisible = document.getElementById('tv-nd')?.style.display !== 'none';
   const activeTab = ndViewVisible ? _getActiveNdTab() : 'bangs';
 
-  // Xóa cache cây cũ khi chuyển sang nội dung khác
-  if (_curNd !== nd || _curGiaiId !== giaiId) _bkCurrentTree = null;
+  const ndChanged = (_curNd !== nd || _curGiaiId !== giaiId);
+
+  // Xóa cây cũ khi chuyển nội dung
+  if (ndChanged) {
+    _bkCurrentTree = null;
+    // Reset pending — tránh lưu nhầm pending của nd cũ lên nd mới
+    _bkPending.clear();
+    _bkUpdateSaveBanner();
+  }
+
   _curNd = nd; _curGiaiId = giaiId;
+  // Set _bkGiai/_bkNd NGAY — để _ndBkRender() đọc đúng khi gọi
+  _bkGiai = giaiId;
+  _bkNd   = nd;
+  _bkGiaiName = _resolveGiaiName(giaiId) || giaiId;
+
   _switchPlayersCtx(giaiId, nd);
   const r = _T.find(t=>String(t[0]||'')===giaiId);
   if (!r) return;
@@ -7740,30 +7874,20 @@ function openNdDetail(giaiId, nd) {
 
   // Switch tab đúng
   if (activeTab === 'bracket') {
-    _bkGiai = giaiId;
-    _bkNd   = nd;
-    _bkGiaiName = _resolveGiaiName(giaiId) || giaiId;
     switchNdTab('bracket', true);
-    loadMatchesCache(giaiId, true)
-      .then(async () => {
-        if (_curGiaiId !== giaiId || _curNd !== nd) return;
-        await _bkLoadOverridesFromGAS();
-        if (_curGiaiId !== giaiId || _curNd !== nd) return;
-        switchNdTab('bracket', true);
-        await new Promise(r => setTimeout(r, 300));
-        _syncBkScrollbar();
-      })
-      .catch(() => { if (_curGiaiId === giaiId && _curNd === nd) switchNdTab('bracket', true); });
   } else {
     switchNdTab(activeTab, true);
   }
 
-  // Render NGAY từ _M local (y chang v20 — không chờ GAS)
+  // ── Bảng đấu: render NGAY từ _M local, rồi fetch ngầm (y chang v20) ──
   renderBangList(giaiId, nd);
 
-  // Load GAS nền — dùng _renameOverrides bảo vệ tên mới
+  // ── Fetch ngầm bảng đấu ──
   loadMatchesCache(giaiId, true)
-    .then(() => { if (_curGiaiId === giaiId && _curNd === nd) renderBangList(giaiId, nd); })
+    .then(() => {
+      if (_curGiaiId !== giaiId || _curNd !== nd) return;
+      renderBangList(giaiId, nd);
+    })
     .catch(() => {});
 
   // Nếu localStorage chưa có VĐV/bảng → thử load từ SRV
@@ -11167,7 +11291,10 @@ function _bkBuildTree(seeds, bangs, koMatches, bangDone) {
   const allSeeds = globalSeeds.map(s => ({
     bang: s.bang,
     label: `${['Nhất','Nhì','Ba','Tư'][s.seedRank-1]||'#'+s.seedRank} Bảng ${_bShort(s.bang)}`,
-    team: () => bangDone?.[s.bang] ? s.team : '',
+    // v100 FIX: team là plain string (không phải function) để JSON.stringify/parse không mất khi lưu SRV.
+    // Giá trị tên đội: lấy ngay lúc build nếu bảng đã xong, rỗng nếu chưa xong (giống kết quả function cũ).
+    // Các chỗ gọi s.team() đã được sửa thành s.team (không gọi như function).
+    team: s.team || '',
     won: s.won, pf: s.pf, pa: s.pa, seedRank: s.seedRank
   }));
 
@@ -11363,28 +11490,56 @@ function _bkLoadOverrides() {
 // ── SRV BracketTree sync — v37: single source of truth ──
 
 // Load cây từ SRV BracketTree (GET, không cần auth POST)
-async function _bkLoadTreeFromSheet() {
-  if (!_bkGiai || !_bkNd || !GS) return false;
+async function _bkLoadTreeFromSheet(_snapGiai, _snapNd) {
+  // _snapGiai/_snapNd: giaiId/nd tại thời điểm gọi — guard chống race condition
+  // Nếu không truyền → dùng global hiện tại (backward compat)
+  const _reqGiai = _snapGiai || _bkGiai;
+  const _reqNd   = _snapNd   || _bkNd;
+  if (!_reqGiai || !_reqNd || !GS) return false;
+
+  // v106: Nếu cache đã có data từ Firebase (applied=true, version>0) VÀ còn tươi (<30s)
+  // → bỏ qua fetch GAS hoàn toàn (Firebase WebSocket đã push khi saveBracketTree)
+  const cached = _bkNdCacheGet(_reqGiai, _reqNd);
+  if (cached && cached.tree && cached.version > 0) {
+    const age = Date.now() - (cached.ts || 0);
+    if (age < 30000) { // <30s — Firebase vừa push, không cần GAS
+      console.log('[BK TREE] Cache Firebase còn tươi (' + Math.round(age/1000) + 's) — bỏ qua fetch GAS');
+      if (_bkGiai === _reqGiai && _bkNd === _reqNd) {
+        _bkCurrentTree = _bkCloneTree(cached.tree);
+        _bkApplied     = true;
+        _bkLastVersion = cached.version;
+      }
+      return true;
+    }
+  }
+
   try {
-    const giaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
+    const giaiName = _resolveGiaiName(_reqGiai) || _reqGiai;
     const url = new URL(GS);
     url.searchParams.set('action', 'bracketTree');
     url.searchParams.set('giai', giaiName);
-    url.searchParams.set('nd', _bkNd);
+    url.searchParams.set('nd', _reqNd);
     url.searchParams.set('_t', Date.now());
     const r = await fetch(url.toString(), { cache: 'no-store' });
     const d = await r.json();
     if (d.ok && d.tree && d.version) {
-      if (d.version <= _bkLastVersion) return false; // không có gì mới
+      // Guard duy nhất: user đã chuyển sang nd khác trong lúc fetch
+      if (_bkGiai !== _reqGiai || _bkNd !== _reqNd) {
+        console.warn('[BK TREE] Bỏ qua — nd đã đổi trong lúc fetch');
+        return false;
+      }
       _bkCurrentTree = d.tree;
-      _bkApplied = true; // v37: Loaded từ SRV → cây đã Apply, khóa lại
+      _bkApplied     = true;
+      _bkLastVersion = d.version;
       if (d.tree._overrides) {
         _bkOverrides = d.tree._overrides;
         try { localStorage.setItem(_bkKey(), JSON.stringify(_bkOverrides)); } catch(ex){}
       }
       if (d.tree._byeRule) _bkByeRule = d.tree._byeRule;
-      _bkLastVersion = d.version;
-      console.log('[BK TREE] Loaded from SRV v', d.version, '— rounds:', _bkCurrentTree?.rounds?.length, '(LOCKED)');
+      _bkNdCacheSet(_reqGiai, _reqNd, {
+        tree: _bkCurrentTree, applied: true, version: _bkLastVersion
+      });
+      console.log('[BK TREE] Loaded v', d.version, 'nd:', _reqNd, 'rounds:', _bkCurrentTree?.rounds?.length);
       return true;
     }
     return false;
@@ -11434,7 +11589,7 @@ async function _bkSaveTreeToSheet() {
 // Debounce lưu overrides + push tree lên SRV
 async function _bkLoadOverridesFromGAS() {
   // Giờ load từ SRV tree (đã embed overrides)
-  await _bkLoadTreeFromSheet();
+  await _bkLoadTreeFromSheet(_bkGiai, _bkNd);
 }
 
 function _bkSaveOverrides() {
@@ -11533,6 +11688,16 @@ function _bkResolveAdvancers(tree, koMatches) {
   return tree;
 }
 
+// ── Deep clone helper — structuredClone nhanh hơn JSON 2-4x, có fallback ──
+// Dùng trong bkRender và mọi chỗ cần clone _bkCurrentTree để không mutate source
+function _bkCloneTree(tree) {
+  try {
+    return structuredClone(tree);
+  } catch(e) {
+    return JSON.parse(JSON.stringify(tree));
+  }
+}
+
 // ── Render ───────────────────────────────────────────────────────
 function bkRender() {
   bkSyncByeRuleDropdown();
@@ -11563,12 +11728,12 @@ function bkRender() {
   // v37: Sau Apply (_bkApplied=true) → dùng tree đã lưu, KHÔNG rebuild từ seeds
   // Giữ nguyên vị trí đội, BYE, overrides đã chỉnh sửa
   if (_bkApplied && _bkCurrentTree) {
-    tree = JSON.parse(JSON.stringify(_bkCurrentTree));
+    tree = _bkCloneTree(_bkCurrentTree);
     tree = _bkApplyOverrides(tree);
     tree = _bkResolveAdvancers(tree, koMatches);
   } else if (_bkCurrentTree) {
     // Cây đã được tạo (qua "Tạo cây") nhưng chưa Apply → GIỮ NGUYÊN vị trí, không rebuild lại từ BXH mỗi lần poll
-    tree = JSON.parse(JSON.stringify(_bkCurrentTree));
+    tree = _bkCloneTree(_bkCurrentTree);
     tree = _bkApplyOverrides(tree);
     tree = _bkResolveAdvancers(tree, koMatches);
   } else {
@@ -11582,8 +11747,8 @@ function bkRender() {
     return;
   }
 
-  // Set _bkCurrentTree ngay sau build — không phụ thuộc UI elements
-  _bkCurrentTree = tree;
+  // KHÔNG ghi đè _bkCurrentTree bằng clone — _bkCurrentTree đã đúng từ SRV
+  // tree là bản clone để render, _bkCurrentTree là gốc để giữ nguyên
 
   // bangDone is now computed in _bkCalcSeeds
   const completedBangs = bangs.filter(b => bangDone?.[b]).length;
@@ -11820,89 +11985,7 @@ function bkRender() {
   const h3Round2  = tree.rounds.find(r=>r.cls==='bk-h3');
   const { allSeeds } = tree._meta || {};
 
-  // ── Seeding summary bar (compact, ngoài cây) ──
   let html = '';
-  if (false && allSeeds?.length) {
-    // Group seeds by rank (Nhất / Nhì / Ba / Tư)
-    const rankOrder = ['Nhất','Nhì','Ba','Tư'];
-    const rankLabels = ['1ST','2ND','3RD','4TH'];
-    const rankColors = [
-      {bg:'rgba(245,158,11,.18)',border:'rgba(245,158,11,.45)',text:'#fbbf24'},   // gold - Nhất
-      {bg:'rgba(14,165,233,.15)',border:'rgba(14,165,233,.4)',text:'#38bdf8'},    // blue - Nhì
-      {bg:'rgba(34,197,94,.13)',border:'rgba(34,197,94,.35)',text:'#4ade80'},     // green - Ba
-      {bg:'rgba(168,85,247,.13)',border:'rgba(168,85,247,.35)',text:'#c084fc'},   // purple - Tư
-    ];
-    const bangPillColors = {
-      A:'rgba(14,165,233,.18)',  B:'rgba(251,146,60,.18)',  C:'rgba(167,139,250,.18)',
-      D:'rgba(34,197,94,.15)',   E:'rgba(239,68,68,.15)',   F:'rgba(236,72,153,.15)',
-      G:'rgba(234,179,8,.15)',   H:'rgba(6,182,212,.15)'
-    };
-    const bangPillText = {
-      A:'#38bdf8', B:'#fb923c', C:'#a78bfa', D:'#4ade80',
-      E:'#f87171', F:'#f472b6', G:'#facc15', H:'#22d3ee'
-    };
-
-    // Parse all seeds into structured objects
-    const seedItems = allSeeds.map((s, i) => {
-      const bangM = s.label.match(/Bảng\s+([A-Z])/i);
-      const bang  = bangM ? bangM[1].toUpperCase() : '';
-      const pl    = s.label.match(/(Nhất|Nhì|Ba|Tư)\s+Bảng\s+([A-Z])/i);
-      const rankIdx = pl ? rankOrder.indexOf(pl[1]) : -1;
-      const isDone  = bangDone?.[s.bang];
-      const team    = isDone ? (s.team()||'?') : '(chờ KQ)';
-      return { s, bang, rankIdx, isDone, team };
-    });
-
-    // Group by rank
-    const byRank = {};
-    seedItems.forEach(item => {
-      const ri = item.rankIdx >= 0 ? item.rankIdx : 0;
-      if (!byRank[ri]) byRank[ri] = [];
-      byRank[ri].push(item);
-    });
-
-    html += `<div style="margin-bottom:14px">`;
-    html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <span style="font-size:10px;font-weight:800;letter-spacing:.12em;color:var(--tx3);text-transform:uppercase">🏆 Đội vào vòng trong</span>
-      <span style="height:1px;flex:1;background:linear-gradient(to right,var(--bdr2),transparent)"></span>
-    </div>`;
-
-    const rankIdxList = Object.keys(byRank).map(Number).sort((a,b)=>a-b);
-    rankIdxList.forEach(ri => {
-      const rc = rankColors[ri] || rankColors[0];
-      const rl = rankOrder[ri] || '';
-      const items = byRank[ri];
-      html += `<div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-bottom:6px">`;
-      // Rank badge
-      html += `<span style="font-size:9px;font-weight:800;letter-spacing:.08em;padding:2px 7px;
-        border-radius:4px;background:${rc.bg};color:${rc.text};border:1px solid ${rc.border};
-        white-space:nowrap;flex-shrink:0">${rl}</span>`;
-      items.forEach(({s, bang, isDone, team}) => {
-        const pillBg   = bangPillColors[bang] || 'var(--bg3)';
-        const pillTx   = bangPillText[bang]   || 'var(--tx3)';
-        const bdr      = pillTx;
-        html += `<div style="display:inline-flex;align-items:center;gap:5px;
-          padding:3px 9px 3px 5px;
-          background:var(--bg3);
-          border:1px solid var(--bdr);
-          border-radius:20px;
-          font-size:11px;
-          transition:opacity .15s;
-          ${isDone?'':'opacity:.5'}" title="${esc(s.label)}">
-          <span style="display:inline-flex;align-items:center;justify-content:center;
-            width:20px;height:20px;border-radius:50%;
-            background:${pillBg};color:${pillTx};
-            font-size:10px;font-weight:800;
-            border:1px solid ${bdr}33;flex-shrink:0">${bang||'?'}</span>
-          <span style="color:${isDone?'var(--tx)':'var(--tx3)'};font-weight:${isDone?'600':'400'};
-            max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(team)}</span>
-        </div>`;
-      });
-      html += `</div>`;
-    });
-    html += `</div>`;
-  }
-
   // ── Cây KO (không có cột vòng bảng) ──
   html += `<div style="overflow-x:auto;padding-bottom:4px"><div class="bk-bracket">`;
 
@@ -11962,11 +12045,13 @@ function bkRender() {
 
   wrap.innerHTML = html;
 
-  // Cập nhật seeding panel
-  const { seeds: _sp_seeds, bangs: _sp_bangs, bangDone: _sp_bd } = _bkCalcSeeds(_bkGiai, _bkNd);
-  _bkUpdateSeedPanel(tree, _sp_seeds, _sp_bangs, _sp_bd);
-  // Auto-sync tree teams → _M + bảng đấu (nếu đang ở auto mode)
-  _bkAutoSyncToSchedule();
+  // Cập nhật seeding panel — dùng lại seeds/bangs/bangDone đã tính ở trên (không gọi _bkCalcSeeds lần 2)
+  _bkUpdateSeedPanel(tree, seeds, bangs, bangDone);
+  // Auto-sync tree teams → _M + bảng đấu.
+  // Chỉ gọi khi bkRender được trigger từ user action / advance event (không từ live score poll 2s).
+  // _bkLiveRender=true khi gọi từ _onLiveData hoặc bracket poll 5s/30s → bỏ qua auto-sync để
+  // tránh spam network request mỗi 2s khi đang có trận LIVE.
+  if (!_bkLiveRender) _bkAutoSyncToSchedule();
   // Auto fit zoom sau render
   if (typeof bkAutoFitOnRender === 'function') bkAutoFitOnRender();
   // Sync thanh cuộn ngang sau khi render
@@ -12101,7 +12186,7 @@ async function ndBkGenChart() {
       .filter(m=>{const v=String(m[9]||'');return v&&v!=='Vòng bảng'&&!v.includes('bảng');});
     let newTree = _bkBuildTree(seeds, bangs, koMatches, bangDone); // 4 tham số: seeds,bangs,koMatches,bangDone
     newTree = _bkResolveAdvancers(newTree, koMatches);
-    _bkCurrentTree = newTree;
+    _bkCurrentTree = newTree; _bkState.setTree(newTree, false, _bkLastVersion);
 
     // Render cây xem trước — chỉ hiển thị, không lưu
     await _swapBkWrap('nd-bk-wrap', () => Promise.resolve(bkRender()));
@@ -12204,7 +12289,7 @@ function ndBkCancelEdit() {
   _bkAutoMode = _bkAutoModeBeforeEdit;
   if (_bkAutoMode) _bkStartAutoPolling();
   _ndBkUpdateToolbarUI();
-  _ndBkRender(); // re-render để rollback visual
+  _ndBkRender(_bkGiai, _bkNd); // re-render để rollback visual
 }
 
 // ── Update toàn bộ toolbar UI theo trạng thái hiện tại ──
@@ -12385,10 +12470,10 @@ async function _bkAutoAdvanceIfNeeded() {
     const _koM5  = _allM5.filter(m => { const v=String(m[9]||''); return v&&v!=='Vòng bảng'&&!v.includes('bảng'); });
     if (_bkCurrentTree) {
       // Clone + resolve winners vào tree đã lưu — giữ nguyên vị trí, BYE, overrides
-      let _tree5 = JSON.parse(JSON.stringify(_bkCurrentTree));
+      let _tree5 = _bkCloneTree(_bkCurrentTree);
       _tree5 = _bkApplyOverrides(_tree5);
       _tree5 = _bkResolveAdvancers(_tree5, _koM5);
-      _bkCurrentTree = _tree5;
+      _bkCurrentTree = _tree5; _bkState.setTree(_tree5, _bkApplied, _bkLastVersion);
     }
     // Sync winner vào Matches Máy chủ
     await _bkDoSyncToSchedule();
@@ -13522,80 +13607,133 @@ function bkDrop(e, targetCode) {
 // (Đã xử lý trong bkEditMatch / bkSaveEdit — đây là helper bổ sung)
 // ════════════════════════════════════════════════════════════════
 
-// Mở popup đổi seed nhanh (1A→2B...) — dùng từ pill label click — Lucky-style grid
+// ══════════════════════════════════════════════════════════════════
+//  HỆ THỐNG CHỈNH SỬA CÂY THI ĐẤU — v2 (Inline, 2 bước, Lucky)
+//  Bước 1: Click — → Chọn đội → Preview ngay (chỉ lưu RAM)
+//  Bước 2: Bấm [💾 Lưu cây] → Ghi lên Sheet 1 lần
+// ══════════════════════════════════════════════════════════════════
+
+// Pending changes: map code+slot → { seedCode, team, isBye }
+const _bkPending = new Map(); // key: "TK1:B" → { seedCode, team, isBye, luckyPick }
+
+function _bkPendingKey(code, slot) { return code + ':' + slot; }
+
+function _bkHasPending() { return _bkPending.size > 0; }
+
+function _bkUpdateSaveBanner() {
+  const banner = document.getElementById('bk-save-banner');
+  const n = _bkPending.size;
+  if (!banner) return;
+  if (n === 0) {
+    banner.style.display = 'none';
+  } else {
+    banner.style.display = 'flex';
+    const lbl = banner.querySelector('#bk-save-count');
+    if (lbl) lbl.textContent = n + ' thay đổi chưa lưu';
+  }
+}
+
+// ── Mở popup chọn đội (BYE / Lucky / đội thường) ──
 function bkQuickSwapSeed(code, slot) {
-  // slot = 'A' hoặc 'B'
   const tree = _bkCurrentTree;
   if (!tree) return;
   let match = null;
   tree.rounds.forEach(r => r.matches.forEach(m => { if (m.code === code) match = m; }));
   if (!match) return;
 
-  const curSeed = slot === 'A' ? (match.seedA||'') : (match.seedB||'');
-  const curTeam = slot === 'A' ? (match.teamA||'') : (match.teamB||'');
-  const { bangs } = _bkCalcSeeds(_bkGiai, _bkNd);
-  const curSeedCode = _extractSeedCode(curSeed);
+  const isSlotA  = slot === 'A';
+  const curSeed  = isSlotA ? (match.seedA||'') : (match.seedB||'');
+  const curTeam  = isSlotA ? (match.teamA||'') : (match.teamB||'');
+  const curIsBye = isSlotA ? !!match.isByeA : !!match.isByeB;
+  const isLucky  = _bkByeRule === 'lucky';
 
-  // Build danh sách cards — mỗi rank/bảng
+  // Seed code hiện tại (kể cả pending)
+  const pKey = _bkPendingKey(code, slot);
+  const pending = _bkPending.get(pKey);
+  const curSeedCode = pending ? pending.seedCode : _extractSeedCode(curSeed);
+  const curSelVal   = pending ? (pending.isBye ? 'BYE' : pending.seedCode) : (curIsBye ? 'BYE' : curSeedCode);
+
+  const { bangs } = _bkCalcSeeds(_bkGiai, _bkNd);
+
+  // Build cards
   const cards = [];
+
+  // Lucky option (chỉ khi byeRule=lucky VÀ slot đang là BYE)
+  if (isLucky && curIsBye && !pending?.luckyPick) {
+    cards.push({ mc: 'LUCKY', isByeOption: false, isLuckyOption: true });
+  }
+
+  // BYE option
+  cards.push({ mc: 'BYE', isByeOption: true, isLuckyOption: false });
+
+  // Danh sách đội từ BXH
   bangs.forEach(b => {
     const bangChar = b.replace(/^Bảng\s+/i,'').trim();
     [1,2,3,4].forEach(ri => {
       const mc = `${ri}${bangChar}`;
-      const r = _bkLookupSeedCode(mc);
-      const team = r && r.team ? r.team : '';
-      const pending = r && !r.team && !r.error;
-      const done = !!(r && r.team);
-      cards.push({ mc, bangChar, ri, team, done, pending });
+      const r  = _bkLookupSeedCode(mc);
+      cards.push({ mc, bangChar, ri, team: r?.team||'', done: !!(r?.team), isByeOption: false, isLuckyOption: false });
     });
   });
 
-  // Helper split tên đôi → 2 dòng
-  const _splitTeamName = (t) => {
-    if (!t) return { p1: '', p2: '' };
-    const sep = t.includes(' - ') ? ' - ' : (t.includes('-') ? '-' : null);
-    if (sep) {
-      const idx = t.indexOf(sep);
-      return { p1: t.slice(0, idx).trim(), p2: t.slice(idx + sep.length).trim() };
-    }
-    return { p1: t, p2: '' };
-  };
+  // Render card
+  const _card = (c, i) => {
+    const isCur = c.mc === curSelVal;
+    const bdr   = isCur ? 'var(--pu)' : 'var(--bdr)';
 
-  const _renderCard = (c, idx) => {
-    const { p1, p2 } = _splitTeamName(c.team);
-    const isCur = c.mc === curSeedCode;
-    const statusBadge = c.done ? '' : `<span style="font-size:9px;padding:1px 5px;border-radius:4px;background:rgba(245,158,11,.15);color:#f59e0b;font-weight:600;margin-left:4px">chờ KQ</span>`;
+    if (c.isLuckyOption) {
+      return `<label data-mc="LUCKY" style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+        border-radius:10px;border:2px solid ${bdr};background:var(--bg3);cursor:pointer;
+        transition:border-color .12s;grid-column:span 2">
+        <input type="radio" name="bk-qs-r" value="LUCKY" style="accent-color:var(--pu);flex-shrink:0"${isCur?' checked':''}>
+        <div><div style="font-size:13px;font-weight:700;color:#4ade80">🍀 Lucky — Cho đội thi đấu</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:1px">Chọn đội may mắn vào slot BYE này để thi đấu thật</div></div>
+      </label>`;
+    }
+    if (c.isByeOption) {
+      return `<label data-mc="BYE" style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+        border-radius:10px;border:2px solid ${bdr};background:var(--bg3);cursor:pointer;
+        transition:border-color .12s;grid-column:span 2">
+        <input type="radio" name="bk-qs-r" value="BYE" style="accent-color:var(--pu);flex-shrink:0"${isCur?' checked':''}>
+        <div><div style="font-size:13px;font-weight:700;color:#f59e0b">🏖 BYE — Cho đội nghỉ</div>
+        <div style="font-size:11px;color:var(--tx3);margin-top:1px">Đội đối diện tự thắng lên vòng tiếp</div></div>
+      </label>`;
+    }
+    const badge = c.done ? '' : `<span style="font-size:9px;padding:1px 5px;border-radius:4px;
+      background:rgba(245,158,11,.15);color:#f59e0b;font-weight:600;margin-left:4px">chờ KQ</span>`;
+    const [p1,p2] = c.team.includes(' - ') ? c.team.split(' - ') : [c.team,''];
     return `<label data-mc="${c.mc}" style="display:flex;align-items:flex-start;gap:8px;padding:10px 12px;
-      border-radius:10px;border:2px solid ${isCur?'var(--pu)':'var(--bdr)'};background:var(--bg3);
-      cursor:pointer;transition:border-color .12s" id="bk-qs-card-${idx}"
-      onmouseover="this.style.borderColor='var(--pu)'" onmouseout="if(!document.getElementById('bk-qs-inp').value&&document.querySelector('#bk-qs-grid input[name=bk-qs-r]:checked')?.value!=='${c.mc}')this.style.borderColor='var(--bdr)'">
+      border-radius:10px;border:2px solid ${bdr};background:var(--bg3);cursor:pointer;transition:border-color .12s">
       <input type="radio" name="bk-qs-r" value="${c.mc}" style="accent-color:var(--pu);margin-top:3px;flex-shrink:0"${isCur?' checked':''}>
       <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:700;color:var(--ac);line-height:1.3">${c.ri}Bảng ${c.bangChar}${statusBadge}</div>
-        ${p1 ? `<div style="font-size:12px;font-weight:600;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${esc(p1)}</div>` : ''}
-        ${p2 ? `<div style="font-size:11px;color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p2)}</div>` : (!p1 ? `<div style="font-size:11px;color:var(--tx4);font-style:italic">—</div>` : '')}
+        <div style="font-size:12px;font-weight:700;color:var(--ac)">${c.ri}Bảng ${c.bangChar}${badge}</div>
+        ${p1?`<div style="font-size:12px;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p1)}</div>`:''}
+        ${p2?`<div style="font-size:11px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p2)}</div>`:(!p1?`<div style="font-size:11px;color:var(--tx4);font-style:italic">—</div>`:'')}
       </div>
     </label>`;
   };
 
+  document.getElementById('bk-qs-mo')?.remove();
   const el = document.createElement('div');
   el.id = 'bk-qs-mo';
   el.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.65)';
   el.innerHTML = `
     <div style="background:var(--bg2);border:1px solid var(--bdr2);border-radius:16px;
-      width:min(520px,96vw);max-height:90vh;box-shadow:0 20px 60px rgba(0,0,0,.45);
-      display:flex;flex-direction:column;overflow:hidden">
-
-      <!-- HEADER cố định -->
+      width:min(520px,96vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;
+      box-shadow:0 20px 60px rgba(0,0,0,.45)">
       <div style="padding:18px 20px 0;flex-shrink:0">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
           <div>
-            <div style="font-size:15px;font-weight:700;color:var(--tx)">✏️ Chọn BYE — <span style="color:var(--ac)">${code}</span> <span style="font-size:12px;color:var(--tx3);font-weight:500">slot ${slot === 'A' ? 'trên' : 'dưới'}</span></div>
-            <div style="font-size:11px;color:var(--tx3);margin-top:3px">Đội thắng trận này sẽ tự điền vào vòng tiếp</div>
+            <div style="font-size:15px;font-weight:700;color:var(--tx)">
+              ✏️ Đổi vị trí — <span style="color:var(--ac)">${code}</span>
+              <span style="font-size:12px;color:var(--tx3);font-weight:500"> slot ${isSlotA?'trên':'dưới'}</span>
+            </div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:3px">
+              Chọn xong → Preview ngay · Bấm <b>💾 Lưu cây</b> để lưu lên Sheet
+            </div>
           </div>
           <button class="mc" onclick="document.getElementById('bk-qs-mo').remove()">✕</button>
         </div>
-        <!-- Search -->
         <div style="position:relative;margin:10px 0 12px">
           <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none">🔍</span>
           <input id="bk-qs-search" class="inp" placeholder="Tìm tên đội hoặc vị trí (1A, 2B...)"
@@ -13603,57 +13741,197 @@ function bkQuickSwapSeed(code, slot) {
             oninput="bkQsFilter(this.value)">
         </div>
       </div>
-
-      <!-- GRID cuộn được -->
       <div style="flex:1;overflow-y:auto;padding:0 20px 4px">
         <div id="bk-qs-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          ${cards.map((c, i) => _renderCard(c, i)).join('')}
+          ${cards.map(_card).join('')}
         </div>
-        ${cards.length === 0 ? `<div style="text-align:center;padding:24px;color:var(--tx3);font-size:13px">Chưa có bảng đấu</div>` : ''}
       </div>
-
-      <!-- FOOTER cố định -->
       <div style="flex-shrink:0;padding:12px 20px 16px;border-top:1px solid var(--bdr)">
         <div style="font-size:11px;color:var(--tx3);margin-bottom:6px;font-weight:600">Hoặc nhập tên đội trực tiếp:</div>
-        <input id="bk-qs-inp" class="inp" placeholder="Tên đội..."
-          value="${esc(curTeam)}" style="width:100%;box-sizing:border-box;margin-bottom:10px;font-size:13px"
-          oninput="if(this.value){document.querySelectorAll('#bk-qs-grid input[name=bk-qs-r]').forEach(r=>r.checked=false);document.querySelectorAll('#bk-qs-grid label').forEach(l=>l.style.borderColor='var(--bdr)')}">
+        <input id="bk-qs-inp" class="inp" placeholder="Tên đội..." value="${esc(curTeam)}"
+          style="width:100%;box-sizing:border-box;margin-bottom:10px;font-size:13px">
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button class="btn bh bsm" onclick="document.getElementById('bk-qs-mo').remove()">Huỷ</button>
-          <button class="btn bp bsm" onclick="bkApplyQuickSwap('${code}','${slot}')">💾 Xác nhận & Lưu</button>
+          <button class="btn bp bsm" onclick="bkApplyQuickSwap('${code}','${slot}')">✓ Xác nhận</button>
         </div>
       </div>
     </div>`;
   document.body.appendChild(el);
 
-  // Khi chọn radio card → clear direct input và auto-fill tên đội
+  // Listeners
   el.querySelectorAll('input[name="bk-qs-r"]').forEach(inp => {
     inp.addEventListener('change', function() {
       const sc = this.value;
-      const r = _bkLookupSeedCode(sc);
-      const directInp = document.getElementById('bk-qs-inp');
-      if (directInp) {
-        directInp.value = (r && r.team) ? r.team : '';
-        directInp.placeholder = 'Tên đội...';
+      const inp2 = document.getElementById('bk-qs-inp');
+      if (sc === 'BYE' || sc === 'LUCKY') {
+        if (inp2) { inp2.value=''; inp2.placeholder=sc==='BYE'?'(BYE — slot trống)':'(Lucky — nhập tên đội lucky)'; inp2.disabled = sc==='BYE'; }
+      } else {
+        const r = _bkLookupSeedCode(sc);
+        if (inp2) { inp2.value=(r?.team)||''; inp2.placeholder='Tên đội...'; inp2.disabled=false; }
       }
-      // Update border colors
       el.querySelectorAll('#bk-qs-grid label').forEach(l => {
-        l.style.borderColor = l.dataset.mc === sc ? 'var(--pu)' : 'var(--bdr)';
+        l.style.borderColor = l.dataset.mc===sc ? 'var(--pu)' : 'var(--bdr)';
       });
     });
   });
+
+  const di = el.querySelector('#bk-qs-inp');
+  if (di) di.addEventListener('input', function() {
+    if (this.value) {
+      el.querySelectorAll('#bk-qs-grid input[name="bk-qs-r"]').forEach(r => r.checked=false);
+      el.querySelectorAll('#bk-qs-grid label').forEach(l => l.style.borderColor='var(--bdr)');
+      this.disabled = false;
+    }
+  });
+
+  // Close on backdrop
+  el.addEventListener('click', e => { if (e.target===el) el.remove(); });
+  // Focus search
+  setTimeout(() => el.querySelector('#bk-qs-search')?.focus(), 50);
 }
 
-// Filter grid theo search
+// Filter grid
 function bkQsFilter(q) {
   const grid = document.getElementById('bk-qs-grid');
   if (!grid) return;
   const qLow = q.toLowerCase().trim();
   grid.querySelectorAll('label').forEach(lbl => {
-    const mc = (lbl.dataset.mc||'').toLowerCase();
+    const mc  = (lbl.dataset.mc||'').toLowerCase();
     const txt = lbl.innerText.toLowerCase();
-    lbl.style.display = (!qLow || mc.includes(qLow) || txt.includes(qLow)) ? '' : 'none';
+    lbl.style.display = (!qLow || mc==='bye' || mc==='lucky' || mc.includes(qLow) || txt.includes(qLow)) ? '' : 'none';
   });
+}
+
+// ── Xác nhận chọn → lưu RAM, preview ngay, CHƯA lên Sheet ──
+function bkApplyQuickSwap(code, slot) {
+  const selVal  = (document.querySelector('#bk-qs-grid input[name="bk-qs-r"]:checked')?.value||'').trim().toUpperCase();
+  const direct  = (document.getElementById('bk-qs-inp')?.value||'').trim();
+  const ov      = _bkOverrides[code] || {};
+
+  if (!selVal && !direct) { document.getElementById('bk-qs-mo')?.remove(); return; }
+
+  const isSlotA  = slot === 'A';
+  const isBYE    = selVal === 'BYE';
+  const isLUCKY  = selVal === 'LUCKY';
+
+  let team = direct;
+  let seedCode = selVal;
+
+  if (!isBYE && !isLUCKY && selVal) {
+    const r = _bkLookupSeedCode(selVal);
+    if (r?.team) team = r.team;
+  }
+  if (isLUCKY) { seedCode = ''; } // lucky: tên đội từ direct input
+
+  // Cập nhật override
+  if (isBYE) {
+    if (isSlotA) _bkOverrides[code] = { ...ov, teamA:'BYE', seedCodeA:'BYE', isByeA:true,  byeAOverridden:false };
+    else         _bkOverrides[code] = { ...ov, teamB:'BYE', seedCodeB:'BYE', isByeB:true,  byeBOverridden:false };
+  } else {
+    if (isSlotA) _bkOverrides[code] = { ...ov, teamA:team, seedCodeA:seedCode, isByeA:false, byeAOverridden:true };
+    else         _bkOverrides[code] = { ...ov, teamB:team, seedCodeB:seedCode, isByeB:false, byeBOverridden:true };
+  }
+  _bkSaveOverrides();
+
+  // Ghi vào _bkPending (chưa lên Sheet)
+  const pKey = _bkPendingKey(code, slot);
+  _bkPending.set(pKey, { seedCode: isBYE ? 'BYE' : seedCode, team, isBye: isBYE, luckyPick: isLUCKY });
+
+  document.getElementById('bk-qs-mo')?.remove();
+
+  // Preview ngay
+  requestAnimationFrame(() => {
+    if (_bkCurrentTree) {
+      _bkCurrentTree.rounds.forEach(r => r.matches.forEach(m => {
+        if (m.code !== code) return;
+        if (isBYE) {
+          if (isSlotA) { m.teamA=''; m.seedA='BYE'; m.isByeA=true; }
+          else         { m.teamB=''; m.seedB='BYE'; m.isByeB=true; }
+        } else {
+          if (isSlotA) { m.teamA=team; m.seedA=seedCode||m.seedA; m.isByeA=false; }
+          else         { m.teamB=team; m.seedB=seedCode||m.seedB; m.isByeB=false; }
+        }
+      }));
+    }
+    bkRender();
+    _bkUpdateSaveBanner();
+    if (_bkCurrentTree) _bkNdCacheSet(_bkGiai, _bkNd, { tree:_bkCurrentTree, applied:_bkApplied, version:_bkLastVersion });
+  });
+}
+
+// ── [💾 Lưu cây] — Ghi toàn bộ pending lên Sheet 1 lần ──
+async function bkSavePendingToSheet() {
+  if (!_bkHasPending()) { toast('Không có thay đổi nào cần lưu', 'in'); return; }
+  const btn = document.getElementById('bk-save-pending-btn');
+  if (btn) { btn.disabled=true; btn.textContent='⏳ Đang lưu...'; }
+
+  try {
+    const jobs = [];
+    for (const [pKey, change] of _bkPending.entries()) {
+      const [code, slot] = pKey.split(':');
+      jobs.push(_bkSyncOneChange(code, slot, change));
+    }
+    await Promise.allSettled(jobs);
+    _bkPending.clear();
+    _bkUpdateSaveBanner();
+    // Lưu BracketTree lên Sheet
+    await _bkSaveTreeToSheet().catch(() => {});
+    toast('✅ Đã lưu cây thi đấu lên Sheet', 'ok', 3000);
+  } catch(e) {
+    toast('⚠️ Lỗi khi lưu: ' + e.message, 'er');
+  } finally {
+    if (btn) { btn.disabled=false; btn.textContent='💾 Lưu cây'; }
+  }
+}
+
+// Sync 1 thay đổi lên Sheet
+async function _bkSyncOneChange(code, slot, change) {
+  const giaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
+  const allM  = _M.filter(r => String(r[0]||'')===giaiName && String(r[1]||'')===_bkNd);
+  const existing = allM.find(r => String(r[3]||'')===code);
+
+  const isSlotA = slot === 'A';
+  const newVal  = change.isBye ? '' : (change.team || '');
+
+  if (existing) {
+    const newRow = [...existing];
+    while (newRow.length < 12) newRow.push('');
+    if (isSlotA) newRow[4] = newVal; else newRow[7] = newVal;
+    newRow[8]  = String(existing[8]||'');
+    newRow[10] = String(existing[10]||'');
+    newRow[11] = String(existing[11]||'');
+    const idx = _M.indexOf(existing);
+    if (idx >= 0) _M[idx] = normalizeMatchRow(newRow);
+    await gPost({ action:'updateMatch', adminCode:CODE,
+      giai:giaiName, giaiName, nd:_bkNd,
+      bang:String(existing[2]||''), code, row:newRow });
+  } else if (newVal) {
+    // Trận chưa có → tạo mới
+    let roundName = '';
+    _bkCurrentTree?.rounds.forEach(r => r.matches.forEach(m => { if (m.code===code) roundName=r.name; }));
+    const tA = isSlotA ? newVal : '';
+    const tB = isSlotA ? '' : newVal;
+    const newRow = [giaiName, _bkNd, roundName, code, tA, '', '', tB, '', roundName, ''];
+    _M.push(normalizeMatchRow(newRow));
+    await gPost({ action:'addMatchAdmin', adminCode:CODE, row:newRow });
+  }
+
+  // Auto-advance nếu đối diện là BYE
+  const ov = _bkOverrides[code] || {};
+  if (ov.byeAOverridden || ov.byeBOverridden) await _bkSyncOverrideToSchedule(code);
+}
+
+// Huỷ tất cả thay đổi chưa lưu
+function _bkClearPending() {
+  if (_bkPending.size === 0) return;
+  if (!confirm('Huỷ ' + _bkPending.size + ' thay đổi chưa lưu?')) return;
+  _bkPending.clear();
+  // Reload lại override từ bản đã lưu
+  _bkOverrides = _bkLoadOverrides();
+  // Reload cây từ cache hoặc SRV
+  _bkNdCacheDel(_bkGiai, _bkNd);
+  ndBkRefresh();
+  _bkUpdateSaveBanner();
 }
 
 function _extractSeedCode(seedStr) {
@@ -13664,88 +13942,45 @@ function _extractSeedCode(seedStr) {
   return rank + pl[2].toUpperCase();
 }
 
-function bkApplyQuickSwap(code, slot) {
-  const selVal  = (document.querySelector('#bk-qs-grid input[name="bk-qs-r"]:checked')?.value||'').trim().toUpperCase();
-  const direct  = (document.getElementById('bk-qs-inp')?.value||'').trim();
-  const ov = _bkOverrides[code] || {};
-
-  // Không còn option "BYE" trong grid nữa — slot này đang là BYE rồi
-  // Nếu user không chọn gì và không nhập tên → giữ nguyên BYE
-  if (!selVal && !direct) {
-    document.getElementById('bk-qs-mo')?.remove();
-    return;
-  }
-
-  let team = direct;
-  if (selVal) {
-    const r = _bkLookupSeedCode(selVal);
-    if (r && r.team) team = r.team;
-  }
-
-  if (slot === 'A') {
-    _bkOverrides[code] = { ...ov, teamA: team, seedCodeA: selVal, isByeA: false, byeAOverridden: !!team };
-  } else {
-    _bkOverrides[code] = { ...ov, teamB: team, seedCodeB: selVal, isByeB: false, byeBOverridden: !!team };
-  }
-  _bkSaveOverrides();
-  document.getElementById('bk-qs-mo')?.remove();
-  bkRender();
-  toast(`⏳ Đang lưu ${code}...`, 'in');
-  _bkSyncOverrideToSchedule(code).then(() => {
-    toast(`✅ ${code} slot ${slot}: ${selVal||'—'} → ${team||'(auto)'} · Đã lưu`, 'ok');
-  });
-}
-
+// bkSaveEdit — chỉnh sửa 2 slot cùng lúc (modal Chỉnh sửa)
 function bkSaveEdit(code, seedA, seedB) {
   const seedCodeA = (document.getElementById('bk-edit-seed-a')?.value||'').trim().toUpperCase();
   const seedCodeB = (document.getElementById('bk-edit-seed-b')?.value||'').trim().toUpperCase();
   const rawA      = (document.getElementById('bk-edit-a')?.value||'').trim();
   const rawB      = (document.getElementById('bk-edit-b')?.value||'').trim();
-
-  // Resolve: seed code → tên đội từ BXH, hoặc dùng tên trực tiếp
-  const resolveSeed = (seedCode, teamVal) => {
-    if (!seedCode) return teamVal;
-    const r = _bkLookupSeedCode(seedCode);
-    if (r && r.team) return r.team;
-    return teamVal; // seed chưa có kết quả → giữ tên trực tiếp
-  };
-
+  const resolveSeed = (sc, tv) => { if (!sc) return tv; const r=_bkLookupSeedCode(sc); return (r?.team)?r.team:tv; };
   const a = resolveSeed(seedCodeA, rawA);
   const b = resolveSeed(seedCodeB, rawB);
-
   const isByeA = (seedA||'').includes('BYE');
   const isByeB = (seedB||'').includes('BYE');
-
-  _bkOverrides[code] = {
-    teamA: a,
-    teamB: b,
-    seedCodeA: seedCodeA || '',
-    seedCodeB: seedCodeB || '',
-    byeAOverridden: isByeA && !!a,
-    byeBOverridden: isByeB && !!b,
-  };
+  _bkOverrides[code] = { teamA:a, teamB:b, seedCodeA:seedCodeA||'', seedCodeB:seedCodeB||'',
+    byeAOverridden:isByeA&&!!a, byeBOverridden:isByeB&&!!b };
   _bkSaveOverrides();
+
+  // Ghi vào pending
+  if (a !== undefined) _bkPending.set(_bkPendingKey(code,'A'), { seedCode:seedCodeA, team:a, isBye:false });
+  if (b !== undefined) _bkPending.set(_bkPendingKey(code,'B'), { seedCode:seedCodeB, team:b, isBye:false });
+
   document.getElementById('bk-edit-mo')?.remove();
-  bkRender();
-
-  const dispA = a || '(auto)', dispB = b || '(auto)';
-  const isBYECase = (isByeA && !!a) || (isByeB && !!b);
-  toast(`⏳ Đang lưu trận ${code}...`, 'in');
-
-  // Sync override → bảng đấu + Máy chủ, auto-advance winner nếu BYE
-  _bkSyncOverrideToSchedule(code).then(() => {
-    toast(`✅ Trận ${code}: ${dispA} vs ${dispB}${isBYECase?' · BYE đã được thay thế và lưu':''}`, 'ok');
+  requestAnimationFrame(() => {
+    if (_bkCurrentTree) {
+      _bkCurrentTree.rounds.forEach(rr => rr.matches.forEach(m => {
+        if (m.code!==code) return;
+        m.teamA=a; m.seedA=seedCodeA||m.seedA;
+        m.teamB=b; m.seedB=seedCodeB||m.seedB;
+      }));
+    }
+    bkRender();
+    _bkUpdateSaveBanner();
+    if (_bkCurrentTree) _bkNdCacheSet(_bkGiai, _bkNd, { tree:_bkCurrentTree, applied:_bkApplied, version:_bkLastVersion });
   });
-  // Nếu KHÔNG đang ở edit mode → thông báo có thể Lưu & tiếp tục từ banner
-  // (khi edit mode bật thì user dùng banner để lưu tổng)
+  const dispA=a||'(auto)', dispB=b||'(auto)';
+  toast(`📝 ${code}: ${dispA} vs ${dispB} — Bấm 💾 Lưu cây để lưu lên Sheet`, 'in', 4000);
 }
 
 // Sync 1 trận từ override về bảng đấu (_M + Máy chủ) — await đầy đủ, feedback rõ ràng
 async function _bkSyncOverrideToSchedule(code) {
   if (!_bkGiai || !_bkNd) return;
-
-  // Đợi bkRender hoàn tất và _bkCurrentTree được cập nhật
-  await new Promise(r => setTimeout(r, 80));
 
   const tree = _bkCurrentTree;
   if (!tree) return;
@@ -13761,8 +13996,10 @@ async function _bkSyncOverrideToSchedule(code) {
   const { m, roundName } = matchInTree;
   // Lấy tên đội đã override — KHÔNG dùng isBye để loại trừ (BYE đã bị override)
   const ov = _bkOverrides[code] || {};
-  const tA = ov.byeAOverridden ? (ov.teamA || '') : (m.isByeA ? '' : (m.teamA || ''));
-  const tB = ov.byeBOverridden ? (ov.teamB || '') : (m.isByeB ? '' : (m.teamB || ''));
+  // Nếu override có teamA/teamB → dùng luôn (bất kể isBye của tree gốc)
+  // Nếu không có override → dùng tree (nếu isBye thì rỗng)
+  const tA = (ov.teamA !== undefined) ? (ov.teamA || '') : (m.isByeA ? '' : (m.teamA || ''));
+  const tB = (ov.teamB !== undefined) ? (ov.teamB || '') : (m.isByeB ? '' : (m.teamB || ''));
 
   const giaiName = _resolveGiaiName(_bkGiai) || _bkGiai;
   const allM = _M.filter(r => String(r[0]||'')===giaiName && String(r[1]||'')===_bkNd);
@@ -13857,7 +14094,59 @@ function bkClearOverride(code) {
 // ════════════════════════════════════════════════════════════════
 
 // Biến lưu tree hiện tại để dùng cho Apply
-let _bkCurrentTree = null;
+// ── Bracket tree state — dùng object để track nd hiện tại ──
+// _bkState chứa toàn bộ state của nd đang hiển thị
+// Mỗi lần đổi nd: tạo _bkState mới với token riêng → mọi callback async của nd cũ tự động bị reject
+const _bkState = (() => {
+  let _tree = null, _applied = false, _version = 0, _token = 0, _giai = '', _nd = '';
+  return {
+    get tree()    { return _tree; },
+    get applied() { return _applied; },
+    get version() { return _version; },
+    get token()   { return _token; },
+    get giai()    { return _giai; },
+    get nd()      { return _nd; },
+    // Khởi tạo nd mới — tăng token để invalidate mọi callback cũ
+    init(giai, nd) {
+      _token++;  // <-- token mới: mọi callback giữ token cũ sẽ bị reject
+      _giai = giai; _nd = nd;
+      _tree = null; _applied = false; _version = 0;
+      console.log('[bkState] init nd:', giai, '/', nd, 'token:', _token);
+    },
+    // Ghi tree — chỉ nhận nếu token khớp (callback không stale)
+    setTree(tree, applied, version, callerToken) {
+      if (callerToken !== undefined && callerToken !== _token) {
+        console.warn('[bkState] REJECT setTree — stale token', callerToken, '!= current', _token);
+        return false;
+      }
+      _tree = tree; _applied = !!applied; if (version !== undefined) _version = version;
+      return true;
+    },
+    setVersion(v) { _version = v; },
+    setApplied(v) { _applied = v; },
+    reset()  { _tree = null; _applied = false; _version = 0; },
+    isActive(giai, nd) {
+      const g = (_resolveGiaiName(giai)||giai||'').trim().toLowerCase();
+      const n = (nd||'').trim().toLowerCase();
+      const cg = (_resolveGiaiName(_giai)||_giai||'').trim().toLowerCase();
+      const cn = (_nd||'').trim().toLowerCase();
+      return g === cg && n === cn;
+    },
+    snapshot() { return _token; } // caller lưu token trước khi await, check sau
+  };
+})();
+// Backward-compat: các hàm cũ vẫn dùng _bkCurrentTree/_bkApplied/_bkLastVersion
+// Redirect chúng về _bkState — dùng Object.defineProperty để giữ syntax cũ
+// KHÔNG đổi tất cả code cũ — chỉ intercept read/write
+let _bkCurrentTree = null;  // legacy alias — được sync từ _bkState
+let _BK_ACTIVE_KEY = '';
+function _bkActiveKey() {
+  const g = (_resolveGiaiName(_bkGiai)||_bkGiai||'').trim().toLowerCase();
+  return g + '§' + (_bkNd||'').trim().toLowerCase();
+}
+function _bkIsActiveNd() {
+  return _bkState.isActive(_bkGiai, _bkNd);
+}
 let _bkAutoMode = false;  // true = tự động điền khi có KQ, false = thủ công
 let _bkApplied  = false;  // v37: true = đã Áp dụng, cây bị khóa — chỉ update team khi có KQ
 let _bkEditMode = false;  // true = đang chỉnh sửa thủ công, tạm dừng auto
@@ -13984,7 +14273,7 @@ function _bkUpdateSeedPanel(tree, seeds, bangs, bangDone) {
   if (!panel || !tree || !tree._meta) { if(panel) panel.style.display='none'; return; }
 
   // _bkCurrentTree chỉ set sau khi tree đã resolve đầy đủ
-  _bkCurrentTree = tree;
+  _bkCurrentTree = tree; _bkState.setTree(tree, _bkApplied, _bkLastVersion);
   panel.style.display = '';
 
   const { nTeams, cap, byes, rounds, allSeeds } = tree._meta;
@@ -14036,7 +14325,7 @@ function _bkUpdateSeedPanel(tree, seeds, bangs, bangDone) {
       }
     }
     const isDone = bangDone?.[s.bang];
-    const teamName = isDone ? s.team() : '(chờ kết quả)';
+    const teamName = isDone ? s.team : '(chờ kết quả)';
     const teamColor = isDone ? 'var(--tx)' : 'var(--tx3)';
     const bangColor = ['var(--ac)','var(--gn)','var(--or)','var(--pu)','var(--cy)','var(--rd)'][bangs.indexOf(s.bang)%6];
     const rowBg = seedNum===1?'background:rgba(245,158,11,.06)':seedNum===2?'background:rgba(14,165,233,.04)':'';
@@ -14194,8 +14483,12 @@ async function bkApplyAndSave() {
       // (chỉ bỏ qua nếu match không có code)
       if (!m.code) { skipped++; continue; }
       const existing = koByCode[m.code];
-      const tA = m.isByeA ? '' : (m.teamA||'');
-      const tB = m.isByeB ? '' : (m.teamB||'');
+      // Dùng override trực tiếp nếu có — bất kể isByeA/B của tree gốc
+      const _mOv = _bkOverrides[m.code] || {};
+      const tA = (_mOv.teamA !== undefined) ? (_mOv.teamA === 'BYE' ? '' : _mOv.teamA)
+               : (m.isByeA ? '' : (m.teamA||''));
+      const tB = (_mOv.teamB !== undefined) ? (_mOv.teamB === 'BYE' ? '' : _mOv.teamB)
+               : (m.isByeB ? '' : (m.teamB||''));
 
       if (!existing) {
         // Tạo mới
@@ -14230,30 +14523,34 @@ async function bkApplyAndSave() {
     toast(`✅ Lịch vòng trong đã đúng, không cần cập nhật (${skipped} trận không đổi)`, 'ok');
     // v8 FIX: Vẫn phải save BracketTree dù không có trận mới — lần Apply đầu tiên
     // tạo trận thành công nhưng BracketTree chưa được lưu (return sớm bỏ qua save)
+    // v99 FIX: KHÔNG gọi _bkBuildTree lại — sẽ tạo thứ tự mới làm vị trí đội thay đổi.
+    // Chỉ dùng _bkCurrentTree đang có + _bkResolveAdvancers để cập nhật winner,
+    // rồi lưu ĐÚNG CÂY ĐÓ lên SRV.
     try {
-      const giaiName2 = _resolveGiaiName(_bkGiai) || _bkGiai;
-      const { seeds: _s2, bangs: _b2, bangDone: _bd2 } = _bkCalcSeeds(_bkGiai, _bkNd);
-      const allM2 = _M.filter(m=>String(m[0]||'')===giaiName2&&String(m[1]||'')===_bkNd);
-      const koM2  = allM2.filter(m=>{const v=String(m[9]||'');return v&&v!=='Vòng bảng'&&!v.includes('bảng');});
-      if (koM2.length > 0) {
-        let treeNow = _bkBuildTree(_s2, _b2, koM2, _bd2);
+      if (_bkCurrentTree?.rounds?.length) {
+        const giaiName2 = _resolveGiaiName(_bkGiai) || _bkGiai;
+        const allM2 = _M.filter(m=>String(m[0]||'')===giaiName2&&String(m[1]||'')===_bkNd);
+        const koM2  = allM2.filter(m=>{const v=String(m[9]||'');return v&&v!=='Vòng bảng'&&!v.includes('bảng');});
+        let treeNow = _bkCloneTree(_bkCurrentTree); // deep clone
         treeNow = _bkApplyOverrides(treeNow);
         treeNow = _bkResolveAdvancers(treeNow, koM2);
-        _bkCurrentTree = treeNow;
-        if (treeNow?.rounds?.length) {
-          const treeToSave = { ...treeNow, _overrides:_bkOverrides, _byeRule:_bkByeRule, _savedAt:Date.now() };
-          const totalM = treeNow.rounds.reduce((s,r)=>s+(r.matches?.length||0),0);
-          console.log('[BK TREE] Saving (no-change path):', giaiName2, _bkNd, totalM, 'matches');
-          const ds = await gPost({action:'saveBracketTree', adminCode:CODE, giai:giaiName2, nd:_bkNd, tree:treeToSave}, 45000);
-          if (ds.ok) {
-            _bkLastVersion = ds.version || Date.now();
-            _bkApplied = true;
-            console.log('[BK TREE] ✓ Saved (no-change path) v', _bkLastVersion);
-            toast('☁️ Cây đã đồng bộ SRV (' + totalM + ' trận)', 'ok', 2500);
-          } else {
-            console.error('[BK TREE] ✗ Save failed (no-change path):', ds.reason);
-            toast('⚠️ Chưa đồng bộ SRV: ' + (ds.reason||'lỗi'), 'er', 4000);
-          }
+        _bkCurrentTree = treeNow; _bkState.setTree(treeNow, true, _bkLastVersion);
+        const treeToSave = { ...treeNow, _overrides:_bkOverrides, _byeRule:_bkByeRule, _savedAt:Date.now() };
+        const totalM = treeNow.rounds.reduce((s,r)=>s+(r.matches?.length||0),0);
+        console.log('[BK TREE] Saving (no-change path, keep positions):', giaiName2, _bkNd, totalM, 'matches');
+        const ds = await gPost({action:'saveBracketTree', adminCode:CODE, giai:giaiName2, nd:_bkNd, tree:treeToSave}, 45000);
+        if (ds.ok) {
+          _bkLastVersion = ds.version || Date.now();
+          _bkApplied = true;
+          // v104: cập nhật cache ngay sau Apply — swap nội dung sẽ hiển thị đúng cây này
+          _bkNdCacheSet(_bkGiai, _bkNd, {
+            tree: _bkCurrentTree, applied: true, version: _bkLastVersion
+          });
+          console.log('[BK TREE] ✓ Saved (no-change path) v', _bkLastVersion);
+          toast('☁️ Cây đã đồng bộ SRV (' + totalM + ' trận)', 'ok', 2500);
+        } else {
+          console.error('[BK TREE] ✗ Save failed (no-change path):', ds.reason);
+          toast('⚠️ Chưa đồng bộ SRV: ' + (ds.reason||'lỗi'), 'er', 4000);
         }
       }
     } catch(eSave) {
@@ -14328,18 +14625,23 @@ async function bkApplyAndSave() {
     await _bkPushOverridesToGAS();
 
     // v37 FIX: Build tree và lưu snapshot TRƯỚC khi bkRender/ndBkRender có thể reset _bkCurrentTree
-    // Luồng: bkApplyAndSave chạy bên trong _swapBkWrap → sau đó _swapBkWrap gọi _ndBkRender
-    // _ndBkRender có thể reset _bkCurrentTree = null → _bkSaveTreeToSheet bỏ qua
-    // Giải pháp: build tree thủ công ngay tại đây, lưu SRV trước khi return
+    // v99 FIX: KHÔNG dùng _bkBuildTree lại — sẽ rebuild từ seeds gây đổi vị trí đội.
+    // Chỉ dùng _bkCurrentTree đang có (đã đúng thứ tự từ lần tạo cây), apply overrides
+    // + resolve advancers (điền winner vào slot kế tiếp), rồi lưu ĐÚNG CÂY ĐÓ lên SRV.
     {
       const giaiName2 = _resolveGiaiName(_bkGiai) || _bkGiai;
-      const { seeds: _s, bangs: _b, bangDone: _bd } = _bkCalcSeeds(_bkGiai, _bkNd);
       const allM2 = _M.filter(m=>String(m[0]||'')===giaiName2&&String(m[1]||'')===_bkNd);
       const koM2  = allM2.filter(m=>{const v=String(m[9]||'');return v&&v!=='Vòng bảng'&&!v.includes('bảng');});
-      let treeNow = _bkBuildTree(_s, _b, koM2, _bd);
+      // Dùng _bkCurrentTree (đã có từ "Tạo cây" hoặc load SRV) — KHÔNG rebuild
+      let treeNow = _bkCurrentTree ? _bkCloneTree(_bkCurrentTree) : null;
+      if (!treeNow?.rounds?.length) {
+        // Fallback hiếm: _bkCurrentTree bị null (chưa tạo cây) → build mới (không còn cách khác)
+        const { seeds: _s, bangs: _b, bangDone: _bd } = _bkCalcSeeds(_bkGiai, _bkNd);
+        treeNow = _bkBuildTree(_s, _b, koM2, _bd);
+      }
       treeNow = _bkApplyOverrides(treeNow);
       treeNow = _bkResolveAdvancers(treeNow, koM2);
-      _bkCurrentTree = treeNow; // Set ngay, không chờ bkRender
+      _bkCurrentTree = treeNow; _bkState.setTree(treeNow, true, _bkLastVersion); // Set ngay, không chờ bkRender
 
       // Lưu lên SRV ngay — không debounce, không chờ
       if (treeNow?.rounds?.length) {
@@ -14358,6 +14660,13 @@ async function bkApplyAndSave() {
           if (ds.ok && ds.saved !== undefined) {
             _bkLastVersion = ds.version || Date.now();
             _bkApplied = true; // Khóa cây
+            // v104: cập nhật cache ngay sau Apply — swap nội dung sẽ hiển thị đúng cây này
+            _bkCacheSave(_bkGiai, _bkNd, {
+              tree: _bkCurrentTree, applied: true, version: _bkLastVersion
+            });
+            _bkNdCacheSet(_bkGiai, _bkNd, {
+              tree: _bkCurrentTree, applied: true, version: _bkLastVersion
+            });
             console.log('[BK TREE] ✓ Saved from bkApplyAndSave v', _bkLastVersion, 'saved:', ds.saved);
             toast('☁️ Cây đã đồng bộ SRV (' + totalM + ' trận)', 'ok', 2500);
           } else if (ds.ok && ds.error) {
@@ -15043,7 +15352,9 @@ async function bkDeleteTree() {
       _bkCurrentTree = null;
       _bkOverrides   = {};
       _bkLastVersion = 0;
+      _bkNdCacheDel(_bkGiai, _bkNd); // xóa cache sau khi xóa cây
       try { localStorage.removeItem(_bkKey()); } catch(e) {}
+      // v103: xóa cache per-nd — tránh quay lại nd này thấy cây "đã xóa" hiện lại từ cache
 
       // 3. Xóa trận KO khỏi local _M (để bkRender không vẽ lại)
       for (let i = _M.length - 1; i >= 0; i--) {
