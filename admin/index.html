@@ -1,8 +1,20 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<!-- Pickleball Admin v106 2026-06-16: FIREBASE BRACKET TREE — Cây thi đấu tải qua Firebase WebSocket <100ms thay vì fetch GAS 2-8s. (1) GAS v61 saveBracketTree: sau khi ghi Sheet → PUT /bracketTree/{giai_nd} lên Firebase RTDB; GAS bracketTree GET cũng backfill Firebase khi client lần đầu fetch GAS. (2) Admin v106: thêm Listener 4 _fbBracketRef = _fbDb.ref('bracketTree') — onValue nhận mọi cây từ Firebase, lưu vào cache RAM+localStorage (_bkNdCacheSet applied=true), nếu đang xem đúng nội dung → re-render ngay. (3) _bkLoadTreeFromSheet bỏ qua fetch GAS khi cache Firebase còn <30s tươi → lần mở tab sau F5 mà Firebase đã push đủ rồi: cache hit ngay, không chờ GAS. Kết hợp localStorage v105: lần F5 đầu → Firebase onValue cập nhật cache; lần F5 tiếp → localStorage hit trước Firebase → 0ms. Không ảnh hưởng logic _bkGen guard, deleteBracketTree xóa cả Firebase node.
---><!-- Pickleball Admin v103 2026-06-14: TỐI ƯU TỐC ĐỘ trên nền v102 — thêm cache cây thi đấu THEO TỪNG NỘI DUNG (_bkTreeCache, Map key="giai|nd"). Trước đây v102 luôn hiện "⏳ Đang tải..." mỗi lần swap nội dung dù vừa xem xong — đúng nhưng chậm. Giờ: (1) Khi rời 1 nội dung, lưu snapshot _bkCurrentTree/_bkApplied/_bkLastVersion/_bkOverrides/_bkByeRule/_bkIsEmpty của nd đó vào cache; (2) Khi swap sang nội dung ĐÃ CÓ trong cache → khôi phục state từ cache và render() NGAY LẬP TỨC (0ms, cùng tick, không "⏳", giữ đúng vị trí seeding đã lưu) — chỉ nội dung CHƯA TỪNG XEM mới hiện "⏳ Đang tải..."; (3) setTimeout 300ms sync SRV vẫn chạy ngầm để lấy version mới nhất — nếu cache còn < 10s (_BK_CACHE_TTL) thì BỎ QUA fetch bracketVersion lần đó (giảm tải GAS khi swap nhanh liên tục), còn lại vẫn sync như cũ; (4) sync poll 5s + 2 background handler live/30s (cập nhật real-time) KHÔNG bị ảnh hưởng — vẫn chạy độc lập trên _bkGen như v102, đảm bảo "cập nhật nhanh hơn" không đổi; (5) ndBkRefresh ("Làm mới") và bkDeleteTree xóa cache entry tương ứng để không hiện lại state cũ/đã xóa. Toàn bộ guard _bkGen của v102 GIỮ NGUYÊN 100% — cache chỉ là lớp hiển-thị-tức-thì phía trên, không thay đổi tính đúng đắn khi swap nhanh nhiều lần. -->
+<!-- Pickleball Admin v107 2026-06-16: MODE DIRECTKO — Knockout trực tiếp không vòng bảng.
+  (1) Form tạo giải: thêm radio "Loại thi đấu" cho từng nội dung (Vòng bảng / Knockout trực tiếp).
+  (2) State mới: _dkMode, _dkSeeds[], _dkSeedsSaved — riêng biệt với _players/_bocThamGroups.
+  (3) renderPlayersPanel: detect _dkMode → hiện UI nhập seeds thay vì bốc thăm.
+  (4) _dkBuildTree(seeds): build cây KO từ list seeds — chuẩn seeding 1v(N),2v(N-1)...
+      BYE tự động cho seed cao (weak seeds không cần đấu vòng 1 nếu N không đủ lũy thừa 2).
+  (5) _bkCalcSeeds: guard — nếu directKO → _dkCalcSeedsFromList() thay vì đọc BXH vòng bảng.
+  (6) bkCreateTree: nếu directKO → dùng _dkBuildTree, không cần bangDone.
+  (7) bkApplyAndSave: gửi thêm _dkMode=true lên GAS khi saveBracketTree.
+  (8) saveDkSeeds / setNdMode: gọi GAS v62 endpoints mới.
+  (9) Tab Danh sách: directKO hiển thị bảng seeds có nút kéo thả thứ tự, Lưu, Sửa.
+  (10) _getNdModeLocal(): đọc ndMode từ cache _T (Tournaments) không cần fetch GAS thêm.
+-->
+<!-- (đã ẩn nội dung changelog v106 để tránh hiển thị ra màn hình) --><!-- Pickleball Admin v103 2026-06-14: TỐI ƯU TỐC ĐỘ trên nền v102 — thêm cache cây thi đấu THEO TỪNG NỘI DUNG (_bkTreeCache, Map key="giai|nd"). Trước đây v102 luôn hiện "⏳ Đang tải..." mỗi lần swap nội dung dù vừa xem xong — đúng nhưng chậm. Giờ: (1) Khi rời 1 nội dung, lưu snapshot _bkCurrentTree/_bkApplied/_bkLastVersion/_bkOverrides/_bkByeRule/_bkIsEmpty của nd đó vào cache; (2) Khi swap sang nội dung ĐÃ CÓ trong cache → khôi phục state từ cache và render() NGAY LẬP TỨC (0ms, cùng tick, không "⏳", giữ đúng vị trí seeding đã lưu) — chỉ nội dung CHƯA TỪNG XEM mới hiện "⏳ Đang tải..."; (3) setTimeout 300ms sync SRV vẫn chạy ngầm để lấy version mới nhất — nếu cache còn < 10s (_BK_CACHE_TTL) thì BỎ QUA fetch bracketVersion lần đó (giảm tải GAS khi swap nhanh liên tục), còn lại vẫn sync như cũ; (4) sync poll 5s + 2 background handler live/30s (cập nhật real-time) KHÔNG bị ảnh hưởng — vẫn chạy độc lập trên _bkGen như v102, đảm bảo "cập nhật nhanh hơn" không đổi; (5) ndBkRefresh ("Làm mới") và bkDeleteTree xóa cache entry tương ứng để không hiện lại state cũ/đã xóa. Toàn bộ guard _bkGen của v102 GIỮ NGUYÊN 100% — cache chỉ là lớp hiển-thị-tức-thì phía trên, không thay đổi tính đúng đắn khi swap nhanh nhiều lần. -->
 <!-- Pickleball Admin v102 2026-06-14: FIX TRIỆT ĐỂ TUYỆT ĐỐI cây thi đấu hiện nhầm nội dung khi swap qua lại — Root cause thật: (1) bkRender preview-from-seeds (khi SRV chưa có cây cho nd mới) build tree từ _bkCalcSeeds(_bkGiai,_bkNd) NGAY khi _M có thể vẫn còn data cũ → tree preview trùng cấu trúc/label với cây nd trước → hiện nhầm vài giây rồi rớt về "Tạo cây" khi _M load lại đúng; (2) _swapBkWrap sau khi render xong luôn tự gọi lại _ndBkRender() ở finally KHÔNG có guard nào — nếu trong lúc đó user đã swap sang nd khác, lần gọi lại này dùng _bkGiai/_bkNd MỚI nhưng có thể render đè/ghi đè DOM của chuỗi render đang chạy cho nd mới, gây nhấp nháy/đổi vị trí. Fix v102: (A) thêm generation counter toàn cục _bkGen — tăng mỗi lần nd/giai bracket đổi (ndChanged trong _ndBkRender); MỌI callback async (setTimeout 300ms, await _bkLoadTreeFromSheet, _swapBkWrap, sync poll 5s, 2 background handler live/30s) chụp _snapGen lúc bắt đầu và bắt buộc so _bkGen===_snapGen trước khi mutate _bkCurrentTree hoặc viết DOM — sai gen → bỏ hoàn toàn, không vẽ gì; (B) XÓA HẲN nhánh "preview build từ seeds" trong _ndBkRender — khi đổi nd, hiện NGAY "⏳ Đang tải cây thi đấu…" rồi CHỈ dùng cây từ SRV (_bkLoadTreeFromSheet) hoặc "🏗 Tạo cây" nếu SRV chưa có, không đoán/preview; (C) _swapBkWrap nhận tham số _snapGen — bỏ qua swap+re-render nếu gen đã đổi. Kết quả: swap qua lại giữa các nội dung → luôn hiện đúng cây của nội dung đang chọn (hoặc "Tạo cây" nếu chưa có), không còn hiện nhầm/nhá/giật, không đổi vị trí đội đã lưu. Không ảnh hưởng chức năng khác (Tạo cây/Áp dụng/Sửa/Lucky/BYE/Refresh giữ nguyên vì _swapBkWrap gọi không kèm _snapGen ở các action đó). -->
 
 <!-- Pickleball Admin v101 2026-06-14: FIX TRIỆT ĐỂ cây thi đấu hiển thị nhầm nội dung cũ — Root cause: có 2 handler chạy nền (live score ~2s và poll 30s) khi nhận kết quả mới, cả 2 đều (1) gọi _bkBuildTree từ seeds (tạo cây mới từ BXH, không phân biệt nd nào) và (2) set _bkCurrentTree = tree mới + gọi bkRender() mà KHÔNG check nd hiện tại. Khi user vừa switch từ ĐN→NN: _bkCurrentTree=null, nhưng 2 handler này vẫn chạy với _bkGiai/_bkNd đã là NN, build cây NN từ seeds (sai vị trí), ghi vào _bkCurrentTree, render → hiện cây sai. Fix v101: thêm guard `_bkLastRenderKey === _bkGiai+|+_bkNd` vào cả 2 handler (chỉ chạy khi nd đang hiển thị khớp với nd cần xử lý); dùng JSON.parse(_bkCurrentTree) + _bkResolveAdvancers thay _bkBuildTree (giữ nguyên vị trí seeding đã lưu, chỉ cập nhật winner); thêm `if(!_bkCurrentTree) skip` khi chưa có cây. | v100 — Nguyên nhân: trong _bkBuildTree, allSeeds được build với team: () => bangDone?.[s.bang] ? s.team : '' (là function). Khi cây được lưu lên SRV qua JSON.stringify, function này bị mất (JSON không serialize function) → khi load lại từ SRV, s.team là undefined. Hai nơi gọi s.team() trong bkRender và _bkUpdateSeedPanel báo lỗi "is not a function". Fix: đổi team thành plain string (team: s.team || '') trong allSeeds — giá trị lấy ngay lúc build, giống kết quả function cũ (rỗng nếu bảng chưa xong, có tên nếu xong). Cập nhật 2 call site s.team() → s.team. Kết quả: Tạo cây → hiển thị đúng → Apply & Lưu → giữ nguyên vị trí seeding → reload/refresh → load từ SRV đúng cây đã lưu, không lỗi. | v99 2026-06-14: FIX cây thi đấu nhảy nhầm nội dung — 2 nguyên nhân: (1) _bkStartSyncPoll() snapshot _pollKey=_bkGiai+|+_bkNd nhưng chỉ guard bằng _bkLastRenderKey (chỉ set sau khi _ndBkRender async chạy xong ~300ms+); trong window đó poll 5s đầu tiên thấy _bkLastRenderKey vẫn = old nd nên không dừng → fetch bracketVersion của nd cũ → load cây sai. Fix: thêm guard kép _liveKey = _bkGiai+|+_bkNd (đồng bộ, cập nhật ngay khi openNdDetail) song song với _bkLastRenderKey tại mỗi await. (2) openNdDetail gọi switchNdTab('bracket') 2 LẦN (lần 1 ngay lập tức, lần 2 sau loadMatchesCache+_bkLoadOverridesFromGAS) → 2 _bkStartSyncPoll() chạy đồng thời với 2 _pollKey khác nhau, 1 poll stale không bao giờ tự dừng vì _pollKey của nó chưa bao giờ được set làm _bkLastRenderKey. Fix: lần 2 chỉ gọi _ndBkRender() (không gọi switchNdTab lại → không restart poll). | v97 — Nguyên nhân: GAS updateMatch có guard "nếu col[11] rỗng → giữ nguyên giờ từ sheet" (tránh ghi đè vô tình), nên khi admin bấm ✕ Xóa giờ, GAS thấy row[11]='' nhưng vẫn khôi phục giờ cũ. Giải pháp: thêm flag timeCleared=true (y chang scoreCleared cho điểm) — (1) Admin: hidden field em-time-cleared; nút ✕ Xóa giờ set=1, nút preset giờ reset=0; saveEditMatch gửi timeCleared tới GAS; _stSaveAll cũng gửi timeCleared=true khi row[11]===''; (2) GAS v59: chỉ fallback giờ từ sheet nếu timeCleared!==true, còn nếu timeCleared=true thì ghi '' (xóa thật) + xóa Firebase /matches time. Không ảnh hưởng các chức năng khác. | v96 2026-06-13: FIX TRIỆT ĐỂ hiển thị giờ ngay sau "Lưu tất cả giờ" — Nguyên nhân: prefetchAll() chạy nền sau khi _stSaveAll lưu xong, merge server data về và KHÔNG bảo vệ col[11] (giờ) → giờ mới bị ghi đè bằng giá trị cũ từ GAS (chưa kịp commit). Giải pháp: thêm _timeOverrides{} (y chang _renameOverrides cho tên VĐV): đăng ký ngay trong _stSaveAll trước khi đóng overlay; prefetchAll merge áp dụng _timeOverrides giữ giờ local 90s; _applyTimeOverrides() helper dọn expired + protect col[11]. Không ảnh hưởng các chức năng khác. | v95 2026-06-13: COMPACT MOBILE trang Chi tiết nội dung — (1) Chuyển thanh "NỘI DUNG: ..." lên đầu trang (trên cả Header); (2) Ẩn tiêu đề Nội dung (tv-nd-title-wrap) trên mobile, giữ nút "← Quay lại"; (3) Toolbar 5 nút (Làm mới/Thêm bảng/Dọn trùng/Xóa Firebase Live/Xóa tất cả bảng) trên mobile: bỏ icon chỉ còn label, dồn 1 hàng cuộn ngang; (4) Khối Tổng quan (Tổng trận/Hoàn thành/Đang đấu/Chưa đấu) trên mobile gộp thành 1 hàng gọn "Label: value | Label: value" thay 4 thẻ rời | v94 2026-06-13: COMPACT POLISH responsive Mobile/Tablet — thu nhỏ đồng bộ font/icon/nút/khoảng cách toàn trang Admin (login, card, button, modal, table, tab, bottom-nav, stat-card, notification tray, bracket card), fix .cn max-width:100vw tránh tràn ngang trên điện thoại
@@ -654,6 +666,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .bk-bye-confirm:hover{background:rgba(34,197,94,.25)}
 .bk-bye-lucky{background:rgba(168,85,247,.12);color:var(--pu);border:1px solid rgba(168,85,247,.3)}
 .bk-bye-lucky:hover{background:rgba(168,85,247,.22)}
+/* v107: directKO seed list */
+.dk-seed-row{display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--bdr);transition:background .15s;user-select:none}
+.dk-seed-row.dk-drag-over{background:rgba(14,165,233,.1);border-top:2px solid var(--ac)}
+.dk-seed-row.dk-bye{opacity:.45}
+.dk-seed-num{width:26px;height:26px;border-radius:50%;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0}
+.dk-seed-name{flex:1;font-size:12px;font-weight:600;color:var(--tx)}
+.dk-seed-bye-tag{font-size:10px;font-weight:700;color:var(--tx4);background:var(--bg3);padding:2px 6px;border-radius:4px}
+.dk-mode-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px}
+.dk-mode-badge.is-dk{background:rgba(168,85,247,.15);color:rgba(168,85,247,.9);border:1px solid rgba(168,85,247,.3)}
+.dk-mode-badge.is-gr{background:rgba(14,165,233,.12);color:var(--ac);border:1px solid rgba(14,165,233,.25)}
 /* Drag mode indicator */
 .bk-drag-mode-on .bk-card[draggable=true]{border-style:dashed;border-color:rgba(14,165,233,.4)}
 .bk-drag-hint{font-size:10px;color:var(--ac);background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);border-radius:6px;padding:4px 10px;display:none}
@@ -2189,6 +2211,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
     <div class="fg full"><label>Nội dung thi đấu (phân cách bằng dấu phẩy)</label>
       <input type="text" id="t-noidung" placeholder="Nội dung thi đấu 1, Nội dung thi đấu 2, ...">
       <span class="hint">Liệt kê các nội dung — hiển thị trên dashboard và lọc lịch</span></div>
+    <!-- v107: directKO mode selector — hiển thị sau khi nhập nội dung -->
+    <div class="fg full" id="t-ndmode-wrap" style="display:none">
+      <label style="display:flex;align-items:center;gap:8px">
+        Loại thi đấu cho từng nội dung
+        <span class="hint" style="font-weight:400;font-size:11px">Mặc định: Có vòng bảng</span>
+      </label>
+      <div id="t-ndmode-list" style="display:flex;flex-direction:column;gap:6px;margin-top:6px"></div>
+    </div>
     <div class="fg full" id="t-refs-wrap">
       <label style="display:flex;align-items:center;gap:10px">
         Trọng tài phân công
@@ -6435,6 +6465,11 @@ let _players = []; // [{id, name, seed}]  — danh sách đội/VĐV
 let _bocThamGroups = {}; // {bangName: [playerName,...]}
 let _bocThamLocked = false;
 let _bocThamSaved  = false; // true khi đã bấm Lưu kết quả bốc thăm
+
+// v107: directKO state — độc lập với _players/_bocThamGroups
+let _dkSeeds       = []; // [{seed:1, team:'Đội A'}, {seed:2, team:'Đội B'}, ...]
+let _dkSeedsSaved  = false; // true khi đã lưu seeds lên GAS
+let _dkSeedsCtxKey = ''; // context key "giaiId|nd" hiện tại
 let _pendingScheduleRows = []; // Lưu tạm allRows để tránh bug JSON-in-onclick khi tên đội có ký tự đặc biệt
 let _pendingScheduleGiaiId = '';
 let _pendingScheduleNd = '';
@@ -6621,12 +6656,414 @@ function _renderPlayerRows(isSaved) {
   }).join('');
 }
 
+// ══════════════════════════════════════════════════════════════════════
+//  v107: DIRECTKO — Helpers, state, UI, build tree
+// ══════════════════════════════════════════════════════════════════════
+
+// Đọc mode của nội dung hiện tại từ cache _T (không cần fetch GAS)
+// _T = rows Tournaments: [id, name, venue, courts, start, end, status, note, owner, ndModeJSON]
+function _getNdModeLocal(giaiId, nd) {
+  if (!giaiId || !nd) return 'group';
+  const tRow = _T.find(t => String(t[0]||'').trim() === giaiId);
+  if (!tRow || !tRow[9]) return 'group';
+  try {
+    const modeMap = JSON.parse(String(tRow[9]||'{}'));
+    return modeMap[nd] || 'group';
+  } catch(e) { return 'group'; }
+}
+
+// Tính cap (lũy thừa 2 nhỏ nhất >= n) và byes
+function _dkCalcBracket(n) {
+  let cap = 1; while (cap < n) cap *= 2;
+  return { cap, byes: cap - n, rounds: Math.log2(cap) };
+}
+
+// Build seeding slots chuẩn: seed 1 vs cap, 2 vs (cap-1), ...
+// Đặt BYE cho seed cao nhất vào vòng 1 (weak seeds không thi đấu vòng 1)
+function _dkSlotAssign(seeds, cap) {
+  // Standard bracket pairing: slot 1=seed1, slot cap=seedCap|BYE, slot 2=seed2...
+  const half = cap / 2;
+  // Build top/bottom halves interleaved: [1,cap,half+1,half, half-1,half+2, ...]
+  function buildHalf(from, to) {
+    if (from >= to) return [from];
+    return [from, ...buildHalf(from+1, to-1).reduce((a,v,i) => {
+      if (i%2===0) a.push(to-Math.floor(i/2)); else a.push(v); return a;
+    }, [])];
+  }
+  // Simple standard seeding: 1vN, 2v(N-1), 3v(N-2)...
+  const slots = [];
+  for (let i = 0; i < half; i++) {
+    const seedTop = i + 1;
+    const seedBot = cap - i;
+    slots.push({
+      seedA: seedTop,
+      teamA: seedTop <= seeds.length ? seeds[seedTop-1].team : '',
+      isByeA: false,
+      seedB: seedBot,
+      teamB: seedBot <= seeds.length ? seeds[seedBot-1].team : '',
+      isByeB: seedBot > seeds.length, // BYE nếu seed vượt quá số đội thực
+    });
+  }
+  return slots;
+}
+
+// Build tree object cho directKO (cùng format _bkBuildTree — dùng được bkRender/Apply/Save)
+function _dkBuildTree(seeds) {
+  if (!seeds || seeds.length < 2) return null;
+  const n = seeds.length;
+  const { cap, byes, rounds } = _dkCalcBracket(n);
+
+  // ── Vòng 1: ghép đội theo seeding chuẩn ──
+  const round1Slots = _dkSlotAssign(seeds, cap);
+  const half = cap / 2;
+
+  // Tên vòng theo số slot
+  function roundName(fromFin) {
+    if (fromFin === 0) return 'Chung kết';
+    if (fromFin === 1) return 'Bán kết';
+    if (fromFin === 2) return 'Tứ kết';
+    const n2 = Math.pow(2, fromFin + 1);
+    return 'Vòng ' + n2;
+  }
+  function roundCls(fromFin) {
+    if (fromFin === 0) return 'bk-ck';
+    if (fromFin === 1) return 'bk-bk';
+    if (fromFin === 2) return 'bk-tk';
+    return 'bk-vg';
+  }
+  // Prefix mã trận
+  function roundPrefix(fromFin) {
+    if (fromFin === 0) return 'CK';
+    if (fromFin === 1) return 'BK';
+    if (fromFin === 2) return 'TK';
+    return 'V' + Math.pow(2, fromFin + 1);
+  }
+
+  const allRounds = [];
+  // Build từ vòng có nhiều trận nhất (vòng 1) → chung kết
+  for (let r = 0; r < rounds; r++) {
+    const fromFin = rounds - 1 - r;
+    const nMatches = cap / Math.pow(2, r + 1);
+    const pfx = roundPrefix(fromFin);
+    const matches = [];
+    for (let i = 0; i < nMatches; i++) {
+      const code = nMatches === 1 ? pfx : pfx + (i + 1);
+      if (r === 0) {
+        // Vòng 1: dùng slot đã tính
+        const slot = round1Slots[i];
+        const sA = slot.seedA <= 9 ? String(slot.seedA) : String(slot.seedA);
+        const sB = slot.isByeB ? 'BYE' : String(slot.seedB);
+        matches.push({
+          code, fromFin, cls: roundCls(fromFin),
+          teamA:  slot.teamA,
+          teamB:  slot.isByeB ? '' : slot.teamB,
+          seedA:  'S' + slot.seedA,
+          seedB:  slot.isByeB ? 'BYE' : 'S' + slot.seedB,
+          isByeA: false,
+          isByeB: slot.isByeB,
+        });
+      } else {
+        // Vòng sau: winner của 2 trận vòng trước
+        const prevPfx = roundPrefix(fromFin + 1);
+        const prevCount = cap / Math.pow(2, r);
+        const cA = prevCount === 1 ? prevPfx : prevPfx + (i * 2 + 1);
+        const cB = prevCount === 1 ? prevPfx : prevPfx + (i * 2 + 2);
+        matches.push({
+          code, fromFin, cls: roundCls(fromFin),
+          teamA: '', teamB: '',
+          seedA: 'Thắng ' + cA,
+          seedB: 'Thắng ' + cB,
+          isByeA: false, isByeB: false,
+        });
+      }
+    }
+    allRounds.push({ name: roundName(fromFin), matches });
+  }
+
+  // Thêm vòng Hạng 3 (nếu có ít nhất 4 đội)
+  if (rounds >= 2) {
+    const bkMatches = allRounds.find(r => r.name === 'Bán kết');
+    if (bkMatches && bkMatches.matches.length >= 2) {
+      const h3Match = {
+        code: 'H3', fromFin: -1, cls: 'bk-h3',
+        teamA: '', teamB: '',
+        seedA: 'Thua ' + bkMatches.matches[0].code,
+        seedB: 'Thua ' + bkMatches.matches[1].code,
+        isByeA: false, isByeB: false,
+      };
+      allRounds.push({ name: 'Hạng 3', matches: [h3Match] });
+    }
+  }
+
+  // allSeeds để hiển thị seeding panel
+  const allSeeds = seeds.map(function(s, i) {
+    return { label: 'S' + (i+1), team: s.team, seed: i+1, done: true };
+  });
+
+  const tree = {
+    rounds: allRounds,
+    _meta: { nTeams: n, cap, byes, rounds, allSeeds, _dkMode: true },
+    _overrides: {},
+    _byeRule: 'bye',
+    _dkMode: true,
+  };
+  return tree;
+}
+
+// Render UI seeds directKO trong panel Danh sách
+function renderDkSeedsPanel() {
+  const wrap = document.getElementById('players-panel-content');
+  if (!wrap) return;
+  const giaiId = _curGiaiId || '';
+  const nd     = _curNd     || '';
+  const gName  = String((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||giaiId);
+  const n = _dkSeeds.length;
+  const { cap, byes } = n > 0 ? _dkCalcBracket(n) : { cap: 0, byes: 0 };
+  const isSaved = _dkSeedsSaved;
+
+  wrap.innerHTML = `
+  <div style="padding:16px 0">
+    <!-- Header badge directKO -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span class="dk-mode-badge is-dk">⚡ Knockout trực tiếp</span>
+      ${n > 0 ? `<span style="font-size:11px;color:var(--tx3)">${n} đội · cap=${cap} · ${byes} BYE · ${Math.log2(cap)} vòng</span>` : ''}
+      ${isSaved ? '<span style="font-size:10px;font-weight:700;color:#4ade80;background:rgba(74,222,128,.12);padding:2px 7px;border-radius:10px">✅ Đã lưu</span>' : ''}
+      <div style="flex:1"></div>
+      <button onclick="dkToggleMode()" style="padding:5px 10px;background:rgba(14,165,233,.1);color:var(--ac);border:1px solid rgba(14,165,233,.25);border-radius:6px;font-size:11px;font-weight:700;cursor:pointer" title="Chuyển về mode vòng bảng">↩ Chuyển về vòng bảng</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+
+      <!-- LEFT: Danh sách seeds -->
+      <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;overflow:hidden">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px;background:var(--bg3)">
+          <span style="font-size:12px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em">🏆 Danh sách & Seeding</span>
+          <span style="font-size:10px;color:var(--tx4)">${n} đội</span>
+          <div style="flex:1"></div>
+          ${!isSaved ? `
+          <label style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;background:var(--ac2);color:#fff;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">
+            📂 Import
+            <input type="file" accept=".xlsx,.xls,.csv" onchange="dkImportFile(this)" style="display:none">
+          </label>
+          <button onclick="dkAddTeam()" style="padding:5px 10px;background:var(--bg2);border:1px solid var(--bdr);border-radius:6px;font-size:11px;font-weight:700;color:var(--tx);cursor:pointer">＋ Thêm</button>
+          ` : ''}
+          ${n > 0 && !isSaved ? `
+          <button onclick="dkSaveSeeds()" style="padding:5px 12px;background:#16a34a;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer">💾 Lưu</button>
+          ` : ''}
+          ${isSaved ? `
+          <button onclick="dkEditSeeds()" style="padding:5px 12px;background:var(--ac);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">✏️ Sửa</button>
+          ` : ''}
+        </div>
+        ${n === 0
+          ? '<div style="padding:32px;text-align:center;color:var(--tx4);font-size:13px">Chưa có đội nào<br><span style="font-size:11px">Nhấn ＋ Thêm hoặc Import danh sách</span></div>'
+          : `<div id="dk-seed-list">${_renderDkSeedRows(isSaved)}</div>`
+        }
+        ${!isSaved && n > 0 ? '<div style="padding:10px 14px;font-size:10px;color:var(--tx4);border-top:1px solid var(--bdr)">💡 Kéo thả để đổi thứ tự seeding</div>' : ''}
+      </div>
+
+      <!-- RIGHT: Xem trước bracket -->
+      <div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;overflow:hidden">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--bdr);background:var(--bg3)">
+          <span style="font-size:12px;font-weight:800;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em">📊 Cấu trúc giải</span>
+        </div>
+        <div style="padding:16px">${_renderDkBracketPreview()}</div>
+      </div>
+    </div>
+  </div>`;
+
+  // Gắn drag-and-drop nếu chưa lưu
+  if (!isSaved && n > 0) _dkAttachDragDrop();
+}
+
+// Render các dòng seed (có thể kéo thả)
+function _renderDkSeedRows(isSaved) {
+  const { cap, byes } = _dkSeeds.length > 0 ? _dkCalcBracket(_dkSeeds.length) : {cap:0,byes:0};
+  return _dkSeeds.map(function(s, i) {
+    const isActualBye = false; // BYE là do không đủ đội, không phải seed bị BYE
+    const bye = (i >= _dkSeeds.length - byes && byes > 0) ? '' : ''; // không cần flag
+    return `<div class="dk-seed-row" data-idx="${i}" draggable="${!isSaved}">
+      <span class="dk-seed-num">${i+1}</span>
+      <span style="font-size:9px;color:var(--tx4);font-weight:700;min-width:16px">S${i+1}</span>
+      <span class="dk-seed-name">${esc(s.team||'—')}</span>
+      ${!isSaved ? `
+      <button onclick="dkRenameTeam(${i})" style="width:22px;height:22px;border-radius:4px;background:rgba(14,165,233,.1);color:var(--ac);border:1px solid rgba(14,165,233,.2);cursor:pointer;font-size:11px" title="Sửa tên">✏️</button>
+      <button onclick="dkRemoveTeam(${i})" style="width:20px;height:20px;border-radius:50%;background:rgba(239,68,68,.1);color:var(--rd);border:none;cursor:pointer;font-size:11px">×</button>
+      ` : ''}
+    </div>`;
+  }).join('');
+}
+
+// Render xem trước cấu trúc vòng đấu
+function _renderDkBracketPreview() {
+  const n = _dkSeeds.length;
+  if (n < 2) return '<div style="color:var(--tx4);font-size:12px">Cần ít nhất 2 đội</div>';
+  const { cap, byes, rounds: nRounds } = _dkCalcBracket(n);
+  let html = `<div style="font-size:12px;color:var(--tx3);margin-bottom:12px">${n} đội → bracket ${cap} slot, ${nRounds} vòng${byes>0?' ('+byes+' BYE vòng 1)':''}</div>`;
+  // Vẽ cấu trúc vòng đấu
+  for (let r = 0; r < nRounds; r++) {
+    const fromFin = nRounds - 1 - r;
+    const nM = cap / Math.pow(2, r + 1);
+    let rName = fromFin===0?'Chung kết':fromFin===1?'Bán kết':fromFin===2?'Tứ kết':'Vòng '+Math.pow(2,fromFin+1);
+    const clr = fromFin===0?'#f59e0b':fromFin===1?'#a855f7':fromFin===2?'#0ea5e9':'var(--tx3)';
+    html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span style="font-size:11px;font-weight:700;color:${clr};min-width:80px">${rName}</span>
+      <span style="font-size:11px;color:var(--tx4)">${nM} trận</span>
+      ${r===0&&byes>0?`<span style="font-size:10px;color:var(--tx4);background:var(--bg3);padding:1px 6px;border-radius:4px">${byes} BYE</span>`:''}
+    </div>`;
+  }
+  if (nRounds >= 2) html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+    <span style="font-size:11px;font-weight:700;color:#22c55e;min-width:80px">Hạng 3</span>
+    <span style="font-size:11px;color:var(--tx4)">1 trận</span>
+  </div>`;
+  return html;
+}
+
+// Drag-and-drop để thay đổi thứ tự seeding
+let _dkDragIdx = null;
+function _dkAttachDragDrop() {
+  const rows = document.querySelectorAll('.dk-seed-row');
+  rows.forEach(function(row) {
+    row.addEventListener('dragstart', function() { _dkDragIdx = Number(row.dataset.idx); row.style.opacity='.4'; });
+    row.addEventListener('dragend', function() { row.style.opacity=''; _dkDragIdx=null; });
+    row.addEventListener('dragover', function(e) { e.preventDefault(); row.classList.add('dk-drag-over'); });
+    row.addEventListener('dragleave', function() { row.classList.remove('dk-drag-over'); });
+    row.addEventListener('drop', function(e) {
+      e.preventDefault();
+      row.classList.remove('dk-drag-over');
+      const toIdx = Number(row.dataset.idx);
+      if (_dkDragIdx === null || _dkDragIdx === toIdx) return;
+      const moved = _dkSeeds.splice(_dkDragIdx, 1)[0];
+      _dkSeeds.splice(toIdx, 0, moved);
+      // Cập nhật seed number theo vị trí mới
+      _dkSeeds.forEach(function(s, i) { s.seed = i + 1; });
+      renderDkSeedsPanel();
+    });
+  });
+}
+
+// Actions directKO
+function dkAddTeam() {
+  const name = prompt('Tên đội / VĐV:');
+  if (!name || !name.trim()) return;
+  _dkSeeds.push({ seed: _dkSeeds.length + 1, team: name.trim() });
+  renderDkSeedsPanel();
+}
+function dkRenameTeam(idx) {
+  const cur = (_dkSeeds[idx]||{}).team || '';
+  const name = prompt('Tên mới:', cur);
+  if (name === null) return;
+  _dkSeeds[idx].team = name.trim();
+  renderDkSeedsPanel();
+}
+function dkRemoveTeam(idx) {
+  _dkSeeds.splice(idx, 1);
+  _dkSeeds.forEach(function(s,i){s.seed=i+1;});
+  renderDkSeedsPanel();
+}
+async function dkSaveSeeds() {
+  if (_dkSeeds.length < 2) { toast('Cần ít nhất 2 đội', 'er'); return; }
+  const giaiId = _curGiaiId||'', nd = _curNd||'';
+  const gName = String((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||giaiId);
+  toast('⏳ Đang lưu ' + _dkSeeds.length + ' đội...','in');
+  try {
+    const d = await gPost({ action:'saveDkSeeds', adminCode:CODE, giai:gName, nd, seeds:_dkSeeds });
+    if (!d.ok) { toast('Lỗi: '+d.reason,'er'); return; }
+    _dkSeedsSaved = true;
+    toast('✅ Đã lưu ' + _dkSeeds.length + ' đội lên Máy Chủ','ok');
+    renderDkSeedsPanel();
+  } catch(e) { toast('Lỗi kết nối','er'); }
+}
+function dkEditSeeds() { _dkSeedsSaved = false; renderDkSeedsPanel(); }
+
+// Import file Excel/CSV danh sách đội directKO
+async function dkImportFile(input) {
+  const file = input.files[0]; if (!file) return;
+  toast('⏳ Đang đọc file...','in');
+  try {
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+    const teams = [];
+    lines.forEach(function(line) {
+      // Bỏ qua header nếu có
+      if (/^(stt|seed|#|no|đội|team)/i.test(line.split(',')[0])) return;
+      // Lấy tên đội: cột cuối cùng không phải số
+      const cols = line.split(',').map(s=>s.trim().replace(/^"|"$/g,''));
+      const name = cols.find(c=>c&&!/^\d+$/.test(c)&&c.length>1) || cols[cols.length-1];
+      if (name) teams.push({ seed: teams.length+1, team: name });
+    });
+    if (!teams.length) { toast('Không tìm thấy đội nào trong file','er'); return; }
+    _dkSeeds = teams;
+    _dkSeedsSaved = false;
+    toast('✅ Đã import ' + teams.length + ' đội','ok');
+    renderDkSeedsPanel();
+  } catch(e) { toast('Lỗi đọc file: '+e.message,'er'); }
+  input.value = '';
+}
+
+// Chuyển đổi mode giữa directKO và group
+async function dkToggleMode() {
+  const giaiId = _curGiaiId||'', nd = _curNd||'';
+  const gName = String((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||giaiId);
+  const curMode = _getNdModeLocal(giaiId, nd);
+  const newMode = curMode === 'directKO' ? 'group' : 'directKO';
+  const label = newMode === 'directKO' ? '⚡ Knockout trực tiếp' : '🏓 Vòng bảng';
+  if (!confirm(`Chuyển nội dung "${nd}" sang mode "${label}"?\n\nLưu ý: Lịch vòng bảng và cây thi đấu cũ KHÔNG bị xóa tự động.`)) return;
+  toast('⏳ Đang cập nhật mode...','in');
+  try {
+    const d = await gPost({ action:'setNdMode', adminCode:CODE, giai:gName, nd, mode:newMode });
+    if (!d.ok) { toast('Lỗi: '+d.reason,'er'); return; }
+    // Cập nhật cache _T
+    const tRow = _T.find(t=>String(t[0]||'')===giaiId);
+    if (tRow) {
+      let modeMap = {};
+      try { if(tRow[9]) modeMap=JSON.parse(String(tRow[9]||'{}')); } catch(e2){}
+      if (newMode==='group') delete modeMap[nd]; else modeMap[nd]=newMode;
+      tRow[9] = Object.keys(modeMap).length>0?JSON.stringify(modeMap):'';
+    }
+    toast('✅ Đã chuyển sang '+label,'ok');
+    renderPlayersPanel(); // re-render tab đúng mode
+  } catch(e) { toast('Lỗi kết nối','er'); }
+}
+
+// Load seeds từ GAS khi mở tab Danh sách (directKO)
+async function dkLoadSeeds() {
+  const giaiId = _curGiaiId||'', nd = _curNd||'';
+  const gName = String((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||giaiId);
+  const key = giaiId+'|'+nd;
+  if (_dkSeedsCtxKey === key && _dkSeeds.length > 0) return; // đã load
+  _dkSeedsCtxKey = key;
+  _dkSeeds = [];
+  _dkSeedsSaved = false;
+  try {
+    const d = await gGet({ action:'getDkSeeds', giai:gName, nd });
+    if (d.ok && d.seeds && d.seeds.length > 0) {
+      _dkSeeds = d.seeds.map(function(s,i) { return { seed: s.seed||i+1, team: s.team }; });
+      _dkSeedsSaved = true;
+    }
+  } catch(e) { /* silent */ }
+  renderDkSeedsPanel();
+}
+
 function renderPlayersPanel() {
   const wrap = document.getElementById('players-panel-content');
   if (!wrap) return;
   const giaiId = _curGiaiId || '';
   const nd     = _curNd     || '';
   const gName  = String((_T.find(t=>String(t[0]||'')===giaiId)||[])[1]||giaiId);
+
+  // v107: nếu mode directKO → hiển thị UI seed thay vì bốc thăm
+  const ndMode = _getNdModeLocal(giaiId, nd);
+  if (ndMode === 'directKO') {
+    // Load seeds từ GAS nếu chưa load (async — sẽ re-render khi xong)
+    const ctxKey = giaiId + '|' + nd;
+    if (_dkSeedsCtxKey !== ctxKey) {
+      renderDkSeedsPanel(); // hiện skeleton ngay
+      dkLoadSeeds();        // load async
+    } else {
+      renderDkSeedsPanel();
+    }
+    return;
+  }
 
   // Sync memory cache (không tự lưu localStorage — phải bấm nút Lưu)
   _savePLayersCtx();
@@ -8430,14 +8867,18 @@ function renderBangList(giaiId, nd) {
       }
     }
 
-    // 3. Court panel — chỉ update nếu nội dung thay đổi (so sánh busy/trống)
+    // 3. Court panel — chỉ update nếu nội dung thay đổi (so sánh busy/trống hoặc đổi nd)
+    // v108 FIX: thêm check nd-key để rebuild khi chuyển nội dung
     const courtEl = wrap.querySelector('[data-bl-court]');
     if (courtEl) {
       const newCourtHtml = courtPanel;
+      const courtPrevNd = courtEl.getAttribute('data-nd-key') || '';
+      const courtCurNd  = `${giaiId}|${nd}`;
       // So sánh số sân busy để quyết định có rebuild không — tránh flash khi không đổi
       const oldBusy = courtEl.querySelectorAll('[style*="ea580c"]').length;
       const newBusy = busyCourts.length;
-      if (oldBusy !== newBusy || courtEl.innerHTML === '') {
+      if (oldBusy !== newBusy || courtEl.innerHTML === '' || courtPrevNd !== courtCurNd) {
+        courtEl.setAttribute('data-nd-key', courtCurNd);
         courtEl.innerHTML = newCourtHtml;
       } else {
         // Số busy không đổi → chỉ update text badge header (đang dùng / trống)
@@ -8448,15 +8889,20 @@ function renderBangList(giaiId, nd) {
       }
     }
 
-    // 4. BXH panel — chỉ update nếu số done thay đổi
+    // 4. BXH panel — update khi số done thay đổi HOẶC khi đổi nội dung (giaiId/nd)
+    // v108 FIX: thêm kiểm tra nd+giaiId để force rebuild khi chuyển nội dung
+    // Bug cũ: cả 2 nội dung đều doneM=0 → prevDone===doneM → BXH không rebuild → hiện BXH sai
     const bxhEl2 = wrap.querySelector('[data-bl-bxh]');
     if (bxhEl2) {
       const _bxhScrollTop2 = bxhEl2.querySelector('#bxh-right-panel')?.scrollTop || 0;
       const prevDone = Number(bxhEl2.getAttribute('data-done') || '-1');
-      if (prevDone !== doneM || bxhEl2.innerHTML === '') {
+      const prevNdKey = bxhEl2.getAttribute('data-nd-key') || '';
+      const curNdKey  = `${giaiId}|${nd}`;
+      if (prevDone !== doneM || prevNdKey !== curNdKey || bxhEl2.innerHTML === '') {
         bxhEl2.setAttribute('data-done', String(doneM));
+        bxhEl2.setAttribute('data-nd-key', curNdKey);
         bxhEl2.innerHTML = bxhAllPanel;
-        if (_bxhScrollTop2 > 0) {
+        if (_bxhScrollTop2 > 0 && prevNdKey === curNdKey) {
           requestAnimationFrame(() => {
             const el = bxhEl2.querySelector('#bxh-right-panel');
             if (el) el.scrollTop = _bxhScrollTop2;
@@ -8466,6 +8912,7 @@ function renderBangList(giaiId, nd) {
     }
 
     // 5. Left col — v56 FIX: thêm live score sig để rebuild khi điểm thay đổi
+    // v108 FIX: thêm giaiId|nd vào sig để force rebuild khi chuyển nội dung
     const leftEl = wrap.querySelector('[data-bl-left]');
     if (leftEl) {
       const prevSig = leftEl.getAttribute('data-sig') || '';
@@ -8474,7 +8921,7 @@ function renderBangList(giaiId, nd) {
         const ls = _liveScores[lk] || {};
         return `${m[3]}:${ls.scoreA??'?'}-${ls.scoreB??'?'}`;
       }).join(',');
-      const newSig = `${doneM}|${liveM}|${totalM}|${liveScoreSig}`;
+      const newSig = `${giaiId}|${nd}|${doneM}|${liveM}|${totalM}|${liveScoreSig}`;
       if (prevSig !== newSig) {
         leftEl.setAttribute('data-sig', newSig);
         leftEl.innerHTML = leftHtml;
@@ -10871,6 +11318,12 @@ async function bkRefresh() {
 
 // ── Tính BXH vòng bảng → trả seeds theo mỗi bảng ────────────────
 function _bkCalcSeeds(giaiId, nd) {
+  // v107: directKO mode → không cần BXH vòng bảng
+  // _bkBuildTree sẽ không được gọi; thay vào đó dùng _dkBuildTree từ seeds list
+  if (_getNdModeLocal(giaiId, nd) === 'directKO') {
+    // Trả dữ liệu rỗng để các guard khác không bị lỗi
+    return { seeds: {}, bangs: [], bangDone: {} };
+  }
   // _M[0] stores giaiName — resolve giaiId → giaiName before filtering
   const giaiName = _resolveGiaiName(giaiId) || giaiId;
   const allM = _M.filter(m => String(m[0]||'')===giaiName && String(m[1]||'')===nd);
@@ -11568,10 +12021,11 @@ async function _bkSaveTreeToSheet() {
       _overrides: _bkOverrides,
       _byeRule:   _bkByeRule,
       _savedAt:   Date.now(),
+      _dkMode:    !!(_bkCurrentTree?._dkMode || _getNdModeLocal(_bkGiai, _bkNd) === 'directKO'),
     };
     const totalMatches = rounds.reduce((s, r) => s + (r.matches?.length || 0), 0);
     console.log('[BK TREE] Saving tree:', giaiName, _bkNd, '— rounds:', rounds.length, 'matches:', totalMatches);
-    const d = await gPost({ action:'saveBracketTree', adminCode:CODE, giai:giaiName, nd:_bkNd, tree:treeToSave });
+    const d = await gPost({ action:'saveBracketTree', adminCode:CODE, giai:giaiName, nd:_bkNd, tree:treeToSave, _dkMode: !!treeToSave._dkMode });
     if (d.ok) {
       _bkLastVersion = d.version || Date.now();
       console.log('[BK TREE] ✓ Saved to SRV v', _bkLastVersion, '— saved matches:', d.saved);
@@ -11670,20 +12124,65 @@ function _bkResolveAdvancers(tree, koMatches) {
     return '';
   };
 
-  // Apply từ round 1 trở đi
+  // ── Hàm tra tên đội từ seedCode "Nhất Bảng A", "Nhì Bảng B"... ──
+  // v108 FIX: bổ sung để điền vòng đầu (V161...) từ BXH khi bảng đã xong
+  const { seeds: poolSeeds, bangDone: poolBangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
+  const resolvePoolSeed = (seedStr) => {
+    if (!seedStr) return '';
+    // Pattern: "Nhất Bảng A", "Nhì Bảng B", "Ba Bảng C"...
+    // hoặc shorthand "1A", "2B", "1 Bảng A" ...
+    const rnMap = { 'nhất':1,'nhì':2,'ba':3,'tư':4,'1':1,'2':2,'3':3,'4':4 };
+    // Thử pattern dài: "Nhất Bảng A"
+    const longM = seedStr.match(/^(Nhất|Nhì|Ba|Tư|\d+)\s+(?:Bảng\s+)?([A-Z])$/i);
+    if (longM) {
+      const rank = rnMap[(longM[1]||'').toLowerCase()] || parseInt(longM[1]);
+      const bang = longM[2].toUpperCase();
+      // Tìm tên bảng đúng trong poolSeeds (có thể là "A" hoặc "Bảng A")
+      const bangKey = Object.keys(poolSeeds).find(k =>
+        k === bang || k === 'Bảng ' + bang || k.endsWith(' ' + bang)
+      );
+      if (!bangKey) return '';
+      if (!poolBangDone[bangKey]) return ''; // bảng chưa xong → chờ
+      const s = (poolSeeds[bangKey] || []).find(x => x.rank === rank);
+      return s ? (s.team || '') : '';
+    }
+    return '';
+  };
+
+  // Apply round 0 — điền teamA/teamB từ BXH khi bảng đã xong
+  // v108 FIX: trước đây bị bỏ qua (if ri===0 return) → tên đội ở vòng 16 không cập nhật
+  if (tree.rounds.length > 0) {
+    tree.rounds[0].matches.forEach(m => {
+      // Chỉ điền khi teamA/teamB còn rỗng (tránh đè tên đội đã được gán)
+      if (!m.teamA && m.seedA && !m.seedA.startsWith('Thắng ') && !m.isByeA) {
+        const resolved = resolvePoolSeed(m.seedA);
+        if (resolved) m.teamA = resolved;
+      }
+      if (!m.teamB && m.seedB && !m.seedB.startsWith('Thắng ') && !m.isByeB) {
+        const resolved = resolvePoolSeed(m.seedB);
+        if (resolved) m.teamB = resolved;
+      }
+    });
+  }
+
+  // Apply từ round 1 trở đi — điền winner từ trận KO trước
   tree.rounds.forEach((round, ri) => {
     if (ri === 0) return;
     round.matches.forEach(m => {
       if (m.seedA?.startsWith('Thắng ')) {
         const w = getAdvancer(m.seedA.replace('Thắng ','').trim());
-        m.teamA = w || '';
+        if (w) m.teamA = w; // chỉ ghi đè nếu có winner mới
       }
       if (m.seedB?.startsWith('Thắng ')) {
         const w = getAdvancer(m.seedB.replace('Thắng ','').trim());
-        m.teamB = w || '';
+        if (w) m.teamB = w;
       }
     });
   });
+
+  // Sau khi resolve round-0, propagate forward: nếu round-0 có winner (BYE hoặc trận xong)
+  // thì điền vào round-1 (thông qua getAdvancer — đã đọc sheetMap)
+  // getAdvancer dùng treeMap (đã update teamA/teamB ở round-0) → chain tự chạy đúng.
 
   return tree;
 }
@@ -11731,11 +12230,28 @@ function bkRender() {
     tree = _bkCloneTree(_bkCurrentTree);
     tree = _bkApplyOverrides(tree);
     tree = _bkResolveAdvancers(tree, koMatches);
+    // v108 FIX: cập nhật lại _bkCurrentTree round-0 với tên đội mới resolve từ BXH
+    // để sau này lưu SRV sẽ có tên đúng, không bị trống
+    if (tree.rounds.length > 0 && _bkCurrentTree.rounds.length > 0) {
+      tree.rounds[0].matches.forEach((m, i) => {
+        const src = _bkCurrentTree.rounds[0].matches[i];
+        if (src && !src.teamA && m.teamA) src.teamA = m.teamA;
+        if (src && !src.teamB && m.teamB) src.teamB = m.teamB;
+      });
+    }
   } else if (_bkCurrentTree) {
     // Cây đã được tạo (qua "Tạo cây") nhưng chưa Apply → GIỮ NGUYÊN vị trí, không rebuild lại từ BXH mỗi lần poll
     tree = _bkCloneTree(_bkCurrentTree);
     tree = _bkApplyOverrides(tree);
     tree = _bkResolveAdvancers(tree, koMatches);
+    // v108 FIX: tương tự — cập nhật _bkCurrentTree khi tên đội vừa được resolve
+    if (tree.rounds.length > 0 && _bkCurrentTree.rounds.length > 0) {
+      tree.rounds[0].matches.forEach((m, i) => {
+        const src = _bkCurrentTree.rounds[0].matches[i];
+        if (src && !src.teamA && m.teamA) src.teamA = m.teamA;
+        if (src && !src.teamB && m.teamB) src.teamB = m.teamB;
+      });
+    }
   } else {
     // Chưa có cây nào → hiện màn chờ, KHÔNG tự động tạo. Chỉ tạo khi user bấm "🏗 Tạo cây"
     const ndWrap = document.getElementById('nd-bk-wrap') || wrap;
@@ -12170,7 +12686,26 @@ async function ndBkGenChart() {
     _bkApplied = false; // v37: Cây mới tạo — chưa Apply, cho phép preview/chỉnh sửa tự do
     _bkCurrentTree = null; // Force rebuild từ seeds cho cây mới
     _bkLastKoDoneKeys = new Set();
-    // Tính seeding từ BXH hiện tại
+
+    // v107: nếu directKO → dùng _dkBuildTree từ seeds list thay vì _bkCalcSeeds
+    const ndMode = _getNdModeLocal(_bkGiai, _bkNd);
+    if (ndMode === 'directKO') {
+      if (!_dkSeeds.length || _dkSeedsCtxKey !== (_bkGiai+'|'+_bkNd)) {
+        toast('⚠️ Cần nhập danh sách đội trong tab "Danh sách" trước khi tạo cây', 'er');
+        if (btn) { btn.disabled=false; btn.textContent='🏗 Tạo cây'; }
+        return;
+      }
+      const newTreeDk = _dkBuildTree(_dkSeeds);
+      if (!newTreeDk) { toast('Lỗi tạo cây directKO — kiểm tra lại danh sách đội', 'er'); return; }
+      _bkOverrides = {};
+      _bkCurrentTree = newTreeDk;
+      _bkState.setTree(newTreeDk, false, _bkLastVersion);
+      await _swapBkWrap('nd-bk-wrap', () => Promise.resolve(bkRender()));
+      toast(`🏗 Cây KO trực tiếp đã tạo (${_dkSeeds.length} đội) · Nhấn "Áp dụng & Tạo lịch" để lưu vào lịch`, 'ok', 4000);
+      return;
+    }
+
+    // Tính seeding từ BXH hiện tại (mode vòng bảng)
     const { seeds, bangs, bangDone } = _bkCalcSeeds(_bkGiai, _bkNd);
     if (!bangs.length) {
       toast('Chưa có dữ liệu vòng bảng để tạo cây', 'er');
@@ -14538,7 +15073,7 @@ async function bkApplyAndSave() {
         const treeToSave = { ...treeNow, _overrides:_bkOverrides, _byeRule:_bkByeRule, _savedAt:Date.now() };
         const totalM = treeNow.rounds.reduce((s,r)=>s+(r.matches?.length||0),0);
         console.log('[BK TREE] Saving (no-change path, keep positions):', giaiName2, _bkNd, totalM, 'matches');
-        const ds = await gPost({action:'saveBracketTree', adminCode:CODE, giai:giaiName2, nd:_bkNd, tree:treeToSave}, 45000);
+        const ds = await gPost({action:'saveBracketTree', adminCode:CODE, giai:giaiName2, nd:_bkNd, tree:treeToSave, _dkMode: !!(_bkCurrentTree?._dkMode||_getNdModeLocal(_bkGiai,_bkNd)==='directKO')}, 45000);
         if (ds.ok) {
           _bkLastVersion = ds.version || Date.now();
           _bkApplied = true;
@@ -14655,7 +15190,7 @@ async function bkApplyAndSave() {
           const totalM = treeNow.rounds.reduce((s,r)=>s+(r.matches?.length||0),0);
           console.log('[BK TREE] Saving from bkApplyAndSave:', giaiName2, _bkNd, totalM, 'matches');
           console.log('[BK TREE] POST payload — action:saveBracketTree giai:', giaiName2, 'nd:', _bkNd, 'rounds:', treeToSave.rounds?.length, 'CODE:', CODE?'ok':'MISSING');
-          const ds = await gPost({action:'saveBracketTree', adminCode:CODE, giai:giaiName2, nd:_bkNd, tree:treeToSave}, 45000);
+          const ds = await gPost({action:'saveBracketTree', adminCode:CODE, giai:giaiName2, nd:_bkNd, tree:treeToSave, _dkMode: !!(_bkCurrentTree?._dkMode||_getNdModeLocal(_bkGiai,_bkNd)==='directKO')}, 45000);
           console.log('[BK TREE] Máy chủ response RAW:', JSON.stringify(ds));
           if (ds.ok && ds.saved !== undefined) {
             _bkLastVersion = ds.version || Date.now();
@@ -15483,6 +16018,12 @@ function openTournMo(pre=null) {
   document.getElementById('t-note').value        = pre?.note||'';
   initRefsDropdown(pre?.refs||[]);
   document.getElementById('t-save').disabled     = false;
+  // v107: render ndMode selectors nếu có nội dung
+  _renderNdModeSelectors(pre?.noidung||'', pre?.ndMode||{});
+  // Render lại khi nội dung thay đổi
+  document.getElementById('t-noidung').oninput = function() {
+    _renderNdModeSelectors(this.value, _getTournNdModeFromUI());
+  };
   // Tải danh sách trọng tài nếu chưa có
   if (!_U.length) {
     gGet({ action:'getUsers', adminCode:CODE }).then(d => {
@@ -15490,6 +16031,44 @@ function openTournMo(pre=null) {
     }).catch(()=>{});
   }
   openMo('mo-tourn');
+}
+
+// v107: render danh sách chọn mode cho từng nội dung
+function _renderNdModeSelectors(noidungStr, currentModeMap) {
+  const wrap = document.getElementById('t-ndmode-wrap');
+  const list = document.getElementById('t-ndmode-list');
+  if (!wrap || !list) return;
+  const nds = (noidungStr||'').split(',').map(s=>s.trim()).filter(Boolean);
+  if (nds.length === 0) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  list.innerHTML = nds.map(function(nd) {
+    const cur = (currentModeMap||{})[nd] || 'group';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg3);border:1px solid var(--bdr);border-radius:8px">
+      <span style="font-size:12px;font-weight:700;color:var(--tx);flex:1">${esc(nd)}</span>
+      <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer">
+        <input type="radio" name="ndmode_${esc(nd)}" value="group" ${cur!=='directKO'?'checked':''}>
+        <span>🏓 Có vòng bảng</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer">
+        <input type="radio" name="ndmode_${esc(nd)}" value="directKO" ${cur==='directKO'?'checked':''}>
+        <span>⚡ Knockout trực tiếp</span>
+      </label>
+    </div>`;
+  }).join('');
+}
+
+// v107: đọc ndMode từ UI form (trả về {ndName: 'directKO'|'group'})
+function _getTournNdModeFromUI() {
+  const noidungStr = (document.getElementById('t-noidung')||{}).value || '';
+  const nds = noidungStr.split(',').map(s=>s.trim()).filter(Boolean);
+  const map = {};
+  nds.forEach(function(nd) {
+    const radios = document.querySelectorAll('input[name="ndmode_' + CSS.escape(nd) + '"]');
+    let val = 'group';
+    radios.forEach(function(r) { if (r.checked) val = r.value; });
+    if (val === 'directKO') map[nd] = 'directKO'; // chỉ lưu directKO, group là default
+  });
+  return map;
 }
 // ── Trọng tài dropdown cho modal tạo giải ──
 // ══ Refs by phone popup ══
@@ -15675,7 +16254,8 @@ async function saveTournament() {
     endDate:   document.getElementById('t-end').value,
     status:    document.getElementById('t-status').value,
     note:      noidung,
-    refs:      getSelectedRefs()
+    refs:      getSelectedRefs(),
+    ndMode:    _getTournNdModeFromUI()  // v107: {ndName: 'directKO'} — lưu vào col[9] Tournaments
   };
   const isEdit = !!_editT;
   closeMo('mo-tourn');
