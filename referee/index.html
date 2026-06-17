@@ -2,7 +2,7 @@
 <!-- FIX v11 2026-06-07: pushMatchToGS gửi row đủ cấu trúc [giai,nd,bang,code,teamA,'','',teamB] — trước đây thiếu giai ở index 0 làm Máy chủ lưu sai cột -->
 <html lang="vi">
 <head>
-<!-- Pickleball v8.30 — v23 2026-06-13: HIỂN THỊ GIỜ THI ĐẤU trên thẻ trận — (1) loadAllFromGS: đọc r[11] (Thời gian col L) vào m.time và r[12] vào m.rule (trước đây bỏ sót r[11], m.time luôn undefined); (2) pollMatches: tương tự đọc r[11]→mTime2 thêm vào matchList, thêm oldTimes/newTimes vào hasChange để admin chỉnh giờ trigger rerender ngay; (3) _renderMatchCard: hiển thị ⏱ HH:MM màu amber ngay hàng metadata (noidung·bang·court·round) khi m.time có giá trị. | v8.29 — v21 2026-06-09: FIX TRIỆT ĐỂ rule realtime — (1) hasChange trong pollMatches+loadAllFromGS thêm so sánh rule; (2) áp setRule(freshM.rule) NGAY trong poll khi rule trận đang chấm thay đổi, không chờ TT bấm vào trận | v8.28 — v20 2026-06-09: FIX rule không áp TT — setRule(m.rule) gọi ở tất cả Cases 3/4/5 loadMatch, luôn dùng rule mới nhất từ Admin thắng snapshot localStorage; thêm thanh rule-inline-bar luôn hiển thị | v8.27 — v19 2026-06-09: (1) Ẩn phần chọn Quy tắc điểm khỏi UI TT; (2) FIX BUG CRITICAL: winRule không được lưu/restore từ localStorage → sau refresh/reload rule về default '11' → deuce rule bị bỏ qua → 11-10 báo thắng thay vì tiếp tục đến 12-10 | v8.24 — REALTIME ROBUST 2026-06-08: v52 — (1) _writeLiveToFirebase check response status + log lỗi (auth 401/403 detect); (2) keepalive:true cho tất cả Firebase REST writes — survive page navigation; (3) Log mỗi lần ghi điểm để debug | v8.23 — 1 luồng Firebase 2026-06-08: v51 FIX TRIỆT ĐỂ — (1) _writeLiveToFirebase dùng fetch() REST API thay SDK — không cần auth, không bị block bởi Security Rules; (2) GAS debounce 400ms→200ms; (3) admin _liveSig bao gồm điểm số+debounce 150ms |  FIX _handleNewAssignment — load Máy chủ trước khi tìm trận; xử lý type=assignedToGiai; không cần loadAllFromGS 2 lần | v8.17 2026-06-07: FIX assignment key — dùng SĐT (phone) thay mã code, tránh trùng tên TT | v8.16 2026-06-07: FIX live score — inp-referee tự động điền từ m.referee khi loadMatch (Case4+Case5); liveScores local thêm referee+status | v8.15 2026-06-07: ADD Firebase Realtime Database — onValue WebSocket < 1s; fallback poll Máy chủ CacheService | v8.14 2026-06-07: ADD auto-assignment poll — Máy chủ CacheService checkAssignment; banner thông báo + beep; tự động loadMatch khi rảnh, hiện nút khi đang chấm | v8.13 2026-06-07: FIX LOAD TRẬN — referee field trong liveScores (init+poll); renderMatchGrid sau validate ngầm; _applyPerm trước renderMatchGrid đầu tiên | v8.12 2026-06-07: FIX CRITICAL — liveKey đổi sang "giai|nd|bang|code" (4 phần) để không trùng giữa các nội dung; clearLiveGS/finishLiveGS/replayMatchGS gửi key mới; m.key dùng giai khi available | v8.11 2026-06-04: FIX CRITICAL — thêm </div> đóng sb-teams-row; sb-action-bar không còn nằm trong grid 2-cột → 2 card cân đối 50/50 | v8.10 2026-06-04: FIX sb-action-bar căn giữa tỉ số (3-col grid + ex-side groups); hai card cân đối | v8.9 2026-06-04: FIX loadAllFromGS — REPLACE thay vì MERGE S.results từ Máy chủ (source of truth); xóa bảng+tạo lại không còn bị stale "Hoàn thành" trên màn hình trọng tài | v8.8 2026-06-03: FIX swapPlayersDisplay — chấm cam giữ nguyên ô vật lý khi swap tên VĐV | v8.7; player-slot fixed height 44px; serve-balls min-width giữ chỗ | v8.6: auto-cleanup kết quả (TTL 1 ngày, cap 100) + nhật ký (TTL 12h, cap 300) | v8.5: FIX v34 — auto-hide polling-driven (CK có điểm từ Máy chủ → ẩn ngay); | v8.4 FIX v33 — auto-hide nội dung/giải khi CK hoàn thành; sort trận (live→chưa đấu→hoàn thành); nút ẩn/hiện trận HT; | v8.2 FIX v32 — _removeDiacritics normalize tên TT; renderMatchGrid hiển thị khi có trận phân tên dù courts=[]; | v8.1 FIX: Park priority in renderMatchCard — tỉ số tím đúng khi switch trận | 2026-05-23 -->
+<!-- Pickleball v8.31 — v25 — v23 2026-06-13: HIỂN THỊ GIỜ THI ĐẤU trên thẻ trận — (1) loadAllFromGS: đọc r[11] (Thời gian col L) vào m.time và r[12] vào m.rule (trước đây bỏ sót r[11], m.time luôn undefined); (2) pollMatches: tương tự đọc r[11]→mTime2 thêm vào matchList, thêm oldTimes/newTimes vào hasChange để admin chỉnh giờ trigger rerender ngay; (3) _renderMatchCard: hiển thị ⏱ HH:MM màu amber ngay hàng metadata (noidung·bang·court·round) khi m.time có giá trị. | v8.29 — v21 2026-06-09: FIX TRIỆT ĐỂ rule realtime — (1) hasChange trong pollMatches+loadAllFromGS thêm so sánh rule; (2) áp setRule(freshM.rule) NGAY trong poll khi rule trận đang chấm thay đổi, không chờ TT bấm vào trận | v8.28 — v20 2026-06-09: FIX rule không áp TT — setRule(m.rule) gọi ở tất cả Cases 3/4/5 loadMatch, luôn dùng rule mới nhất từ Admin thắng snapshot localStorage; thêm thanh rule-inline-bar luôn hiển thị | v8.27 — v19 2026-06-09: (1) Ẩn phần chọn Quy tắc điểm khỏi UI TT; (2) FIX BUG CRITICAL: winRule không được lưu/restore từ localStorage → sau refresh/reload rule về default '11' → deuce rule bị bỏ qua → 11-10 báo thắng thay vì tiếp tục đến 12-10 | v8.24 — REALTIME ROBUST 2026-06-08: v52 — (1) _writeLiveToFirebase check response status + log lỗi (auth 401/403 detect); (2) keepalive:true cho tất cả Firebase REST writes — survive page navigation; (3) Log mỗi lần ghi điểm để debug | v8.23 — 1 luồng Firebase 2026-06-08: v51 FIX TRIỆT ĐỂ — (1) _writeLiveToFirebase dùng fetch() REST API thay SDK — không cần auth, không bị block bởi Security Rules; (2) GAS debounce 400ms→200ms; (3) admin _liveSig bao gồm điểm số+debounce 150ms |  FIX _handleNewAssignment — load Máy chủ trước khi tìm trận; xử lý type=assignedToGiai; không cần loadAllFromGS 2 lần | v8.17 2026-06-07: FIX assignment key — dùng SĐT (phone) thay mã code, tránh trùng tên TT | v8.16 2026-06-07: FIX live score — inp-referee tự động điền từ m.referee khi loadMatch (Case4+Case5); liveScores local thêm referee+status | v8.15 2026-06-07: ADD Firebase Realtime Database — onValue WebSocket < 1s; fallback poll Máy chủ CacheService | v8.14 2026-06-07: ADD auto-assignment poll — Máy chủ CacheService checkAssignment; banner thông báo + beep; tự động loadMatch khi rảnh, hiện nút khi đang chấm | v8.13 2026-06-07: FIX LOAD TRẬN — referee field trong liveScores (init+poll); renderMatchGrid sau validate ngầm; _applyPerm trước renderMatchGrid đầu tiên | v8.12 2026-06-07: FIX CRITICAL — liveKey đổi sang "giai|nd|bang|code" (4 phần) để không trùng giữa các nội dung; clearLiveGS/finishLiveGS/replayMatchGS gửi key mới; m.key dùng giai khi available | v8.11 2026-06-04: FIX CRITICAL — thêm </div> đóng sb-teams-row; sb-action-bar không còn nằm trong grid 2-cột → 2 card cân đối 50/50 | v8.10 2026-06-04: FIX sb-action-bar căn giữa tỉ số (3-col grid + ex-side groups); hai card cân đối | v8.9 2026-06-04: FIX loadAllFromGS — REPLACE thay vì MERGE S.results từ Máy chủ (source of truth); xóa bảng+tạo lại không còn bị stale "Hoàn thành" trên màn hình trọng tài | v8.8 2026-06-03: FIX swapPlayersDisplay — chấm cam giữ nguyên ô vật lý khi swap tên VĐV | v8.7; player-slot fixed height 44px; serve-balls min-width giữ chỗ | v8.6: auto-cleanup kết quả (TTL 1 ngày, cap 100) + nhật ký (TTL 12h, cap 300) | v8.5: FIX v34 — auto-hide polling-driven (CK có điểm từ Máy chủ → ẩn ngay); | v8.4 FIX v33 — auto-hide nội dung/giải khi CK hoàn thành; sort trận (live→chưa đấu→hoàn thành); nút ẩn/hiện trận HT; | v8.2 FIX v32 — _removeDiacritics normalize tên TT; renderMatchGrid hiển thị khi có trận phân tên dù courts=[]; | v8.1 FIX: Park priority in renderMatchCard — tỉ số tím đúng khi switch trận | 2026-05-23 -->
 <meta charset="UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -1987,14 +1987,18 @@ async function _doSync(action, payload, retryCount, giai) {
     if (giai && !bodyObj.giai) bodyObj.giai = giai;
   }
   const body = JSON.stringify(bodyObj);
+  // v25 FIX: keepalive:true cho finishLive + append — tránh bị hủy khi trang navigate/reload
+  // Trước đây chỉ 'live' có keepalive → finishLive/append bị hủy nếu TT chuyển trận ngay
+  // → LiveScore sheet thiếu kết quả (F2 không có trong sheet dù Firebase có)
   const isLive = (action === 'live');
+  const needKeepAlive = isLive || action === 'finishLive' || action === 'deleteLive' || action === 'append';
   try {
     await fetch(GS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body,
       redirect: 'follow',
-      keepalive: isLive,
+      keepalive: needKeepAlive,
     });
     setDot('ok');
     setTimeout(() => setDot(''), 3000);
@@ -2392,10 +2396,28 @@ function _writeLiveToFirebase(key, payload) {
 function _deleteLiveFromFirebase(key) {
   try {
     const fbKey = key.replace(/[^a-zA-Z0-9_\-]/g, '_');
+    // v25 FIX: ghi status='finished' thay vì DELETE
+    // Firebase Security Rules có thể chặn DELETE im lặng (.catch(()=>{}) không báo lỗi)
+    // → admin/display vẫn thấy node cũ với status 'playing' → hiện "Đang đấu" mãi không tắt
+    // PUT với status='finished' luôn hoạt động (cùng cơ chế với ghi điểm đang chạy tốt)
+    // Admin/display đã filter `st !== 'playing'` → tự loại bỏ node finished
     fetch(_FB_RTDB_URL + '/liveScores/' + fbKey + '.json', {
-      method: 'DELETE', keepalive: true,
-    }).catch(() => {});
-  } catch(e) {}
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, status: 'finished', ts: Date.now() }),
+      keepalive: true,
+    }).then(res => {
+      if (!res.ok) console.warn('[FB-DELETE] PUT finished thất bại HTTP', res.status);
+      else {
+        // Sau 30s xóa hẳn node (dọn dẹp) — lúc này các trang đã update xong
+        setTimeout(() => {
+          fetch(_FB_RTDB_URL + '/liveScores/' + fbKey + '.json', {
+            method: 'DELETE', keepalive: true,
+          }).catch(() => {});
+        }, 30000);
+      }
+    }).catch(err => console.warn('[FB-DELETE] lỗi mạng:', err.message));
+  } catch(e) { console.warn('[FB-DELETE] exception:', e.message); }
 }
 
 // ── v51: Ghi kết quả lên Firebase /results qua REST ──
@@ -3702,7 +3724,10 @@ async function finishLiveGS(m, scoreA, scoreB) {
       giai:  m.giai || '',
       game:  S.game || 1,
     });
-  } catch(e) {}
+  } catch(e) {
+    // v25 FIX: log lỗi thay vì im lặng — giúp debug khi GAS không nhận kết quả
+    console.warn('[finishLiveGS] Lỗi gửi GAS:', e.message, '→ đã ghi Firebase /results, GAS sẽ sync sau');
+  }
 }
 
 function pushLog(desc, snap) {
