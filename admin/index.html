@@ -2797,6 +2797,19 @@ const _FB_CONFIG = {
 };
 // v52: REST URL dùng cho polling song song với SDK (bypass disconnect silent)
 const _FB_REST_URL = 'https://app-pickleball-default-rtdb.asia-southeast1.firebasedatabase.app';
+
+// v108: Signal display/player khi tên VĐV thay đổi → các trang tự fetch lại Matches
+// Ghi matchesVersion = timestamp vào Firebase → display listener nhận, trigger fetchAll
+function _fbSignalMatchesChanged() {
+  try {
+    fetch(_FB_REST_URL + '/matchesVersion.json', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Date.now()),
+      keepalive: true,
+    }).catch(() => {});
+  } catch(e) {}
+}
 let _fbApp  = null;
 let _fbDb   = null;
 let _fbLiveRef   = null;  // ref('/liveScores')
@@ -3104,7 +3117,8 @@ function _buildLiveFromRows(rows, source) {
 
   // ── v53 FIX: nếu GAS safety thiếu key mà Firebase vừa cập nhật → giữ key đó ──
   // Tránh trường hợp GAS sheet chưa kịp ghi → safety poll xoá nhầm match đang live
-  if (isGasSafety) {
+  // v108 FIX: gas-safety cũng không được giữ key khi rows=[] (GAS xác nhận rỗng)
+  if (isGasSafety && rows.length > 0) {
     Object.keys(_liveScores).forEach(k => {
       if (newLS[k]) return; // đã có
       const existing = _liveScores[k];
@@ -3121,7 +3135,9 @@ function _buildLiveFromRows(rows, source) {
 
   // ── v47 FIX: nếu rest-cleanup thiếu key mà SDK vừa cập nhật (<3s) → giữ key đó ──
   // REST poll 2s có thể miss key mới nhất từ Firebase WebSocket
-  if (source === 'rest-cleanup') {
+  // v108 FIX: KHÔNG áp guard này khi rows=[] (Firebase trả về null/rỗng = tất cả đã xóa)
+  // Trước đây: rows=[] + guard age<3s → khôi phục key cũ → "Đang đấu" không tắt dù trận đã xong
+  if (source === 'rest-cleanup' && rows.length > 0) {
     Object.keys(_liveScores).forEach(k => {
       if (newLS[k]) return; // đã có
       const existing = _liveScores[k];
@@ -3129,6 +3145,7 @@ function _buildLiveFromRows(rows, source) {
       const age = _nowMs - (existing._setAt || 0);
       if (age < 3000) {
         // SDK data rất fresh → REST chưa kịp thấy → keep
+        // (chỉ áp dụng khi REST còn có data, không áp khi REST trả về rỗng)
         newLK.add(k);
         newLS[k] = existing;
       }
@@ -7421,6 +7438,8 @@ async function renamePlayer(idx) {
           giai: gName, nd, oldName, newName: nn });
         if (d && d.ok) {
           toast(`✅ Đã đổi "${oldName}" → "${nn}" trong toàn bộ bảng đấu`, 'ok');
+          // v108: báo hiệu display/player fetch lại Matches để cập nhật tên đội mới
+          _fbSignalMatchesChanged();
         } else {
           toast('⚠️ Cập nhật bảng đấu SRV lỗi: ' + (d?.reason||''), 'er');
         }
