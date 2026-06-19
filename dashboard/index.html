@@ -225,8 +225,8 @@ html,body{width:100%;background:var(--bg);color:var(--tx);font-family:var(--font
 .bk-round-label.lbl-final{color:#f59e0b}
 .bk-round-label.lbl-3rd{color:#c084fc}
 .bk-round-label.lbl-group{color:#818cf8}
-.bk-round-slots{display:flex;flex-direction:column;flex:1;justify-content:space-around;gap:0}
-.bk-slot{display:flex;flex-direction:column;flex:1;justify-content:center;padding:4px 0}
+.bk-round-slots{display:flex;flex-direction:column;flex:1;justify-content:space-evenly;gap:0}
+.bk-slot{display:flex;flex-direction:column;flex:1;justify-content:center;min-height:60px;padding:4px 0}
 .bk-card{margin:0 4px;background:var(--bg3);border:1px solid var(--bdr2);border-left-width:3px;
   border-radius:7px;overflow:hidden}
 .bk-card.c-done{border-left-color:#22c55e}
@@ -244,9 +244,13 @@ html,body{width:100%;background:var(--bg);color:var(--tx);font-family:var(--font
 .bk-card-team .tn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .bk-card-team .ts{font-family:var(--font-display);font-weight:900;font-size:14px;flex-shrink:0;min-width:16px;text-align:right}
 .bk-card-team .tbd{color:var(--tx4);font-style:italic;font-size:10px}
+.bk-live-dot{display:inline-block}
+.bk-live-score{color:#fb923c!important;font-weight:900}
+.bk-live-team{border-left:2px solid #f97316}
+@keyframes livePulse{0%,100%{box-shadow:0 0 0 0 rgba(249,115,22,.0)}50%{box-shadow:0 0 8px 2px rgba(249,115,22,.3)}}
 /* Connector lines */
-.bk-conn-col{display:flex;flex-direction:column;flex-shrink:0;width:18px}
-.bk-conn-pair{display:flex;flex-direction:column;flex:1}
+.bk-conn-col{display:flex;flex-direction:column;flex-shrink:0;width:20px;align-self:stretch}
+.bk-conn-pair{display:flex;flex-direction:column;flex:1;min-height:120px}
 .bk-conn-arm{flex:1;position:relative;overflow:visible}
 .bk-conn-arm.arm-top::before{content:'';position:absolute;top:50%;left:0;right:0;height:1.5px;background:var(--conn-clr,var(--bdr2))}
 .bk-conn-arm.arm-top::after{content:'';position:absolute;top:50%;right:0;width:1.5px;height:calc(50% + .75px);background:var(--conn-clr,var(--bdr2))}
@@ -567,6 +571,8 @@ function _initDisplayFirebase(){
       });
       _live=dedupeLive(fbLive);
       render();
+      // v5 FIX: re-render bracket với live score mới — tức thì theo thời gian thực
+      setTimeout(_reRenderActiveBrackets, 50);
     },err=>console.warn('[FB Display] live err:',err.message));
 
     // Listener 2: /results
@@ -597,6 +603,8 @@ function _initDisplayFirebase(){
       const gasOnly=_gasResults.filter(r=>!fbKeys.has(`${normStr(r[1])}|${normStr(r[2])}|${normStr(r[3])}|${normStr(r[4])}`));
       _results=[...gasOnly,..._fbResults];
       processData();render();
+      // v5 FIX: re-render bracket + check auto-switch khi kết quả mới
+      setTimeout(()=>{_reRenderActiveBrackets();_checkAutoSwitchToBracket();}, 100);
     },err=>console.warn('[FB Display] results err:',err.message));
 
     // Listener 3: /bracketTree
@@ -633,6 +641,8 @@ function _initDisplayFirebase(){
         const stB=document.getElementById('st-bracket-'+safeId);if(stB)stB.style.display='';
         const badge=document.getElementById('st-badge-'+safeId);
         if(badge&&_ndSubTab[safeId]!=='bracket')badge.style.display='';
+        // v5: check auto-switch sau khi nhận cây mới
+        setTimeout(_checkAutoSwitchToBracket, 300);
       });
     },err=>console.warn('[FB Display] bracket err:',err.message));
 
@@ -1186,6 +1196,22 @@ function scaleBracket(safeId){
   });
 }
 
+
+// v5: Re-render tất cả bracket tabs đang hiển thị khi _results/_live thay đổi
+// Đảm bảo tên đội xuất hiện ngay sau khi vòng bảng xong (không chờ bracketTree version update)
+function _reRenderActiveBrackets(){
+  try{
+    Object.keys(_bracketCache).forEach(nd=>{
+      const safeId=nd.replace(/[^a-zA-Z0-9]/g,'_');
+      const bEl=document.getElementById('bracket-'+safeId);
+      if(!bEl)return;
+      const cache=_bracketCache[nd];
+      if(!cache||!cache.tree)return;
+      renderBracket(nd,{...cache.tree,_dkMode:!!cache._dkMode},bEl);
+      scaleBracket(safeId);
+    });
+  }catch(e){console.warn('[Display] _reRenderActiveBrackets err:',e.message);}
+}
 function renderBracket(nd, tree, el){
   const rounds=tree.rounds||[];
   if(!rounds.length){el.innerHTML='<div class="bracket-empty">Chưa có cây thi đấu</div>';return;}
@@ -1238,12 +1264,94 @@ function renderBracket(nd, tree, el){
     }));
   }
 
+  // v5 FIX: Auto-seed từ BXH vòng bảng — điền tên đội vào round-0 khi bảng đã xong
+  // Mirrors admin _bkResolveAdvancers resolvePoolSeed logic
+  const _normNm=s=>String(s||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ');
+  const rnMap={'nhất':1,'nhì':2,'ba':3,'tư':4,'1':1,'2':2,'3':3,'4':4};
+  // Build pool seed lookup from _groups
+  const poolByBang={}; // "A"→[{rank,team},...], "Bảng A"→...
+  (_groups||[]).forEach(g=>{
+    if(!g.nd||!_ndMatch(g.nd,nd))return;
+    const bangChar=(g.bang||'').replace(/^Bảng\s*/i,'').trim().toUpperCase();
+    if(!bangChar)return;
+    poolByBang[bangChar]=g.standings||[];
+    poolByBang['Bảng '+bangChar]=g.standings||[];
+  });
+  const resolvePoolSeedDisplay=(seedStr)=>{
+    if(!seedStr)return'';
+    const m2=seedStr.match(/^(Nhất|Nhì|Ba|Tư|\d+)\s+(?:Bảng\s+)?([A-Z])$/i);
+    if(m2){
+      const rank=rnMap[(m2[1]||'').toLowerCase()]||parseInt(m2[1]);
+      const bangC=m2[2].toUpperCase();
+      const st=poolByBang[bangC]||poolByBang['Bảng '+bangC]||[];
+      const entry=st.find(x=>x.rank===rank);
+      return entry?entry.team:'';
+    }
+    return'';
+  };
+  // Apply auto-seed to round-0
+  if(rounds.length>0){
+    rounds[0].matches.forEach(m=>{
+      if(!m.teamA&&m.seedA&&!m.seedA.startsWith('Thắng')&&!m.seedA.startsWith('S')&&!m.isByeA){
+        const t=resolvePoolSeedDisplay(m.seedA);if(t)m.teamA=t;
+      }
+      if(!m.teamB&&m.seedB&&!m.seedB.startsWith('Thắng')&&!m.seedB.startsWith('S')&&!m.isByeB){
+        const t=resolvePoolSeedDisplay(m.seedB);if(t)m.teamB=t;
+      }
+    });
+    // Propagate winners forward (round 1+)
+    rounds.forEach((round,ri)=>{
+      if(ri===0)return;
+      round.matches.forEach(m=>{
+        if(!m.teamA&&m.seedA&&m.seedA.startsWith('Thắng ')){
+          const srcCode=m.seedA.replace('Thắng ','').trim();
+          // Find winner of srcCode in previous rounds
+          for(let ri2=0;ri2<ri;ri2++){
+            const src=rounds[ri2].matches.find(sm=>sm.code===srcCode);
+            if(src&&src.teamA&&src.teamB){
+              // Check _results for winner
+              const res=_results.find(r=>String(r[4]||'')===srcCode&&String(r[2]||'')===nd);
+              if(res){const win=String(res[9]||'');if(win)m.teamA=win;}
+            }
+          }
+        }
+        if(!m.teamB&&m.seedB&&m.seedB.startsWith('Thắng ')){
+          const srcCode=m.seedB.replace('Thắng ','').trim();
+          for(let ri2=0;ri2<ri;ri2++){
+            const src=rounds[ri2].matches.find(sm=>sm.code===srcCode);
+            if(src){
+              const res=_results.find(r=>String(r[4]||'')===srcCode&&String(r[2]||'')===nd);
+              if(res){const win=String(res[9]||'');if(win)m.teamB=win;}
+            }
+          }
+        }
+      });
+    });
+  }
+
+  // v5 FIX: Đổi label "Nhất Bảng A" → "1A", "Nhì Bảng B" → "2B" giống admin
+  const _shortSeedLabel=s=>{
+    if(!s)return s;
+    const rnMap={'nhất':1,'nhì':2,'ba':3,'tư':4,'1':1,'2':2,'3':3,'4':4};
+    const m2=s.match(/^(Nhất|Nhì|Ba|Tư|\d+)\s+(?:Bảng\s+)?([A-Z])$/i);
+    if(m2){const r=rnMap[(m2[1]||'').toLowerCase()]||m2[1];return r+m2[2].toUpperCase();}
+    // "Thắng V161" → "V161", "Thắng TK1" → "TK1"
+    const m3=s.match(/^Thắng\s+(.+)$/i);
+    if(m3)return m3[1];
+    return s;
+  };
+  // v5 FIX: mkCard với normalize nd + live score từ _live
+  const _normND=s=>String(s||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\s+/g,' ');
   const mkCard=(m,ff)=>{
-    const nameA=m.teamA||(m.isByeA?'BYE':m.seedA&&!m.seedA.startsWith('Thắng')&&!m.seedA.startsWith('S')?m.seedA:'—');
-    const nameB=m.teamB||(m.isByeB?'BYE':m.seedB&&!m.seedB.startsWith('Thắng')&&!m.seedB.startsWith('S')?m.seedB:'—');
+    const nameA=m.teamA||(m.isByeA?'BYE':m.seedA&&!m.seedA.startsWith('S')?_shortSeedLabel(m.seedA):'—');
+    const nameB=m.teamB||(m.isByeB?'BYE':m.seedB&&!m.seedB.startsWith('S')?_shortSeedLabel(m.seedB):'—');
     const isTbdA=!m.teamA&&!m.isByeA;
     const isTbdB=!m.teamB&&!m.isByeB;
-    const res=_results.find(r=>String(r[2]||'')===nd&&String(r[4]||'')===m.code);
+    // FIX: normalize nd + filter theo nd và code (giai không bắt buộc để tăng recall)
+    const res=_results.find(r=>{
+      const rNd=String(r[2]||'');const rCode=String(r[4]||'');
+      return _normND(rNd)===_normND(nd)&&rCode===m.code;
+    })||_results.find(r=>String(r[4]||'')===m.code&&_ndMatch(String(r[2]||''),nd));
     let sA='',sB='',winA=false,winB=false,isDone=false;
     if(res){
       sA=res[7]??'';sB=res[8]??'';
@@ -1252,7 +1360,19 @@ function renderBracket(nd, tree, el){
       winB=!!(win&&win===String(res[6]||''));
       isDone=!!(win);
     }
-    const isLive=_live.some(r=>{const{code}=_liveKeyParts(r);return code===m.code;});
+    // FIX: tìm live entry đúng theo nd+code, lấy tỉ số đang chơi từ _live
+    const liveRow=_live.find(r=>{
+      const{nd:lnd,code:lcode}=_liveKeyParts(r);
+      return lcode===m.code&&_ndMatch(lnd,nd);
+    });
+    const isLive=!!liveRow;
+    // Tỉ số: ưu tiên live (đang đấu) → kết quả đã lưu
+    if(isLive&&liveRow){
+      // liveRow: [key, giai, teamA, scoreA, scoreB, teamB, serve, game, updatedAt, status, referee]
+      // FIX: dùng đúng index từ fbLive.push format
+      const lsA=liveRow[3]??''; const lsB=liveRow[4]??'';
+      if(lsA!==''||lsB!==''){sA=lsA;sB=lsB;}
+    }
     const cc=cardCls(ff,isDone,isLive);
     // Tên: split theo " - " nếu đôi
     const tnHtml=n=>{
@@ -1260,9 +1380,19 @@ function renderBracket(nd, tree, el){
       if(ps.length===1)return`<span class="tn${isTbdA&&n===nameA||isTbdB&&n===nameB?' tbd':''}">${esc(n)}</span>`;
       return`<span class="tn">${ps.map(p=>`<span style="display:block;line-height:1.2">${esc(p)}</span>`).join('')}</span>`;
     };
-    return`<div class="bk-card ${cc}">
-      <div class="bk-card-team${winA?' winner':winB?' loser':''}">${tnHtml(nameA)}<span class="ts">${sA!==''?esc(String(sA)):''}</span></div>
-      <div class="bk-card-team${winB?' winner':winA?' loser':''}">${tnHtml(nameB)}<span class="ts">${sB!==''?esc(String(sB)):''}</span></div>
+    // v5 FIX: layout giống admin — tên trái, tỉ số phải, dot live nhỏ trong header card
+    const liveDot=isLive?'<span style="width:6px;height:6px;background:#f97316;border-radius:50%;display:inline-block;flex-shrink:0;vertical-align:middle;margin-left:4px"></span>':'';
+    const cardStyle=isLive?'border-left:2px solid #f97316;animation:livePulse 1.5s infinite':'';
+    return`<div class="bk-card ${cc}" style="${cardStyle}">
+      <div class="bk-card-hd" style="display:flex;align-items:center;justify-content:space-between;padding:2px 6px 0;opacity:.6;font-size:9px">
+        <span>${esc(m.code||'')}</span>${liveDot}
+      </div>
+      <div class="bk-card-team${winA?' winner':winB?' loser':''}">
+        ${tnHtml(nameA)}<span class="ts${isLive&&!isDone?' bk-live-score':''}">${sA!==''?esc(String(sA)):''}</span>
+      </div>
+      <div class="bk-card-team${winB?' winner':winA?' loser':''}">
+        ${tnHtml(nameB)}<span class="ts${isLive&&!isDone?' bk-live-score':''}">${sB!==''?esc(String(sB)):''}</span>
+      </div>
     </div>`;
   };
 
@@ -1516,6 +1646,40 @@ function switchNd(idx){
 // ── AUTO ROTATE NOIDUNG ──
 function startRotate(){ /* v10: TẮT auto-rotate — giữ nguyên nội dung đang xem */ }
 function resetRotate(){ /* no-op */ }
+
+// v5: Auto-switch to bracket tab when all groups done + bracket cache available
+const _autoSwitchedToBracket = {};
+function _checkAutoSwitchToBracket() {
+  try {
+    const ndMap = {};
+    (_groups||[]).forEach(g => {
+      if(!ndMap[g.ndKey])ndMap[g.ndKey]=[];
+      ndMap[g.ndKey].push(g);
+    });
+    Object.entries(ndMap).forEach(([ndKey, groups]) => {
+      if(_autoSwitchedToBracket[ndKey])return;
+      const allDone=groups.length>0&&groups.every(g=>{
+        const total=(g.matches||[]).length;
+        if(!total)return false;
+        // Đủ kết quả: mỗi trận trong mList có trong rList
+        const doneCount=(g.results||[]).length;
+        return doneCount>=total;
+      });
+      if(!allDone)return;
+      const sep=ndKey.indexOf('§');
+      const nd=sep>=0?ndKey.slice(sep+1):ndKey;
+      if(!_bracketCache[nd])return;
+      const safeId=nd.replace(/[^a-zA-Z0-9]/g,'_');
+      if(_ndSubTab[safeId]!=='bracket'){
+        console.log('[Display] Auto-switch bracket tab:',nd);
+        _autoSwitchedToBracket[ndKey]=true;
+        switchSubTab(safeId,'bracket');
+        const el=document.getElementById('st-bracket-'+safeId);
+        if(el)setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'nearest'}),200);
+      }
+    });
+  }catch(e){console.warn('[Display] autoSwitch err:',e.message);}
+}
 
 // ── POLLING ──
 function startPolling(){
