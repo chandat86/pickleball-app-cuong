@@ -375,13 +375,16 @@ body{font-family:var(--fn);background:var(--bg);color:var(--tx);min-height:100vh
 /* Bracket section label */
 .bk-sec{font-size:13px;font-weight:700;padding:10px 0 10px;display:flex;align-items:center;gap:6px}
 .bk-sec-line{flex:1;height:1px;background:var(--bdr)}
-/* Bracket wrapper with scroll */
-.bk-scroll{overflow-x:auto;overflow-y:visible;padding-bottom:8px;
-  scrollbar-width:thin;scrollbar-color:var(--bdr3) transparent;
-  width:100%;max-width:100%;box-sizing:border-box}
-.bk-scroll::-webkit-scrollbar{height:6px}
-.bk-scroll::-webkit-scrollbar-track{background:var(--bg2);border-radius:4px}
-.bk-scroll::-webkit-scrollbar-thumb{background:var(--bdr3);border-radius:4px}
+/* Bracket wrapper with pinch-zoom + pan (v5) */
+.bk-scroll{position:relative;overflow:hidden;
+  width:100%;height:70vh;min-height:320px;max-width:100%;box-sizing:border-box;
+  background:var(--bg);border-radius:8px;touch-action:none;cursor:grab}
+.bk-scroll.dragging{cursor:grabbing}
+.bk-scroll-inner{position:absolute;transform-origin:0 0;will-change:transform;
+  padding:12px 16px 24px;}
+/* Hint text */
+.bk-zoom-hint{position:absolute;bottom:8px;right:10px;font-size:10px;color:var(--tx4);
+  pointer-events:none;opacity:.7}
 /* Bracket nd selector tabs */
 .bk-nd-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
 .bk-nd-tab{padding:5px 14px;font-size:12px;font-weight:700;border-radius:20px;
@@ -1828,7 +1831,7 @@ function _bkBuildAndRenderTree(nd,wrap){
   // ── KO bracket only ──
   let html='';
   if(koRoundsOnly.length){
-    html+='<div class="bk-scroll"><div class="bk-bracket">';
+    html+='<div class="bk-scroll" data-bk-zoom><div class="bk-scroll-inner"><div class="bk-bracket">';
     koRoundsOnly.forEach((round,ri)=>{
       const nM=round.matches.length,isLast=ri===koRoundsOnly.length-1;
       const cc=connCls(round),lc=roundLblCls(round),mc=matchRoundCls(round,isLast);
@@ -1856,7 +1859,8 @@ function _bkBuildAndRenderTree(nd,wrap){
       }
     }
     html+=`<div class="bk-champ-wrap"><div class="bk-champ-box"><div class="bk-champ-icon">🏆</div><div class="bk-champ-lbl">Vô địch</div>${champName?`<div class="bk-champ-name">${esc(champName)}</div>`:''}</div></div>`;
-    html+='</div></div>';
+    html+='</div></div></div>';  // close bk-bracket + bk-scroll-inner + bk-scroll
+    html+='<div class="bk-zoom-hint">🤏 Kéo/pinch để phóng to</div>';
 
     if(h3Round?.matches?.length){
       const m3=h3Round.matches[0];
@@ -1871,6 +1875,7 @@ function _bkBuildAndRenderTree(nd,wrap){
   }
 
   wrap.innerHTML=html;
+  requestAnimationFrame(_initAllBracketZooms);
 }
 
 // v37: Fetch cây thi đấu từ SRV BracketTree (GET, public)
@@ -2174,7 +2179,7 @@ function _bkRenderFromSnapshot(nd,snap,wrap){
   const h3Round=roundMatches.find(r=>r.cls==='bk-h3');
   let html='';
   if(koRoundsOnly.length){
-    html+='<div class="bk-scroll"><div class="bk-bracket">';
+    html+='<div class="bk-scroll" data-bk-zoom><div class="bk-scroll-inner"><div class="bk-bracket">';
     koRoundsOnly.forEach((round,ri)=>{
       const nM=round.matches.length,isLast=ri===koRoundsOnly.length-1;
       if(ri>0)html+=mkConn(nM,connCls(round));
@@ -2206,7 +2211,8 @@ function _bkRenderFromSnapshot(nd,snap,wrap){
       }
     }
     html+=`<div class="bk-champ-wrap"><div class="bk-champ-box"><div class="bk-champ-icon">🏆</div><div class="bk-champ-lbl">Vô địch</div>${champName?`<div class="bk-champ-name">${esc(champName)}</div>`:''}</div></div>`;
-    html+='</div></div>';
+    html+='</div></div></div>';
+    html+='<div class="bk-zoom-hint">🤏 Kéo/pinch để phóng to</div>';
     if(h3Round?.matches?.length){
       const m3=h3Round.matches[0];const koM3=koByCode[m3.code];
       const bang3=koM3?String(koM3[2]||''):'';
@@ -2221,6 +2227,7 @@ function _bkRenderFromSnapshot(nd,snap,wrap){
     html='<div class="empty-state"><div class="empty-icon">🏆</div><div class="empty-msg">Vòng loại trực tiếp chưa được tạo</div></div>';
   }
   wrap.innerHTML=html;
+  requestAnimationFrame(_initAllBracketZooms);
 }
 
 function selectBkNd(nd){
@@ -2303,6 +2310,67 @@ window.addEventListener('load',async()=>{
     }
   }
 });
+
+// ── v5: Pinch-to-zoom + pan for bracket containers ──────────────────────────
+function _initBracketZoom(el){
+  if(!el||el._bkZoomInit)return;
+  el._bkZoomInit=true;
+  const inner=el.querySelector('.bk-scroll-inner');
+  if(!inner)return;
+  let scale=1,tx=0,ty=0;
+  let lastDist=0,startTx=0,startTy=0,startX=0,startY=0;
+  let isPinch=false,isDrag=false;
+  const MIN=0.3,MAX=3;
+  const apply=(s,x,y,anim)=>{
+    scale=Math.max(MIN,Math.min(MAX,s));tx=x;ty=y;
+    inner.style.transition=anim?'transform .15s':'none';
+    inner.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;
+  };
+  const dist=ts=>{const[a,b]=ts;return Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);};
+  el.addEventListener('touchstart',e=>{
+    if(e.touches.length===2){isPinch=true;lastDist=dist(e.touches);
+      const r=el.getBoundingClientRect();
+      startX=(e.touches[0].clientX+e.touches[1].clientX)/2-r.left;
+      startY=(e.touches[0].clientY+e.touches[1].clientY)/2-r.top;
+      startTx=tx;startTy=ty;
+    }else if(e.touches.length===1&&!isPinch){isDrag=true;
+      startX=e.touches[0].clientX-tx;startY=e.touches[0].clientY-ty;}
+  },{passive:true});
+  el.addEventListener('touchmove',e=>{
+    if(e.touches.length===2&&isPinch){
+      e.preventDefault();
+      const nd=dist(e.touches);
+      const newScale=scale*(nd/lastDist);
+      const cx=(e.touches[0].clientX+e.touches[1].clientX)/2-el.getBoundingClientRect().left;
+      const cy=(e.touches[0].clientY+e.touches[1].clientY)/2-el.getBoundingClientRect().top;
+      const nx=cx-(cx-startTx)*(newScale/scale);
+      const ny=cy-(cy-startTy)*(newScale/scale);
+      apply(newScale,nx,ny,false);lastDist=nd;
+    }else if(e.touches.length===1&&isDrag&&!isPinch){
+      e.preventDefault();
+      apply(scale,e.touches[0].clientX-startX,e.touches[0].clientY-startY,false);
+    }
+  },{passive:false});
+  el.addEventListener('touchend',e=>{if(e.touches.length<2)isPinch=false;if(e.touches.length===0)isDrag=false;},{passive:true});
+  // Mouse drag
+  let mDragging=false,mSX=0,mSY=0;
+  el.addEventListener('mousedown',e=>{mDragging=true;mSX=e.clientX-tx;mSY=e.clientY-ty;el.classList.add('dragging');e.preventDefault();});
+  el.addEventListener('mousemove',e=>{if(mDragging)apply(scale,e.clientX-mSX,e.clientY-mSY,false);});
+  el.addEventListener('mouseup',()=>{mDragging=false;el.classList.remove('dragging');});
+  el.addEventListener('mouseleave',()=>{mDragging=false;el.classList.remove('dragging');});
+  // Mouse wheel zoom
+  el.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const r=el.getBoundingClientRect();
+    const cx=e.clientX-r.left,cy=e.clientY-r.top;
+    const delta=e.deltaY>0?0.9:1.1;
+    const ns=Math.max(MIN,Math.min(MAX,scale*delta));
+    apply(ns,cx-(cx-tx)*(ns/scale),cy-(cy-ty)*(ns/scale),false);
+  },{passive:false});
+}
+function _initAllBracketZooms(){
+  document.querySelectorAll('[data-bk-zoom]').forEach(_initBracketZoom);
+}
 </script>
 </body>
 </html>
